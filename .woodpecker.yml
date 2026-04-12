@@ -8,7 +8,7 @@ steps:
   - name: build-js
     image: node:20-alpine
     commands:
-      - npm ci
+      - npm install
       - npm run lint
       - npm run build
 
