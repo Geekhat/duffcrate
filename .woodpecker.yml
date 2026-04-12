@@ -1,0 +1,21 @@
+when:
+  - event: [push, pull_request]
+
+steps:
+  lint-php:
+    image: php:8.2-cli
+    commands:
+      - composer install --no-interaction
+      - vendor/bin/phpcs --standard=PSR12 lib/
+
+  lint-js:
+    image: node:20-alpine
+    commands:
+      - npm ci
+      - npm run lint
+
+  build-js:
+    image: node:20-alpine
+    commands:
+      - npm ci
+      - npm run build
