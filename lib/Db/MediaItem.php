@@ -27,10 +27,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setDiscogsId(?string $discogsId)
  * @method string|null getArtworkPath()
  * @method void setArtworkPath(?string $artworkPath)
- * @method \DateTime|null getCreatedAt()
- * @method void setCreatedAt(\DateTime $createdAt)
- * @method \DateTime|null getUpdatedAt()
- * @method void setUpdatedAt(\DateTime $updatedAt)
+ * @method string|null getCreatedAt()
+ * @method void setCreatedAt(string $createdAt)
+ * @method string|null getUpdatedAt()
+ * @method void setUpdatedAt(string $updatedAt)
  */
 class MediaItem extends Entity
 {
@@ -44,8 +44,8 @@ class MediaItem extends Entity
     protected string $status = 'owned';
     protected ?string $discogsId = null;
     protected ?string $artworkPath = null;
-    protected ?\DateTime $createdAt = null;
-    protected ?\DateTime $updatedAt = null;
+    protected ?string $createdAt = null;
+    protected ?string $updatedAt = null;
 
     public function __construct()
     {
@@ -66,8 +66,8 @@ class MediaItem extends Entity
             'status'      => $this->status,
             'discogsId'   => $this->discogsId,
             'artworkPath' => $this->artworkPath,
-            'createdAt'   => $this->createdAt?->format('c'),
-            'updatedAt'   => $this->updatedAt?->format('c'),
+            'createdAt'   => $this->createdAt,
+            'updatedAt'   => $this->updatedAt,
         ];
     }
 }

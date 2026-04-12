@@ -43,7 +43,7 @@ class MediaService
         $item->setBarcode($barcode);
         $item->setNotes($notes);
         $item->setStatus($status);
-        $now = new \DateTime();
+        $now = (new \DateTime())->format('Y-m-d H:i:s');
         $item->setCreatedAt($now);
         $item->setUpdatedAt($now);
         return $this->mapper->insert($item);
@@ -68,7 +68,7 @@ class MediaService
         $item->setBarcode($barcode);
         $item->setNotes($notes);
         $item->setStatus($status);
-        $item->setUpdatedAt(new \DateTime());
+        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
         return $this->mapper->update($item);
     }
 
