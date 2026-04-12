@@ -17,6 +17,7 @@
     </dependencies>
     <navigations>
         <navigation>
+            <id>crate</id>
             <name>Crate</name>
             <route>crate.page.index</route>
             <icon>app.svg</icon>
