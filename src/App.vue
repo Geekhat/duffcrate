@@ -18,7 +18,17 @@
           @click="switchView('wishlist')"
         />
       </template>
+      <template #footer>
+        <NcAppNavigationSettings
+          name="Settings"
+          @click="settingsOpen = true"
+        />
+      </template>
     </NcAppNavigation>
+
+    <SettingsPanel
+      v-model:open="settingsOpen"
+    />
 
     <NcAppContent>
       <!-- Home / landing view -->
@@ -133,13 +143,15 @@
 
 <script setup>
 import { ref } from 'vue'
-import { NcContent, NcAppContent, NcAppNavigation, NcAppNavigationItem, NcButton, NcDialog } from '@nextcloud/vue'
+import { NcContent, NcAppContent, NcAppNavigation, NcAppNavigationItem, NcAppNavigationSettings, NcButton, NcDialog } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import AddEditModal from './components/AddEditModal.vue'
 import HomeView from './components/HomeView.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
 
 const view = ref('home')
+const settingsOpen = ref(false)
 const items = ref([])
 const loading = ref(false)
 const homeView = ref(null)

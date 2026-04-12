@@ -8,6 +8,13 @@
       <h2 id="crate-modal-title">
         {{ title }}
       </h2>
+
+      <!-- Discogs search (add mode only) -->
+      <DiscogsSearch
+        v-if="!item"
+        @select="applyDiscogs"
+      />
+
       <form @submit.prevent="submit">
         <div class="crate-field">
           <label for="field-artist">Artist <span class="required">*</span></label>
@@ -99,6 +106,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
+import DiscogsSearch from './DiscogsSearch.vue'
 
 const props = defineProps({
   show: { type: Boolean, required: true },
@@ -119,6 +127,7 @@ const blankForm = () => ({
   format: '',
   year: null,
   notes: '',
+  discogsId: null,
 })
 
 const form = ref(blankForm())
@@ -134,6 +143,7 @@ watch(
             format: props.item.format,
             year: props.item.year ?? null,
             notes: props.item.notes ?? '',
+            discogsId: props.item.discogsId ?? null,
           }
         : blankForm()
     }
@@ -141,6 +151,14 @@ watch(
 )
 
 const title = computed(() => props.item ? 'Edit item' : 'Add item')
+
+function applyDiscogs(result) {
+  form.value.artist = result.artist || form.value.artist
+  form.value.title = result.title || form.value.title
+  form.value.format = result.format || form.value.format
+  form.value.year = result.year || form.value.year
+  form.value.discogsId = result.discogsId || null
+}
 
 async function submit() {
   saving.value = true
@@ -166,7 +184,7 @@ async function submit() {
 
 .crate-modal h2 {
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-size: 1.2em;
 }
 

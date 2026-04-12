@@ -1,0 +1,191 @@
+<template>
+  <NcAppSettingsDialog
+    :open="open"
+    :show-navigation="false"
+    name="Crate settings"
+    @update:open="$emit('update:open', $event)"
+  >
+    <NcAppSettingsSection
+      id="crate-settings-discogs"
+      name="Discogs"
+    >
+      <p class="settings-hint">
+        Crate uses the
+        <a
+          href="https://www.discogs.com/developers/"
+          target="_blank"
+          rel="noopener"
+        >Discogs API</a>
+        to search for album metadata and artwork. Enter your personal access token below.
+        You can generate one at
+        <a
+          href="https://www.discogs.com/settings/developers"
+          target="_blank"
+          rel="noopener"
+        >discogs.com/settings/developers</a>.
+      </p>
+
+      <div class="settings-field">
+        <label for="discogs-token">Personal access token</label>
+        <div class="settings-token-row">
+          <input
+            id="discogs-token"
+            v-model="tokenInput"
+            :type="showToken ? 'text' : 'password'"
+            :placeholder="hasToken ? '(token saved — paste a new one to replace)' : 'Paste your token here'"
+            autocomplete="off"
+          >
+          <NcButton
+            type="tertiary"
+            :aria-label="showToken ? 'Hide token' : 'Show token'"
+            @click="showToken = !showToken"
+          >
+            {{ showToken ? 'Hide' : 'Show' }}
+          </NcButton>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <NcButton
+          type="primary"
+          :disabled="saving || tokenInput === ''"
+          @click="save"
+        >
+          {{ saving ? 'Saving…' : 'Save token' }}
+        </NcButton>
+        <NcButton
+          v-if="hasToken"
+          type="tertiary"
+          :disabled="saving"
+          @click="clearToken"
+        >
+          Remove token
+        </NcButton>
+        <span
+          v-if="savedMessage"
+          class="settings-saved"
+        >{{ savedMessage }}</span>
+      </div>
+    </NcAppSettingsSection>
+  </NcAppSettingsDialog>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { NcAppSettingsDialog, NcAppSettingsSection, NcButton } from '@nextcloud/vue'
+import axios from '@nextcloud/axios'
+import { generateOcsUrl } from '@nextcloud/router'
+
+defineProps({
+  open: { type: Boolean, required: true },
+})
+defineEmits(['update:open'])
+
+const tokenInput = ref('')
+const hasToken = ref(false)
+const showToken = ref(false)
+const saving = ref(false)
+const savedMessage = ref('')
+
+async function load() {
+  try {
+    const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'))
+    hasToken.value = res.data.ocs?.data?.hasToken ?? false
+  } catch (e) {
+    console.error('Failed to load settings', e)
+  }
+}
+
+async function save() {
+  saving.value = true
+  savedMessage.value = ''
+  try {
+    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'), {
+      token: tokenInput.value,
+    })
+    hasToken.value = tokenInput.value !== ''
+    tokenInput.value = ''
+    savedMessage.value = 'Saved!'
+    setTimeout(() => { savedMessage.value = '' }, 3000)
+  } catch (e) {
+    console.error('Failed to save token', e)
+    savedMessage.value = 'Failed to save.'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function clearToken() {
+  saving.value = true
+  try {
+    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'), { token: '' })
+    hasToken.value = false
+    savedMessage.value = 'Token removed.'
+    setTimeout(() => { savedMessage.value = '' }, 3000)
+  } catch (e) {
+    console.error('Failed to clear token', e)
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(load)
+</script>
+
+<style scoped>
+.settings-hint {
+  font-size: 0.875em;
+  color: var(--color-text-maxcontrast);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.settings-hint a {
+  color: var(--color-primary-element);
+}
+
+.settings-field {
+  margin-bottom: 12px;
+}
+
+.settings-field label {
+  display: block;
+  font-size: 0.875em;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.settings-token-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-token-row input {
+  flex: 1;
+  border: 2px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-main-background);
+  color: var(--color-main-text);
+  padding: 6px 10px;
+  font-size: 1em;
+  font-family: monospace;
+}
+
+.settings-token-row input:focus {
+  border-color: var(--color-primary-element);
+  outline: none;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-saved {
+  font-size: 0.875em;
+  color: var(--color-success);
+}
+</style>
