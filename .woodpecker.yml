@@ -25,3 +25,4 @@ steps:
       - kubectl exec -n default $POD -- php /var/www/html/occ app:disable crate || true
       - kubectl exec -n default $POD -- php /var/www/html/occ app:enable crate
       - kubectl exec -n default $POD -- php /var/www/html/occ upgrade
+      - kubectl exec -n default $POD -- apache2ctl graceful
