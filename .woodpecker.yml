@@ -1,21 +1,26 @@
-when:
-  - event: [push, pull_request]
-
 steps:
-  lint-php:
-    image: php:8.2-cli
+  - name: lint-php
+    image: composer:2
     commands:
       - composer install --no-interaction
       - vendor/bin/phpcs --standard=PSR12 lib/
 
-  lint-js:
+  - name: build-js
     image: node:20-alpine
     commands:
       - npm ci
       - npm run lint
-
-  build-js:
-    image: node:20-alpine
-    commands:
-      - npm ci
       - npm run build
+
+  - name: deploy
+    image: bitnami/kubectl:latest
+    when:
+      - event: push
+        branch: main
+    commands:
+      - POD=$(kubectl get pod -n default -l app=nextcloud -o jsonpath='{.items[0].metadata.name}')
+      - kubectl exec -n default $POD -- mkdir -p /var/www/html/custom_apps/crate
+      - tar cf - appinfo img lib templates js | kubectl exec -n default -i $POD -- tar xf - -C /var/www/html/custom_apps/crate/
+      - kubectl exec -n default $POD -- chown -R www-data:www-data /var/www/html/custom_apps/crate
+      - kubectl exec -n default $POD -- php /var/www/html/occ app:enable crate || true
+      - kubectl exec -n default $POD -- php /var/www/html/occ upgrade
