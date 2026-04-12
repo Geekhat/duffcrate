@@ -32,7 +32,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getUpdatedAt()
  * @method void setUpdatedAt(string $updatedAt)
  */
-class MediaItem extends Entity
+class MediaItem extends Entity implements \JsonSerializable
 {
     protected string $userId = '';
     protected string $title = '';
