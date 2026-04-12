@@ -22,5 +22,7 @@ steps:
       - kubectl exec -n default $POD -- mkdir -p /var/www/html/custom_apps/crate
       - tar cf - appinfo img lib templates js | kubectl exec -n default -i $POD -- tar xf - -C /var/www/html/custom_apps/crate/
       - kubectl exec -n default $POD -- chown -R www-data:www-data /var/www/html/custom_apps/crate
-      - kubectl exec -n default $POD -- php /var/www/html/occ app:enable crate || true
+      - kubectl exec -n default $POD -- php /var/www/html/occ app:disable crate || true
+      - kubectl exec -n default $POD -- php /var/www/html/occ app:enable crate
+      - kubectl exec -n default $POD -- php /var/www/html/occ cache:clear
       - kubectl exec -n default $POD -- php /var/www/html/occ upgrade

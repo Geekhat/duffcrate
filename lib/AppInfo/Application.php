@@ -13,9 +13,9 @@ class Application extends App implements IBootstrap
 {
     public const APP_ID = 'crate';
 
-    public function __construct()
+    public function __construct(array $urlParams = [])
     {
-        parent::__construct(self::APP_ID);
+        parent::__construct(self::APP_ID, $urlParams);
     }
 
     public function register(IRegistrationContext $context): void
