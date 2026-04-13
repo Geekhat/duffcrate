@@ -15,7 +15,7 @@
           type="secondary"
           @click="enrich"
         >
-          Enrich from Discogs
+          {{ isEnriched ? 'Re-enrich from Discogs' : 'Enrich from Discogs' }}
         </NcButton>
         <span
           v-if="enriching"
@@ -151,6 +151,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+
 import { NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
@@ -162,6 +163,11 @@ const props = defineProps({
 const emit = defineEmits(['back', 'edit', 'delete', 'enriched'])
 
 const enriching = ref(false)
+
+// True once full release data has been fetched from Discogs
+const isEnriched = computed(() =>
+  !!(props.item.genres || props.item.artistBio || (Array.isArray(props.item.tracklist) && props.item.tracklist.length > 0)),
+)
 
 const FORMAT_COLOURS = {
   Vinyl: ['#6b21a8', '#a855f7'],
@@ -226,6 +232,8 @@ async function enrich() {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0 16px;
+  /* Push below the Nextcloud top-bar / sidebar-toggle button */
+  padding-top: calc(var(--default-clickable-area, 44px) + 8px);
   position: sticky;
   top: 0;
   background: var(--color-main-background);

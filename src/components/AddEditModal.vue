@@ -2,6 +2,7 @@
   <NcModal
     :show="show"
     label-id="crate-modal-title"
+    size="normal"
     @close="$emit('close')"
   >
     <div class="crate-modal">
@@ -16,61 +17,90 @@
       />
 
       <form @submit.prevent="submit">
-        <div class="crate-field">
-          <label for="field-artist">Artist <span class="required">*</span></label>
-          <input
-            id="field-artist"
-            v-model="form.artist"
-            type="text"
-            required
-            placeholder="e.g. Pink Floyd"
-          >
+        <!-- Two-column row: Artist + Format -->
+        <div class="crate-row">
+          <div class="crate-field crate-field--grow">
+            <label for="field-artist">Artist <span class="required">*</span></label>
+            <input
+              id="field-artist"
+              v-model="form.artist"
+              type="text"
+              required
+              placeholder="e.g. Pink Floyd"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="crate-field crate-field--format">
+            <label for="field-format">Format <span class="required">*</span></label>
+            <select
+              id="field-format"
+              v-model="form.format"
+              required
+            >
+              <option
+                value=""
+                disabled
+              >
+                Select…
+              </option>
+              <optgroup
+                v-for="group in formatGroups"
+                :key="group.label"
+                :label="group.label"
+              >
+                <option
+                  v-for="fmt in group.formats"
+                  :key="fmt"
+                  :value="fmt"
+                >
+                  {{ fmt }}
+                </option>
+              </optgroup>
+            </select>
+          </div>
         </div>
 
         <div class="crate-field">
-          <label for="field-title">Album <span class="required">*</span></label>
+          <label for="field-title">Album / Title <span class="required">*</span></label>
           <input
             id="field-title"
             v-model="form.title"
             type="text"
             required
             placeholder="e.g. The Dark Side of the Moon"
+            autocomplete="off"
           >
         </div>
 
-        <div class="crate-field">
-          <label for="field-format">Format <span class="required">*</span></label>
-          <select
-            id="field-format"
-            v-model="form.format"
-            required
-          >
-            <option
-              value=""
-              disabled
+        <!-- Two-column row: Year + Status -->
+        <div class="crate-row">
+          <div class="crate-field crate-field--year">
+            <label for="field-year">Year</label>
+            <input
+              id="field-year"
+              v-model.number="form.year"
+              type="number"
+              min="1857"
+              :max="currentYear"
+              placeholder="e.g. 1973"
             >
-              Select format
-            </option>
-            <option
-              v-for="fmt in formats"
-              :key="fmt"
-              :value="fmt"
-            >
-              {{ fmt }}
-            </option>
-          </select>
-        </div>
+          </div>
 
-        <div class="crate-field">
-          <label for="field-year">Year</label>
-          <input
-            id="field-year"
-            v-model.number="form.year"
-            type="number"
-            min="1877"
-            :max="currentYear"
-            placeholder="e.g. 1973"
-          >
+          <div class="crate-field crate-field--grow">
+            <label for="field-status">Status</label>
+            <select
+              id="field-status"
+              v-model="form.status"
+            >
+              <option value="owned">
+                Owned
+              </option>
+              <option value="wanted">
+                Wishlist
+              </option>
+            </select>
+          </div>
         </div>
 
         <div class="crate-field">
@@ -79,7 +109,7 @@
             id="field-notes"
             v-model="form.notes"
             rows="3"
-            placeholder="Condition, pressing info, etc."
+            placeholder="Condition, pressing info, purchase details…"
           />
         </div>
 
@@ -95,7 +125,7 @@
             type="primary"
             :disabled="saving"
           >
-            {{ saving ? 'Saving…' : (item ? 'Save changes' : 'Add item') }}
+            {{ saving ? 'Saving…' : (item ? 'Save changes' : 'Add to collection') }}
           </NcButton>
         </div>
       </form>
@@ -116,9 +146,26 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-const formats = ['Vinyl', 'CD', 'SACD', 'Cassette', 'MiniDisc']
-const currentYear = new Date().getFullYear()
+const formatGroups = [
+  {
+    label: 'Vinyl',
+    formats: ['Vinyl', '7" Single', '10"', '12" Single', 'Picture Disc', 'Flexi-disc', 'Shellac', 'Lathe Cut'],
+  },
+  {
+    label: 'Tape',
+    formats: ['Cassette', '8-Track', 'Reel-to-Reel', 'DAT', 'DCC', '4-Track Cartridge', 'Microcassette'],
+  },
+  {
+    label: 'Disc',
+    formats: ['CD', 'SACD', 'CD-R', 'SHM-CD', 'HDCD', 'CDV', 'Blu-ray Audio', 'DVD-Audio', 'LaserDisc'],
+  },
+  {
+    label: 'Other',
+    formats: ['MiniDisc'],
+  },
+]
 
+const currentYear = new Date().getFullYear()
 const saving = ref(false)
 
 const blankForm = () => ({
@@ -127,6 +174,7 @@ const blankForm = () => ({
   format: '',
   year: null,
   notes: '',
+  status: props.defaultStatus,
   discogsId: null,
   artworkPath: null,
 })
@@ -144,6 +192,7 @@ watch(
             format: props.item.format,
             year: props.item.year ?? null,
             notes: props.item.notes ?? '',
+            status: props.item.status ?? props.defaultStatus,
             discogsId: props.item.discogsId ?? null,
             artworkPath: props.item.artworkPath ?? null,
           }
@@ -170,7 +219,6 @@ async function submit() {
       ...form.value,
       year: form.value.year || null,
       notes: form.value.notes || null,
-      status: props.item ? props.item.status : props.defaultStatus,
     }
     emit('save', payload)
   } finally {
@@ -181,27 +229,49 @@ async function submit() {
 
 <style scoped>
 .crate-modal {
-  padding: 20px 24px 24px;
-  min-width: 380px;
+  padding: 24px 28px 28px;
+  min-width: min(440px, 90vw);
 }
 
 .crate-modal h2 {
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 1.2em;
+  margin: 0 0 20px;
+  font-size: 1.25em;
+  font-weight: 700;
 }
 
+/* Two-column rows */
+.crate-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.crate-field--grow {
+  flex: 1 1 0;
+}
+
+.crate-field--format {
+  flex: 0 0 160px;
+}
+
+.crate-field--year {
+  flex: 0 0 110px;
+}
+
+/* Fields */
 .crate-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .crate-field label {
-  font-size: 0.875em;
-  font-weight: 500;
-  margin-bottom: 4px;
-  color: var(--color-main-text);
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  color: var(--color-text-maxcontrast);
 }
 
 .crate-field .required {
@@ -213,11 +283,12 @@ async function submit() {
 .crate-field textarea {
   border: 2px solid var(--color-border-dark);
   border-radius: var(--border-radius);
-  background: var(--color-main-background);
+  background: var(--color-background-dark);
   color: var(--color-main-text);
-  padding: 6px 10px;
+  padding: 9px 12px;
   font-size: 1em;
   font-family: inherit;
+  transition: border-color 0.15s;
 }
 
 .crate-field input:focus,
@@ -225,12 +296,31 @@ async function submit() {
 .crate-field textarea:focus {
   border-color: var(--color-primary-element);
   outline: none;
+  background: var(--color-main-background);
+}
+
+.crate-field textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .crate-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 480px) {
+  .crate-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .crate-field--format,
+  .crate-field--year {
+    flex: unset;
+  }
 }
 </style>

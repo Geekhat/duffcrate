@@ -176,30 +176,52 @@ function closeModal() {
 async function saveItem(payload) {
   try {
     let saved
-    if (editingItem.value) {
+    // Capture before closeModal clears it
+    const wasEditing = !!editingItem.value
+    const editId = editingItem.value?.id
+
+    if (wasEditing) {
       const res = await axios.put(
-        generateOcsUrl(`/apps/crate/api/v1/media/${editingItem.value.id}`),
+        generateOcsUrl(`/apps/crate/api/v1/media/${editId}`),
         payload,
       )
       saved = res.data.ocs?.data
     } else {
-      await axios.post(generateOcsUrl('/apps/crate/api/v1/media'), payload)
+      const res = await axios.post(generateOcsUrl('/apps/crate/api/v1/media'), payload)
+      saved = res.data.ocs?.data
     }
 
     closeModal()
 
-    // Update selectedItem in case we edited from detail view
-    if (saved && selectedItem.value?.id === saved.id) {
-      selectedItem.value = saved
+    // Update selectedItem immediately if we just edited the item being viewed
+    if (saved) {
+      // eslint-disable-next-line eqeqeq
+      if (selectedItem.value && selectedItem.value.id == saved.id) {
+        selectedItem.value = saved
+      }
+      // Patch the items list too
+      const idx = items.value.findIndex(i => i.id == saved.id)
+      if (idx !== -1) items.value[idx] = saved
+    }
+
+    // Auto-enrich newly added items that have a Discogs ID
+    if (!wasEditing && saved?.id && saved?.discogsId) {
+      axios.post(generateOcsUrl(`/apps/crate/api/v1/media/${saved.id}/enrich`))
+        .then(res => {
+          const enriched = res.data.ocs?.data
+          if (enriched) {
+            const idx = items.value.findIndex(i => i.id == enriched.id)
+            if (idx !== -1) items.value[idx] = enriched
+            if (view.value === 'home') homeView.value?.load()
+          }
+        })
+        .catch(() => { /* token not set or Discogs unavailable — silently skip */ })
     }
 
     if (view.value === 'detail') {
-      // Refresh the list in background so it's current when navigating back
-      if (previousView.value !== 'home') {
-        loadItems()
-      } else {
-        homeView.value?.load()
-      }
+      // List is patched inline above; just refresh home cards if needed
+      if (previousView.value === 'home') homeView.value?.load()
+      else loadItems()
     } else if (view.value === 'home') {
       homeView.value?.load()
     } else {

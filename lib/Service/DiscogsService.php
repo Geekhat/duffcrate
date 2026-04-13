@@ -253,8 +253,15 @@ class DiscogsService
             }
         }
 
-        $fmtName = strtolower((string)($r['formats'][0]['name'] ?? ''));
-        $format  = $this->mapFormat([$fmtName]);
+        // Combine format name + descriptions for more precise mapping
+        $fmtTokens = [];
+        if (!empty($r['formats'][0]['name'])) {
+            $fmtTokens[] = strtolower((string)$r['formats'][0]['name']);
+        }
+        foreach ((array)($r['formats'][0]['descriptions'] ?? []) as $desc) {
+            $fmtTokens[] = strtolower((string)$desc);
+        }
+        $format = $this->mapFormat($fmtTokens);
 
         $year = isset($r['year']) ? (int)$r['year'] : null;
         if ($year === 0) {
@@ -302,27 +309,103 @@ class DiscogsService
     }
 
     /**
-     * Map a Discogs format name to our canonical format string.
+     * Map an array of Discogs format tokens (name + descriptions, lowercased)
+     * to our canonical format string.
      *
      * @param string[] $formats
      */
     private function mapFormat(array $formats): string
     {
-        if (in_array('vinyl', $formats, true)) {
+        $has = fn(string $needle) => in_array($needle, $formats, true);
+        $hasSubstr = fn(string $needle) => (bool)array_filter(
+            $formats,
+            fn(string $f) => str_contains($f, $needle),
+        );
+
+        // ── Vinyl sub-types (check before generic "vinyl") ───────────────────
+        if ($has('shellac') || $hasSubstr('shellac')) {
+            return 'Shellac';
+        }
+        if ($has('flexi-disc') || $has('flexi disc')) {
+            return 'Flexi-disc';
+        }
+        if ($has('lathe cut')) {
+            return 'Lathe Cut';
+        }
+        if ($has('picture disc')) {
+            return 'Picture Disc';
+        }
+        // Specific sizes — only when vinyl is also present or as standalone token
+        if ($has('7"') || $has('7\'\'') || $has('7-inch')) {
+            return '7" Single';
+        }
+        if ($has('10"') || $has('10\'\'')) {
+            return '10"';
+        }
+        if ($has('12"') || $has('12\'\'')) {
+            return '12" Single';
+        }
+        if ($has('vinyl') || $has('lp')) {
             return 'Vinyl';
         }
-        if (in_array('sacd', $formats, true)) {
-            return 'SACD';
+
+        // ── Tape formats ─────────────────────────────────────────────────────
+        if ($has('8-track') || $has('8 track') || $has('8track')) {
+            return '8-Track';
         }
-        if (in_array('cd', $formats, true)) {
-            return 'CD';
+        if ($has('reel-to-reel') || $has('reel to reel') || $has('open reel')) {
+            return 'Reel-to-Reel';
         }
-        if (in_array('cassette', $formats, true)) {
+        if ($has('dat')) {
+            return 'DAT';
+        }
+        if ($has('dcc') || $has('digital compact cassette')) {
+            return 'DCC';
+        }
+        if ($has('microcassette')) {
+            return 'Microcassette';
+        }
+        if ($has('4-track') || $has('4 track')) {
+            return '4-Track Cartridge';
+        }
+        if ($has('cassette')) {
             return 'Cassette';
         }
-        if (in_array('minidisc', $formats, true)) {
+
+        // ── Optical disc formats ──────────────────────────────────────────────
+        if ($has('sacd') || $has('sacd hybrid')) {
+            return 'SACD';
+        }
+        if ($has('shm-cd') || $has('shm cd')) {
+            return 'SHM-CD';
+        }
+        if ($has('hdcd')) {
+            return 'HDCD';
+        }
+        if ($has('cd-r') || $has('cd r')) {
+            return 'CD-R';
+        }
+        if ($has('blu-ray') || $has('blu ray') || $has('blu-ray audio')) {
+            return 'Blu-ray Audio';
+        }
+        if ($has('dvd-audio') || $has('dvd audio')) {
+            return 'DVD-Audio';
+        }
+        if ($has('cdv')) {
+            return 'CDV';
+        }
+        if ($has('laserdisc') || $has('laser disc')) {
+            return 'LaserDisc';
+        }
+        if ($has('cd')) {
+            return 'CD';
+        }
+
+        // ── Other digital carriers ────────────────────────────────────────────
+        if ($has('minidisc') || $has('mini disc')) {
             return 'MiniDisc';
         }
-        return 'CD'; // sensible default for music
+
+        return 'Vinyl'; // sensible default for music
     }
 }
