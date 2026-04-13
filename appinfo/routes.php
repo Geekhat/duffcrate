@@ -17,6 +17,10 @@ return [
 		['name' => 'settings#getDiscogsToken', 'url' => '/api/v1/settings/discogs-token', 'verb' => 'GET'],
 		['name' => 'settings#setDiscogsToken', 'url' => '/api/v1/settings/discogs-token', 'verb' => 'POST'],
 
-		['name' => 'discogs#search', 'url' => '/api/v1/discogs/search', 'verb' => 'GET'],
+		['name' => 'discogs#search',     'url' => '/api/v1/discogs/search',         'verb' => 'GET'],
+		['name' => 'discogs#getRelease', 'url' => '/api/v1/discogs/release/{id}',   'verb' => 'GET'],
+		['name' => 'discogs#getArtist',  'url' => '/api/v1/discogs/artist/{id}',    'verb' => 'GET'],
+
+		['name' => 'media#enrich',       'url' => '/api/v1/media/{id}/enrich',      'verb' => 'POST'],
 	],
 ];

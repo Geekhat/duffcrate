@@ -27,6 +27,22 @@ use OCP\AppFramework\Db\Entity;
  * @method void setDiscogsId(?string $discogsId)
  * @method string|null getArtworkPath()
  * @method void setArtworkPath(?string $artworkPath)
+ * @method string|null getLabel()
+ * @method void setLabel(?string $label)
+ * @method string|null getCountry()
+ * @method void setCountry(?string $country)
+ * @method string|null getGenres()
+ * @method void setGenres(?string $genres)
+ * @method string|null getTracklist()
+ * @method void setTracklist(?string $tracklist)
+ * @method string|null getPressingNotes()
+ * @method void setPressingNotes(?string $pressingNotes)
+ * @method string|null getDiscogsArtistId()
+ * @method void setDiscogsArtistId(?string $discogsArtistId)
+ * @method string|null getArtistBio()
+ * @method void setArtistBio(?string $artistBio)
+ * @method string|null getArtistMembers()
+ * @method void setArtistMembers(?string $artistMembers)
  * @method string|null getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  * @method string|null getUpdatedAt()
@@ -44,6 +60,14 @@ class MediaItem extends Entity implements \JsonSerializable
     protected string $status = 'owned';
     protected ?string $discogsId = null;
     protected ?string $artworkPath = null;
+    protected ?string $label = null;
+    protected ?string $country = null;
+    protected ?string $genres = null;
+    protected ?string $tracklist = null;
+    protected ?string $pressingNotes = null;
+    protected ?string $discogsArtistId = null;
+    protected ?string $artistBio = null;
+    protected ?string $artistMembers = null;
     protected ?string $createdAt = null;
     protected ?string $updatedAt = null;
 
@@ -55,19 +79,31 @@ class MediaItem extends Entity implements \JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'id'          => $this->id,
-            'userId'      => $this->userId,
-            'title'       => $this->title,
-            'artist'      => $this->artist,
-            'format'      => $this->format,
-            'year'        => $this->year,
-            'barcode'     => $this->barcode,
-            'notes'       => $this->notes,
-            'status'      => $this->status,
-            'discogsId'   => $this->discogsId,
-            'artworkPath' => $this->artworkPath,
-            'createdAt'   => $this->createdAt,
-            'updatedAt'   => $this->updatedAt,
+            'id'              => $this->id,
+            'userId'          => $this->userId,
+            'title'           => $this->title,
+            'artist'          => $this->artist,
+            'format'          => $this->format,
+            'year'            => $this->year,
+            'barcode'         => $this->barcode,
+            'notes'           => $this->notes,
+            'status'          => $this->status,
+            'discogsId'       => $this->discogsId,
+            'artworkPath'     => $this->artworkPath,
+            'label'           => $this->label,
+            'country'         => $this->country,
+            'genres'          => $this->genres,
+            'tracklist'       => $this->tracklist !== null
+                ? json_decode($this->tracklist, true)
+                : null,
+            'pressingNotes'   => $this->pressingNotes,
+            'discogsArtistId' => $this->discogsArtistId,
+            'artistBio'       => $this->artistBio,
+            'artistMembers'   => $this->artistMembers !== null
+                ? json_decode($this->artistMembers, true)
+                : null,
+            'createdAt'       => $this->createdAt,
+            'updatedAt'       => $this->updatedAt,
         ];
     }
 }

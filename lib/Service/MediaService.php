@@ -35,6 +35,8 @@ class MediaService
         string $status,
         ?string $discogsId = null,
         ?string $artworkPath = null,
+        ?string $label = null,
+        ?string $country = null,
     ): MediaItem {
         $item = new MediaItem();
         $item->setUserId($userId);
@@ -47,6 +49,8 @@ class MediaService
         $item->setStatus($status);
         $item->setDiscogsId($discogsId);
         $item->setArtworkPath($artworkPath);
+        $item->setLabel($label);
+        $item->setCountry($country);
         $now = (new \DateTime())->format('Y-m-d H:i:s');
         $item->setCreatedAt($now);
         $item->setUpdatedAt($now);
@@ -65,6 +69,8 @@ class MediaService
         string $status,
         ?string $discogsId = null,
         ?string $artworkPath = null,
+        ?string $label = null,
+        ?string $country = null,
     ): MediaItem {
         $item = $this->mapper->findByUser($id, $userId);
         $item->setTitle($title);
@@ -76,6 +82,8 @@ class MediaService
         $item->setStatus($status);
         $item->setDiscogsId($discogsId);
         $item->setArtworkPath($artworkPath);
+        $item->setLabel($label);
+        $item->setCountry($country);
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
         return $this->mapper->update($item);
     }
@@ -84,5 +92,70 @@ class MediaService
     {
         $item = $this->mapper->findByUser($id, $userId);
         $this->mapper->delete($item);
+    }
+
+    /**
+     * Enrich an existing media item with full release data from Discogs.
+     *
+     * $release comes from DiscogsService::getRelease().
+     * $artist  comes from DiscogsService::getArtist() (may be empty).
+     *
+     * Only non-null values in the Discogs responses overwrite existing item data,
+     * so any field the user has set manually is only replaced if Discogs provides
+     * a value for it.
+     *
+     * @param array<string, mixed> $release
+     * @param array<string, mixed> $artist
+     */
+    public function applyReleaseData(int $id, string $userId, array $release, array $artist = []): MediaItem
+    {
+        $item = $this->mapper->findByUser($id, $userId);
+
+        if (!empty($release['title'])) {
+            $item->setTitle($release['title']);
+        }
+        if (!empty($release['artist'])) {
+            $item->setArtist($release['artist']);
+        }
+        if (!empty($release['format'])) {
+            $item->setFormat($release['format']);
+        }
+        if (isset($release['year'])) {
+            $item->setYear($release['year']);
+        }
+        if (!empty($release['label'])) {
+            $item->setLabel($release['label']);
+        }
+        if (!empty($release['country'])) {
+            $item->setCountry($release['country']);
+        }
+        if (!empty($release['genres'])) {
+            $item->setGenres($release['genres']);
+        }
+        if (isset($release['tracklist']) && is_array($release['tracklist'])) {
+            $item->setTracklist(json_encode($release['tracklist']));
+        }
+        if (!empty($release['pressingNotes'])) {
+            $item->setPressingNotes($release['pressingNotes']);
+        }
+        if (!empty($release['discogsArtistId'])) {
+            $item->setDiscogsArtistId($release['discogsArtistId']);
+        }
+        // Use full-size artwork URL (ArtworkController will cache it lazily)
+        if (!empty($release['artworkUrl'])) {
+            $item->setArtworkPath($release['artworkUrl']);
+        }
+
+        // Artist fields
+        if (!empty($artist['bio'])) {
+            $item->setArtistBio($artist['bio']);
+        }
+        if (isset($artist['members']) && is_array($artist['members'])) {
+            $item->setArtistMembers(json_encode($artist['members']));
+        }
+
+        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+
+        return $this->mapper->update($item);
     }
 }
