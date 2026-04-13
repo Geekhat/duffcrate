@@ -81,9 +81,17 @@ class MediaService
         $item->setNotes($notes);
         $item->setStatus($status);
         $item->setDiscogsId($discogsId);
-        $item->setArtworkPath($artworkPath);
-        $item->setLabel($label);
-        $item->setCountry($country);
+        // Only overwrite artwork / label / country if the caller explicitly provides a value,
+        // so that enriched data is not wiped when the user edits notes or other basic fields.
+        if ($artworkPath !== null) {
+            $item->setArtworkPath($artworkPath);
+        }
+        if ($label !== null) {
+            $item->setLabel($label);
+        }
+        if ($country !== null) {
+            $item->setCountry($country);
+        }
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
         return $this->mapper->update($item);
     }

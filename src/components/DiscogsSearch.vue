@@ -30,36 +30,39 @@
       No results found.
     </p>
 
-    <ul
+    <!-- Absolutely-positioned dropdown so it floats over the form fields below -->
+    <div
       v-if="results.length > 0"
-      class="discogs-results"
+      class="discogs-dropdown"
     >
-      <li
-        v-for="result in results"
-        :key="result.discogsId"
-        class="discogs-result"
-        @click="select(result)"
-      >
-        <img
-          v-if="result.thumb"
-          :src="result.thumb"
-          :alt="result.title"
-          class="discogs-result-thumb"
-          loading="lazy"
+      <ul class="discogs-results">
+        <li
+          v-for="result in results"
+          :key="result.discogsId"
+          class="discogs-result"
+          @mousedown.prevent="select(result)"
         >
-        <div
-          v-else
-          class="discogs-result-thumb discogs-result-thumb--placeholder"
-        />
-        <div class="discogs-result-info">
-          <span class="discogs-result-title">{{ result.title }}</span>
-          <span class="discogs-result-artist">{{ result.artist }}</span>
-          <span class="discogs-result-meta">
-            {{ result.format }}<template v-if="result.year">, {{ result.year }}</template><template v-if="result.label">, {{ result.label }}</template>
-          </span>
-        </div>
-      </li>
-    </ul>
+          <img
+            v-if="result.thumb"
+            :src="result.thumb"
+            :alt="result.title"
+            class="discogs-result-thumb"
+            loading="lazy"
+          >
+          <div
+            v-else
+            class="discogs-result-thumb discogs-result-thumb--placeholder"
+          />
+          <div class="discogs-result-info">
+            <span class="discogs-result-title">{{ result.title }}</span>
+            <span class="discogs-result-artist">{{ result.artist }}</span>
+            <span class="discogs-result-meta">
+              {{ result.format }}<template v-if="result.year">, {{ result.year }}</template><template v-if="result.label">, {{ result.label }}</template>
+            </span>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -84,7 +87,6 @@ async function search() {
   noToken.value = false
   results.value = []
   try {
-    // Treat pure numeric strings as barcodes
     const isBarcode = /^\d{8,14}$/.test(query.value.trim())
     const params = isBarcode
       ? { barcode: query.value.trim() }
@@ -94,7 +96,6 @@ async function search() {
     const data = res.data.ocs?.data ?? []
 
     if (data === null || (Array.isArray(data) && data.length === 0 && !isBarcode)) {
-      // Could be no token — check
       const settingsRes = await axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'))
       noToken.value = !(settingsRes.data.ocs?.data?.hasToken ?? false)
     }
@@ -119,13 +120,14 @@ function select(result) {
 
 <style scoped>
 .discogs-search {
-  margin-bottom: 4px;
+  margin-bottom: 16px;
+  position: relative;
 }
 
 .discogs-search-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .discogs-search-row input {
@@ -147,20 +149,30 @@ function select(result) {
 .discogs-hint {
   font-size: 0.8em;
   color: var(--color-text-maxcontrast);
-  margin: 0 0 8px;
+  margin: 0 0 4px;
 }
 
 .discogs-hint--warn {
   color: var(--color-warning);
 }
 
+.discogs-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--color-main-background);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
 .discogs-results {
   list-style: none;
   padding: 0;
-  margin: 0 0 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  max-height: 240px;
+  margin: 0;
+  max-height: 260px;
   overflow-y: auto;
 }
 
@@ -182,8 +194,8 @@ function select(result) {
 }
 
 .discogs-result-thumb {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 4px;
   object-fit: cover;
   flex-shrink: 0;
@@ -196,13 +208,13 @@ function select(result) {
 .discogs-result-info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 
 .discogs-result-title {
-  font-weight: 500;
-  font-size: 0.875em;
+  font-weight: 600;
+  font-size: 0.9em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

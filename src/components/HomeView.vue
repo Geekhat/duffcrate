@@ -28,7 +28,7 @@
           <div class="crate-hero__art">
             <img
               v-if="albumOfDay.artworkPath"
-              :src="albumOfDay.artworkPath"
+              :src="generateUrl('/apps/crate/artwork/' + albumOfDay.id)"
               :alt="albumOfDay.title"
             >
             <div
@@ -79,6 +79,18 @@
         </div>
       </section>
 
+      <section class="crate-home-section">
+        <h3>Recently Added</h3>
+        <div class="crate-card-grid">
+          <MediaCard
+            v-for="item in recentItems"
+            :key="'r' + item.id"
+            :item="item"
+            @detail="$emit('detail', item)"
+          />
+        </div>
+      </section>
+
       <section
         v-for="row in formatRows"
         :key="row.format"
@@ -94,18 +106,6 @@
           />
         </div>
       </section>
-
-      <section class="crate-home-section">
-        <h3>Recently Added</h3>
-        <div class="crate-card-grid">
-          <MediaCard
-            v-for="item in recentItems"
-            :key="'r' + item.id"
-            :item="item"
-            @detail="$emit('detail', item)"
-          />
-        </div>
-      </section>
     </template>
   </div>
 </template>
@@ -114,7 +114,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
-import { generateOcsUrl } from '@nextcloud/router'
+import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 import MediaCard from './MediaCard.vue'
 
 defineEmits(['add', 'detail'])

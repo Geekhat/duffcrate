@@ -149,6 +149,28 @@ function showDetail(item) {
   previousView.value = view.value
   selectedItem.value = item
   view.value = 'detail'
+  // Auto-enrich items that have a Discogs link but haven't been enriched yet
+  const notEnriched = !item.genres && !item.artistBio && !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
+  if (item.discogsId && notEnriched) {
+    triggerEnrich(item.id)
+  }
+}
+
+async function triggerEnrich(id) {
+  try {
+    const res = await axios.post(generateOcsUrl(`/apps/crate/api/v1/media/${id}/enrich`))
+    const enriched = res.data.ocs?.data
+    if (enriched) {
+      if (selectedItem.value && selectedItem.value.id == enriched.id) {
+        selectedItem.value = enriched
+      }
+      const idx = items.value.findIndex(i => i.id == enriched.id)
+      if (idx !== -1) items.value[idx] = enriched
+      if (view.value === 'home') homeView.value?.load()
+    }
+  } catch (e) {
+    // Discogs unavailable or no token — silently skip
+  }
 }
 
 function goBack() {
@@ -206,22 +228,11 @@ async function saveItem(payload) {
 
     // Auto-enrich newly added items that have a Discogs ID
     if (!wasEditing && saved?.id && saved?.discogsId) {
-      axios.post(generateOcsUrl(`/apps/crate/api/v1/media/${saved.id}/enrich`))
-        .then(res => {
-          const enriched = res.data.ocs?.data
-          if (enriched) {
-            const idx = items.value.findIndex(i => i.id == enriched.id)
-            if (idx !== -1) items.value[idx] = enriched
-            if (view.value === 'home') homeView.value?.load()
-          }
-        })
-        .catch(() => { /* token not set or Discogs unavailable — silently skip */ })
+      triggerEnrich(saved.id)
     }
 
     if (view.value === 'detail') {
-      // List is patched inline above; just refresh home cards if needed
-      if (previousView.value === 'home') homeView.value?.load()
-      else loadItems()
+      // selectedItem already patched above; list will refresh on back navigation
     } else if (view.value === 'home') {
       homeView.value?.load()
     } else {

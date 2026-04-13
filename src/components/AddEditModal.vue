@@ -231,6 +231,8 @@ async function submit() {
 .crate-modal {
   padding: 24px 28px 28px;
   min-width: min(440px, 90vw);
+  /* Allow Discogs dropdown to overflow the modal content area */
+  overflow: visible;
 }
 
 .crate-modal h2 {
