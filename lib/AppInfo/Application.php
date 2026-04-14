@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\Crate\AppInfo;
 
+use OCA\Crate\Listener\ContentSecurityPolicyListener;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\Security\CSP\AddContentSecurityPolicyEvent;
 
 class Application extends App implements IBootstrap
 {
@@ -21,6 +23,7 @@ class Application extends App implements IBootstrap
     public function register(IRegistrationContext $context): void
     {
         $context->registerSearchProvider(\OCA\Crate\Search\Provider::class);
+        $context->registerEventListener(AddContentSecurityPolicyEvent::class, ContentSecurityPolicyListener::class);
     }
 
     public function boot(IBootContext $context): void

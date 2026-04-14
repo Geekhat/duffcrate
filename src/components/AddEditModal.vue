@@ -115,6 +115,7 @@
 
         <div class="crate-modal-actions">
           <NcButton
+            native-type="button"
             type="tertiary"
             @click="$emit('close')"
           >
