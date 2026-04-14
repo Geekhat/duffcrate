@@ -213,6 +213,7 @@ defineExpose({ load })
 .crate-home {
   padding: 20px;
   padding-top: calc(var(--default-clickable-area, 44px) + 8px);
+  max-width: 1280px;
 }
 
 .crate-home-empty {
@@ -226,7 +227,7 @@ defineExpose({ load })
 
 /* --- Hero --- */
 .crate-hero {
-  margin-bottom: 40px;
+  margin-bottom: 24px;
   border-radius: var(--border-radius-large);
   background: var(--color-background-dark);
   overflow: hidden;
