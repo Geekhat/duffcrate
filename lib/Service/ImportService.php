@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace OCA\Crate\Service;
 
 use OCA\Crate\Db\MediaItemMapper;
-use OpenSpout\Reader\CSV\Reader as CsvReader;
-use OpenSpout\Reader\CSV\Options as CsvOptions;
-use OpenSpout\Reader\XLSX\Reader as XlsxReader;
-use OpenSpout\Reader\ODS\Reader as OdsReader;
 
 class ImportService
 {
@@ -58,12 +54,8 @@ class ImportService
             return $this->parseCsv($tmpPath);
         }
 
-        if (in_array($ext, ['xlsx', 'xls'], true)) {
-            return $this->parseSpreadsheet($tmpPath);
-        }
-
-        if ($ext === 'ods') {
-            return $this->parseOds($tmpPath);
+        if (in_array($ext, ['xlsx', 'xls', 'ods'], true)) {
+            return $this->parseXlsx($tmpPath);
         }
 
         throw new \RuntimeException("Unsupported file type: .{$ext}");
@@ -72,53 +64,124 @@ class ImportService
     /** @return array{headers: string[], rows: array<array<string|null>>} */
     private function parseCsv(string $path): array
     {
-        $options = new CsvOptions();
-        $options->FIELD_DELIMITER = ',';
-        $reader = new CsvReader($options);
-        return $this->readWithOpenSpout($reader, $path);
-    }
+        // Strip UTF-8 BOM if present
+        $content = file_get_contents($path);
+        if ($content === false) {
+            throw new \RuntimeException('Could not read file');
+        }
+        if (str_starts_with($content, "\xEF\xBB\xBF")) {
+            $content = substr($content, 3);
+        }
+        $tmp = tmpfile();
+        fwrite($tmp, $content);
+        rewind($tmp);
 
-    /** @return array{headers: string[], rows: array<array<string|null>>} */
-    private function parseSpreadsheet(string $path): array
-    {
-        $reader = new XlsxReader();
-        return $this->readWithOpenSpout($reader, $path);
-    }
-
-    /** @return array{headers: string[], rows: array<array<string|null>>} */
-    private function parseOds(string $path): array
-    {
-        $reader = new OdsReader();
-        return $this->readWithOpenSpout($reader, $path);
+        $headers = [];
+        $rows = [];
+        while (($line = fgetcsv($tmp)) !== false) {
+            if (empty($headers)) {
+                $headers = array_map('trim', array_map('strval', $line));
+            } else {
+                $rows[] = array_map(fn($v) => $v !== '' ? $v : null, $line);
+            }
+        }
+        fclose($tmp);
+        return ['headers' => $headers, 'rows' => $rows];
     }
 
     /**
+     * Parse XLSX (and XLS/ODS if saved as XLSX) using ZipArchive + SimpleXML.
+     * Handles the standard Office Open XML format.
+     *
      * @return array{headers: string[], rows: array<array<string|null>>}
      */
-    private function readWithOpenSpout(mixed $reader, string $path): array
+    private function parseXlsx(string $path): array
     {
-        $reader->open($path);
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new \RuntimeException('Could not open spreadsheet file');
+        }
+
+        // Load shared strings (text cells are stored by index)
+        $sharedStrings = [];
+        $ssXml = $zip->getFromName('xl/sharedStrings.xml');
+        if ($ssXml !== false) {
+            $ss = simplexml_load_string($ssXml);
+            if ($ss !== false) {
+                foreach ($ss->si as $si) {
+                    // Concatenate all <t> elements (handles rich text runs)
+                    $text = '';
+                    foreach ($si->xpath('.//t') as $t) {
+                        $text .= (string)$t;
+                    }
+                    $sharedStrings[] = $text;
+                }
+            }
+        }
+
+        // Load first worksheet
+        $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+
+        if ($sheetXml === false) {
+            throw new \RuntimeException('Could not read worksheet from spreadsheet');
+        }
+
+        $sheet = simplexml_load_string($sheetXml);
+        if ($sheet === false) {
+            throw new \RuntimeException('Could not parse worksheet XML');
+        }
 
         $headers = [];
         $rows = [];
 
-        foreach ($reader->getSheetIterator() as $sheet) {
-            foreach ($sheet->getRowIterator() as $row) {
-                $cells = array_map(
-                    fn($cell) => $cell->getValue() !== null ? (string)$cell->getValue() : null,
-                    $row->getCells(),
-                );
-                if (empty($headers)) {
-                    $headers = array_map('trim', array_map('strval', $cells));
-                } else {
-                    $rows[] = $cells;
+        $sheet->registerXPathNamespace('x', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        $sheetRows = $sheet->xpath('//x:row') ?: [];
+
+        foreach ($sheetRows as $row) {
+            $rowData = [];
+            $maxCol = 0;
+
+            foreach ($row->c as $cell) {
+                // Parse column index from cell reference (e.g. "C5" → col 2)
+                $ref = (string)($cell['r'] ?? '');
+                preg_match('/^([A-Z]+)/', $ref, $m);
+                $colIdx = $m[1] ? $this->colLetterToIndex($m[1]) : $maxCol;
+                $maxCol = max($maxCol, $colIdx);
+
+                $type = (string)($cell['t'] ?? '');
+                $val  = isset($cell->v) ? (string)$cell->v : null;
+
+                if ($type === 's' && $val !== null) {
+                    // Shared string
+                    $val = $sharedStrings[(int)$val] ?? '';
+                } elseif ($type === 'inlineStr') {
+                    $val = isset($cell->is->t) ? (string)$cell->is->t : '';
                 }
+                // Sparse: fill gaps with null
+                while (count($rowData) < $colIdx) {
+                    $rowData[] = null;
+                }
+                $rowData[$colIdx] = $val !== '' ? $val : null;
             }
-            break; // first sheet only
+
+            if (empty($headers)) {
+                $headers = array_map('strval', array_map('trim', $rowData));
+            } else {
+                $rows[] = $rowData;
+            }
         }
 
-        $reader->close();
         return ['headers' => $headers, 'rows' => $rows];
+    }
+
+    private function colLetterToIndex(string $letters): int
+    {
+        $idx = 0;
+        foreach (str_split(strtoupper($letters)) as $char) {
+            $idx = $idx * 26 + (ord($char) - ord('A') + 1);
+        }
+        return $idx - 1; // 0-indexed
     }
 
     /**
