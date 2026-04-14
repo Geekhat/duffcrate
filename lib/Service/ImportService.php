@@ -271,7 +271,7 @@ class ImportService
             // Validate format value
             if (!in_array(strtolower($format), self::VALID_FORMATS, true)) {
                 $skipped++;
-                $errors[] = "Row {$rowNum}: unrecognised format "{$format}" — skipped";
+                $errors[] = "Row {$rowNum}: unrecognised format \"{$format}\" - skipped";
                 continue;
             }
 
