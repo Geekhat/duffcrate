@@ -133,64 +133,78 @@
       </template>
     </div>
 
-    <!-- Card grid -->
-    <div
-      v-else-if="viewMode === 'card'"
-      class="crate-card-grid"
-    >
-      <MediaCard
-        v-for="item in filteredSorted"
-        :key="item.id"
-        :item="item"
-        @detail="$emit('detail', item)"
-      />
-    </div>
-
-    <!-- List view -->
-    <div
-      v-else
-      class="cv-list"
-    >
+    <!-- Grouped card / list content -->
+    <template v-else>
       <div
-        v-for="item in filteredSorted"
-        :key="item.id"
-        class="cv-list-row"
-        @click="$emit('detail', item)"
+        v-for="group in groupedItems"
+        :key="group.header"
+        class="cv-group"
       >
-        <div
-          class="cv-list-thumb"
-          :style="thumbStyle(item)"
-        />
-        <div class="cv-list-info">
-          <span class="cv-list-title">{{ item.title }}</span>
-          <span class="cv-list-artist">{{ item.artist }}</span>
-          <span class="cv-list-meta">
-            <span class="cv-badge">{{ item.format }}</span>
-            <template v-if="item.year">&thinsp;{{ item.year }}</template>
-            <template v-if="item.label">&ensp;·&ensp;{{ item.label }}</template>
-          </span>
+        <div class="cv-group-header">
+          <span class="cv-group-label">{{ group.header }}</span>
+          <span class="cv-group-count">{{ group.items.length }}</span>
         </div>
+
+        <!-- Card grid -->
         <div
-          class="cv-list-actions"
-          @click.stop
+          v-if="viewMode === 'card'"
+          class="crate-card-grid"
         >
-          <NcButton
-            type="tertiary"
-            :aria-label="'Edit ' + item.title"
-            @click="$emit('edit', item)"
+          <MediaCard
+            v-for="item in group.items"
+            :key="item.id"
+            :item="item"
+            @detail="$emit('detail', item)"
+          />
+        </div>
+
+        <!-- List view -->
+        <div
+          v-else
+          class="cv-list"
+        >
+          <div
+            v-for="item in group.items"
+            :key="item.id"
+            class="cv-list-row"
+            @click="$emit('detail', item)"
           >
-            Edit
-          </NcButton>
-          <NcButton
-            type="tertiary"
-            :aria-label="'Delete ' + item.title"
-            @click="$emit('delete', item)"
-          >
-            Delete
-          </NcButton>
+            <div
+              class="cv-list-thumb"
+              :style="thumbStyle(item)"
+            />
+            <div class="cv-list-info">
+              <span class="cv-list-title">{{ item.title }}</span>
+              <span class="cv-list-artist">{{ item.artist }}</span>
+              <span class="cv-list-meta">
+                <span class="cv-badge">{{ item.format }}</span>
+                <template v-if="item.year">&thinsp;{{ item.year }}</template>
+                <template v-if="item.label">&ensp;·&ensp;{{ item.label }}</template>
+              </span>
+            </div>
+            <div
+              class="cv-list-actions"
+              @click.stop
+            >
+              <NcButton
+                type="tertiary"
+                :aria-label="'Edit ' + item.title"
+                @click="$emit('edit', item)"
+              >
+                Edit
+              </NcButton>
+              <NcButton
+                type="tertiary"
+                :aria-label="'Delete ' + item.title"
+                @click="$emit('delete', item)"
+              >
+                Delete
+              </NcButton>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -251,6 +265,64 @@ const filteredSorted = computed(() => {
   })
 
   return list
+})
+
+// Strip leading articles for alphabetical grouping (but not display)
+function stripArticle(str) {
+  return str.replace(/^(the |a |an )\s*/i, '')
+}
+
+// Compute the group header label for a single item given the active sort field
+function getGroupKey(item, field) {
+  if (field === 'artist' || field === 'title') {
+    const raw = (item[field] ?? '').trim()
+    const cmp = field === 'artist' ? stripArticle(raw) : raw
+    const first = cmp[0]?.toUpperCase() ?? '#'
+    return /[A-Z]/.test(first) ? first : '#'
+  }
+
+  if (field === 'year') {
+    const y = item.year
+    if (!y) return 'Unknown'
+    const decade = Math.floor(y / 10) * 10
+    return `${decade}s`
+  }
+
+  if (field === 'createdAt') {
+    const now = new Date()
+    const raw = item.createdAt
+    if (!raw) return 'Unknown'
+    const d = new Date(raw)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const itemDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const diffDays = Math.round((todayStart - itemDate) / 86400000)
+    if (diffDays === 0) return 'Today'
+    if (diffDays <= 7) return 'This Week'
+    if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) return 'This Month'
+    if (d.getFullYear() === now.getFullYear()) return 'This Year'
+    return String(d.getFullYear())
+  }
+
+  return ''
+}
+
+// Produce an ordered array of { header, items } groups, preserving sort order
+const groupedItems = computed(() => {
+  const [field] = sortKey.value.split('-')
+  const groups = []
+  const seen = new Map()
+
+  for (const item of filteredSorted.value) {
+    const key = getGroupKey(item, field)
+    if (!seen.has(key)) {
+      const g = { header: key, items: [] }
+      seen.set(key, g)
+      groups.push(g)
+    }
+    seen.get(key).items.push(item)
+  }
+
+  return groups
 })
 
 const FORMAT_COLOURS = {
@@ -381,6 +453,32 @@ function thumbStyle(item) {
   align-items: center;
   gap: 12px;
   margin-top: 60px;
+  color: var(--color-text-maxcontrast);
+}
+
+/* Group headers */
+.cv-group {
+  margin-bottom: 32px;
+}
+
+.cv-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.cv-group-label {
+  font-size: 1.05em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-main-text);
+}
+
+.cv-group-count {
+  font-size: 0.8em;
   color: var(--color-text-maxcontrast);
 }
 

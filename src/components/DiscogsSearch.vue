@@ -40,24 +40,24 @@
         class="discogs-result"
         @mousedown.prevent="select(result)"
       >
-          <img
-            v-if="result.thumb"
-            :src="result.thumb"
-            :alt="result.title"
-            class="discogs-result-thumb"
-            loading="lazy"
-          >
-          <div
-            v-else
-            class="discogs-result-thumb discogs-result-thumb--placeholder"
-          />
-          <div class="discogs-result-info">
-            <span class="discogs-result-title">{{ result.title }}</span>
-            <span class="discogs-result-artist">{{ result.artist }}</span>
-            <span class="discogs-result-meta">
-              {{ result.format }}<template v-if="result.year">, {{ result.year }}</template><template v-if="result.label">, {{ result.label }}</template>
-            </span>
-          </div>
+        <img
+          v-if="result.thumb"
+          :src="result.thumb"
+          :alt="result.title"
+          class="discogs-result-thumb"
+          loading="lazy"
+        >
+        <div
+          v-else
+          class="discogs-result-thumb discogs-result-thumb--placeholder"
+        />
+        <div class="discogs-result-info">
+          <span class="discogs-result-title">{{ result.title }}</span>
+          <span class="discogs-result-artist">{{ result.artist }}</span>
+          <span class="discogs-result-meta">
+            {{ result.format }}<template v-if="result.year">, {{ result.year }}</template><template v-if="result.label">, {{ result.label }}</template>
+          </span>
+        </div>
       </li>
     </ul>
   </div>
