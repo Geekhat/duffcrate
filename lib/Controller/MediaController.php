@@ -135,11 +135,18 @@ class MediaController extends OCSController
     {
         $item = $this->mediaService->find($id, $this->userId());
 
+        // If no Discogs ID is stored, search by artist + title and use the top result.
         if (empty($item->getDiscogsId())) {
-            return new DataResponse(
-                ['error' => 'Item has no Discogs ID — search Discogs first to link a release.'],
-                Http::STATUS_BAD_REQUEST,
-            );
+            $query = trim($item->getArtist() . ' ' . $item->getTitle());
+            $results = $this->discogsService->search($this->userId(), $query);
+            $discogsId = $results[0]['discogsId'] ?? '';
+            if ($discogsId === '') {
+                return new DataResponse(
+                    ['error' => 'No Discogs match found for this item.'],
+                    Http::STATUS_NOT_FOUND,
+                );
+            }
+            $item = $this->mediaService->patchDiscogsId($id, $this->userId(), $discogsId);
         }
 
         $release = $this->discogsService->getRelease($this->userId(), $item->getDiscogsId());

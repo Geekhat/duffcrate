@@ -206,6 +206,12 @@
                 :style="{ width: enrichProgress + '%' }"
               />
             </div>
+            <p
+              v-if="!enrichDone"
+              class="import-enrich__hint"
+            >
+              You can safely close this dialog — enrichment will continue in the background.
+            </p>
           </div>
         </template>
         <template v-else-if="!hasToken && result.created > 0">
@@ -602,6 +608,13 @@ function handleClose() {
   background: var(--color-primary-element);
   border-radius: 3px;
   transition: width 0.4s ease;
+}
+
+.import-enrich__hint {
+  font-size: 0.8em;
+  color: var(--color-text-maxcontrast);
+  margin: 8px 0 0;
+  font-style: italic;
 }
 
 /* Actions */

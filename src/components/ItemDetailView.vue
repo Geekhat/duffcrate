@@ -11,7 +11,7 @@
       </NcButton>
       <div class="detail-topbar-actions">
         <NcButton
-          v-if="item.discogsId && !enriching"
+          v-if="!enriching"
           variant="secondary"
           @click="enrich"
         >

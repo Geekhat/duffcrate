@@ -168,9 +168,9 @@ function showDetail(item) {
   previousView.value = view.value
   selectedItem.value = item
   view.value = 'detail'
-  // Auto-enrich items that have a Discogs link but haven't been enriched yet
+  // Auto-enrich items that haven't been enriched yet (search-then-enrich handles missing discogsId)
   const notEnriched = !item.genres && !item.artistBio && !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
-  if (item.discogsId && notEnriched) {
+  if (notEnriched) {
     triggerEnrich(item.id)
   }
 }

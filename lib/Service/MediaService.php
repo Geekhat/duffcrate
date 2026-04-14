@@ -108,6 +108,17 @@ class MediaService
     }
 
     /**
+     * Persist a Discogs release ID onto an item without changing anything else.
+     */
+    public function patchDiscogsId(int $id, string $userId, string $discogsId): MediaItem
+    {
+        $item = $this->mapper->findByUser($id, $userId);
+        $item->setDiscogsId($discogsId);
+        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+        return $this->mapper->update($item);
+    }
+
+    /**
      * Enrich an existing media item with full release data from Discogs.
      *
      * $release comes from DiscogsService::getRelease().
