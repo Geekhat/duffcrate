@@ -5,26 +5,31 @@
         <NcAppNavigationItem
           name="Home"
           :active="view === 'home'"
+          href="#/"
           @click="switchView('home')"
         />
         <NcAppNavigationItem
           name="My Collection"
           :active="view === 'collection'"
+          href="#/collection"
           @click="switchView('collection')"
         />
         <NcAppNavigationItem
           name="Playlists"
           :active="view === 'playlists' || view === 'playlist-detail'"
+          href="#/playlists"
           @click="switchView('playlists')"
         />
         <NcAppNavigationItem
           name="Wishlist"
           :active="view === 'wishlist'"
+          href="#/wishlist"
           @click="switchView('wishlist')"
         />
         <NcAppNavigationItem
           name="Shared with me"
           :active="view === 'shared'"
+          href="#/shared"
           @click="switchView('shared')"
         />
       </template>
