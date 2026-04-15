@@ -511,6 +511,9 @@ async function saveItem(payload) {
     // Pull out artwork side-effects before sending to the API
     const artworkFile = payload._artworkFile ?? null
     const removeArtwork = payload._removeArtwork ?? false
+    // Save for fallback ID lookup (new item OCS quirk)
+    const payloadTitle = payload.title
+    const payloadArtist = payload.artist
     delete payload._artworkFile
     delete payload._removeArtwork
 
@@ -540,8 +543,19 @@ async function saveItem(payload) {
     closeModal()
 
     // Handle artwork upload / removal
-    // For PUT responses saved may be null (OCS quirk), fall back to editId
-    const targetId = saved?.id ?? editId
+    // For PUT responses saved may be null (OCS quirk), fall back to editId.
+    // For POST (new item) saved may also be null — resolve by matching in items list.
+    let targetId = saved?.id ?? editId
+    if (!targetId && !wasEditing && artworkFile) {
+      try {
+        const allRes = await axios.get(generateOcsUrl('/apps/crate/api/v1/media'))
+        const allItems = allRes.data.ocs?.data ?? []
+        const match = allItems
+          .filter(i => i.title === payloadTitle && i.artist === payloadArtist)
+          .sort((a, b) => b.id - a.id)[0]
+        if (match) targetId = match.id
+      } catch { /* ignore */ }
+    }
     if (targetId) {
       if (artworkFile) {
         try {
