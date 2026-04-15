@@ -433,7 +433,8 @@ const FORMAT_COLOURS = {
 
 function thumbStyle(item) {
   if (item.artworkPath) {
-    const url = generateUrl('/apps/crate/artwork/' + item.id)
+    const v = item.updatedAt ? '?v=' + encodeURIComponent(item.updatedAt) : ''
+    const url = generateUrl('/apps/crate/artwork/' + item.id) + v
     return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
   }
   const colours = FORMAT_COLOURS[item.format] ?? ['#374151', '#6b7280']

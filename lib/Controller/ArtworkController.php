@@ -166,6 +166,7 @@ class ArtworkController extends Controller
         $file->putContent((string) file_get_contents($uploadedFile['tmp_name']));
 
         $item->setArtworkPath('local');
+        $item->setUpdatedAt(date('Y-m-d H:i:s'));
         $this->mapper->update($item);
 
         return new DataResponse(['status' => 'ok', 'artworkPath' => 'local']);
@@ -199,6 +200,7 @@ class ArtworkController extends Controller
         }
 
         $item->setArtworkPath(null);
+        $item->setUpdatedAt(date('Y-m-d H:i:s'));
         $this->mapper->update($item);
 
         return new DataResponse(['status' => 'ok']);

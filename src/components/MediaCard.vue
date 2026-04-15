@@ -40,7 +40,8 @@ const FORMAT_COLOURS = {
 
 const artStyle = computed(() => {
   if (props.item.artworkPath) {
-    const url = generateUrl('/apps/crate/artwork/' + props.item.id)
+    const v = props.item.updatedAt ? '?v=' + encodeURIComponent(props.item.updatedAt) : ''
+    const url = generateUrl('/apps/crate/artwork/' + props.item.id) + v
     return {
       backgroundImage: `url(${url})`,
       backgroundSize: 'cover',

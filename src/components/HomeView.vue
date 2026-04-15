@@ -28,7 +28,7 @@
           <div class="crate-hero__art">
             <img
               v-if="albumOfDay.artworkPath"
-              :src="generateUrl('/apps/crate/artwork/' + albumOfDay.id)"
+              :src="generateUrl('/apps/crate/artwork/' + albumOfDay.id) + (albumOfDay.updatedAt ? '?v=' + encodeURIComponent(albumOfDay.updatedAt) : '')"
               :alt="albumOfDay.title"
             >
             <div
