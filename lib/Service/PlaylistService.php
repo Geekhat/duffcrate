@@ -14,9 +14,9 @@ use OCP\AppFramework\Db\DoesNotExistException;
 class PlaylistService
 {
     public function __construct(
-        private readonly PlaylistMapper     $playlistMapper,
+        private readonly PlaylistMapper $playlistMapper,
         private readonly PlaylistItemMapper $playlistItemMapper,
-        private readonly MediaItemMapper    $mediaItemMapper,
+        private readonly MediaItemMapper $mediaItemMapper,
     ) {
     }
 

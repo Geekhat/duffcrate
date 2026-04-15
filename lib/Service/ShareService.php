@@ -12,9 +12,9 @@ use OCP\AppFramework\Db\DoesNotExistException;
 class ShareService
 {
     public function __construct(
-        private readonly CrateShareMapper  $shareMapper,
-        private readonly MediaItemMapper   $mediaItemMapper,
-        private readonly PlaylistService   $playlistService,
+        private readonly CrateShareMapper $shareMapper,
+        private readonly MediaItemMapper $mediaItemMapper,
+        private readonly PlaylistService $playlistService,
     ) {
     }
 
@@ -134,7 +134,7 @@ class ShareService
         string $ownerUserId,
         string $sharedWithUserId,
         string $type,
-        int    $shareableId,
+        int $shareableId,
     ): CrateShare {
         $share = new CrateShare();
         $share->setOwnerUserId($ownerUserId);

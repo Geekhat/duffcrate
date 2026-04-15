@@ -32,10 +32,12 @@ class PlaylistItemMapper extends QBMapper
     public function existsInPlaylist(int $playlistId, int $mediaItemId): bool
     {
         $qb = $this->db->getQueryBuilder();
+        $playlistIdParam = $qb->createNamedParameter($playlistId, IQueryBuilder::PARAM_INT);
+        $mediaItemIdParam = $qb->createNamedParameter($mediaItemId, IQueryBuilder::PARAM_INT);
         $qb->select('id')
             ->from($this->getTableName())
-            ->where($qb->expr()->eq('playlist_id', $qb->createNamedParameter($playlistId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($qb->expr()->eq('media_item_id', $qb->createNamedParameter($mediaItemId, IQueryBuilder::PARAM_INT)));
+            ->where($qb->expr()->eq('playlist_id', $playlistIdParam))
+            ->andWhere($qb->expr()->eq('media_item_id', $mediaItemIdParam));
         try {
             $this->findEntity($qb);
             return true;
@@ -59,9 +61,11 @@ class PlaylistItemMapper extends QBMapper
     public function deleteByPlaylistAndItem(int $playlistId, int $mediaItemId): void
     {
         $qb = $this->db->getQueryBuilder();
+        $playlistIdParam = $qb->createNamedParameter($playlistId, IQueryBuilder::PARAM_INT);
+        $mediaItemIdParam = $qb->createNamedParameter($mediaItemId, IQueryBuilder::PARAM_INT);
         $qb->delete($this->getTableName())
-            ->where($qb->expr()->eq('playlist_id', $qb->createNamedParameter($playlistId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($qb->expr()->eq('media_item_id', $qb->createNamedParameter($mediaItemId, IQueryBuilder::PARAM_INT)));
+            ->where($qb->expr()->eq('playlist_id', $playlistIdParam))
+            ->andWhere($qb->expr()->eq('media_item_id', $mediaItemIdParam));
         $qb->executeStatement();
     }
 
@@ -76,8 +80,9 @@ class PlaylistItemMapper extends QBMapper
     public function deleteByMediaItem(int $mediaItemId): void
     {
         $qb = $this->db->getQueryBuilder();
+        $mediaItemIdParam = $qb->createNamedParameter($mediaItemId, IQueryBuilder::PARAM_INT);
         $qb->delete($this->getTableName())
-            ->where($qb->expr()->eq('media_item_id', $qb->createNamedParameter($mediaItemId, IQueryBuilder::PARAM_INT)));
+            ->where($qb->expr()->eq('media_item_id', $mediaItemIdParam));
         $qb->executeStatement();
     }
 }

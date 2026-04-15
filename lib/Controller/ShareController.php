@@ -18,9 +18,9 @@ class ShareController extends OCSController
     public function __construct(
         string $appName,
         IRequest $request,
-        private readonly ShareService  $shareService,
-        private readonly IUserSession  $userSession,
-        private readonly IUserManager  $userManager,
+        private readonly ShareService $shareService,
+        private readonly IUserSession $userSession,
+        private readonly IUserManager $userManager,
     ) {
         parent::__construct($appName, $request);
     }

@@ -23,11 +23,12 @@ class CrateShareMapper extends QBMapper
     public function findByOwnerAndShareable(string $ownerUserId, string $type, int $shareableId): array
     {
         $qb = $this->db->getQueryBuilder();
+        $shareableIdParam = $qb->createNamedParameter($shareableId, IQueryBuilder::PARAM_INT);
         $qb->select('*')
             ->from($this->getTableName())
             ->where($qb->expr()->eq('owner_user_id', $qb->createNamedParameter($ownerUserId)))
             ->andWhere($qb->expr()->eq('shareable_type', $qb->createNamedParameter($type)))
-            ->andWhere($qb->expr()->eq('shareable_id', $qb->createNamedParameter($shareableId, IQueryBuilder::PARAM_INT)));
+            ->andWhere($qb->expr()->eq('shareable_id', $shareableIdParam));
         return $this->findEntities($qb);
     }
 
@@ -56,12 +57,13 @@ class CrateShareMapper extends QBMapper
     public function alreadyShared(string $ownerUserId, string $sharedWithUserId, string $type, int $shareableId): bool
     {
         $qb = $this->db->getQueryBuilder();
+        $shareableIdParam = $qb->createNamedParameter($shareableId, IQueryBuilder::PARAM_INT);
         $qb->select('id')
             ->from($this->getTableName())
             ->where($qb->expr()->eq('owner_user_id', $qb->createNamedParameter($ownerUserId)))
             ->andWhere($qb->expr()->eq('shared_with_user_id', $qb->createNamedParameter($sharedWithUserId)))
             ->andWhere($qb->expr()->eq('shareable_type', $qb->createNamedParameter($type)))
-            ->andWhere($qb->expr()->eq('shareable_id', $qb->createNamedParameter($shareableId, IQueryBuilder::PARAM_INT)));
+            ->andWhere($qb->expr()->eq('shareable_id', $shareableIdParam));
         try {
             $this->findEntity($qb);
             return true;
@@ -73,9 +75,10 @@ class CrateShareMapper extends QBMapper
     public function deleteByShareable(string $type, int $shareableId): void
     {
         $qb = $this->db->getQueryBuilder();
+        $shareableIdParam = $qb->createNamedParameter($shareableId, IQueryBuilder::PARAM_INT);
         $qb->delete($this->getTableName())
             ->where($qb->expr()->eq('shareable_type', $qb->createNamedParameter($type)))
-            ->andWhere($qb->expr()->eq('shareable_id', $qb->createNamedParameter($shareableId, IQueryBuilder::PARAM_INT)));
+            ->andWhere($qb->expr()->eq('shareable_id', $shareableIdParam));
         $qb->executeStatement();
     }
 }

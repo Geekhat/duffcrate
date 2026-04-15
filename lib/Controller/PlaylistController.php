@@ -18,7 +18,7 @@ class PlaylistController extends OCSController
         string $appName,
         IRequest $request,
         private readonly PlaylistService $playlistService,
-        private readonly IUserSession    $userSession,
+        private readonly IUserSession $userSession,
     ) {
         parent::__construct($appName, $request);
     }
