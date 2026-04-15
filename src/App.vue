@@ -15,16 +15,16 @@
           @click="switchView('collection')"
         />
         <NcAppNavigationItem
-          name="Playlists"
-          :active="view === 'playlists' || view === 'playlist-detail'"
-          href="#/playlists"
-          @click="switchView('playlists')"
-        />
-        <NcAppNavigationItem
           name="Wishlist"
           :active="view === 'wishlist'"
           href="#/wishlist"
           @click="switchView('wishlist')"
+        />
+        <NcAppNavigationItem
+          name="Playlists"
+          :active="view === 'playlists' || view === 'playlist-detail'"
+          href="#/playlists"
+          @click="switchView('playlists')"
         />
         <NcAppNavigationItem
           name="Shared with me"
