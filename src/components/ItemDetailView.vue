@@ -12,7 +12,7 @@
       <div class="detail-topbar-actions">
         <NcButton
           v-if="!enriching && !stripping"
-          variant="secondary"
+          variant="tertiary"
           @click="enrich"
         >
           {{ isEnriched ? 'Re-enrich from Discogs' : 'Enrich from Discogs' }}
