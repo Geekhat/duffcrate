@@ -145,12 +145,13 @@ const enrich = useEnrichQueue()
 const { autoEnrichOnClick } = useSettings()
 
 // ── hash routing ──────────────────────────────────────────────────────────────
-let suppressHashChange = false
+// Counter-based suppression: each programmatic setHash increments this; the
+// corresponding hashchange event decrements it and returns early.  Using a
+// counter (not a boolean + setTimeout) avoids async timing races.
+let pendingHashSets = 0
 function setHash(hash) {
-  suppressHashChange = true
+  pendingHashSets++
   window.location.hash = hash
-  // The hashchange event fires asynchronously so reset after a tick
-  setTimeout(() => { suppressHashChange = false }, 0)
 }
 
 function hashForView(v, itemId = null) {
@@ -226,18 +227,24 @@ async function restoreFromHash() {
 }
 
 function handleHashChange() {
-  if (suppressHashChange) return
-  // Only react if the hash changed due to browser back/forward (not our own pushes)
+  if (pendingHashSets > 0) {
+    pendingHashSets--
+    return
+  }
+  // Only reached for genuine browser back/forward navigation
   const { view: v, itemId } = parseHash()
   if (v === 'detail' && itemId) {
+    // If we're already showing this exact item, nothing to do
+    if (view.value === 'detail' && selectedItem.value?.id === itemId) return
     // Try to find in the already-loaded list first to avoid a fetch
     const cached = items.value.find(i => i.id === itemId)
     if (cached) {
       selectedItem.value = cached
       view.value = 'detail'
-    } else {
-      restoreFromHash()
     }
+    // If not cached (e.g. came from HomeView), don't call restoreFromHash —
+    // that would overwrite previousView. The item is already loaded in the
+    // detail view; this hashchange is redundant and can be ignored.
   } else if (v !== view.value) {
     view.value = v
     selectedItem.value = null
@@ -383,7 +390,21 @@ async function saveItem(payload) {
     }
 
     if (view.value === 'detail') {
-      // selectedItem already patched above; list will refresh on back navigation
+      // The PUT response data (`saved`) is sometimes not populated due to OCS
+      // response format differences. Always re-fetch the item after an edit to
+      // guarantee the detail view is current.
+      if (wasEditing && editId) {
+        try {
+          const r = await axios.get(generateOcsUrl(`/apps/crate/api/v1/media/${editId}`))
+          const fresh = r.data.ocs?.data
+          if (fresh) {
+            // eslint-disable-next-line eqeqeq
+            if (selectedItem.value?.id == fresh.id) selectedItem.value = fresh
+            const idx = items.value.findIndex(i => i.id == fresh.id)
+            if (idx !== -1) items.value[idx] = fresh
+          }
+        } catch { /* ignore — view will be stale until next navigation */ }
+      }
     } else if (view.value === 'home') {
       homeView.value?.load()
     } else {
