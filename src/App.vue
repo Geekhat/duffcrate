@@ -144,6 +144,30 @@ import { useSettings } from './composables/useSettings.js'
 const enrich = useEnrichQueue()
 const { autoEnrichOnClick } = useSettings()
 
+// ── hash routing ──────────────────────────────────────────────────────────────
+let suppressHashChange = false
+function setHash(hash) {
+  suppressHashChange = true
+  window.location.hash = hash
+  // The hashchange event fires asynchronously so reset after a tick
+  setTimeout(() => { suppressHashChange = false }, 0)
+}
+
+function hashForView(v, itemId = null) {
+  if (v === 'detail' && itemId) return `#/detail/${itemId}`
+  if (v === 'collection') return '#/collection'
+  if (v === 'wishlist') return '#/wishlist'
+  return '#/'
+}
+
+function parseHash() {
+  const parts = (window.location.hash || '#/').replace(/^#\//, '').split('/')
+  if (parts[0] === 'detail' && parts[1]) return { view: 'detail', itemId: parseInt(parts[1], 10) }
+  if (parts[0] === 'collection') return { view: 'collection', itemId: null }
+  if (parts[0] === 'wishlist') return { view: 'wishlist', itemId: null }
+  return { view: 'home', itemId: null }
+}
+
 // ── state ─────────────────────────────────────────────────────────────────────
 const view = ref('home')
 const previousView = ref('home')
@@ -166,12 +190,60 @@ onMounted(async () => {
     const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'))
     hasDiscogsToken.value = res.data.ocs?.data?.hasToken ?? false
   } catch { /* ignore */ }
+
+  // Restore view from URL hash (supports page refresh and direct links)
+  await restoreFromHash()
+
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('hashchange', handleHashChange)
 })
 
 onUnmounted(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('hashchange', handleHashChange)
 })
+
+async function restoreFromHash() {
+  const { view: v, itemId } = parseHash()
+  if (v === 'detail' && itemId) {
+    try {
+      const res = await axios.get(generateOcsUrl(`/apps/crate/api/v1/media/${itemId}`))
+      const item = res.data.ocs?.data
+      if (item) {
+        selectedItem.value = item
+        previousView.value = 'collection'
+        view.value = 'detail'
+        return
+      }
+    } catch { /* fall through to home */ }
+  } else if (v === 'collection' || v === 'wishlist') {
+    view.value = v
+    loadItems()
+    return
+  }
+  // home or unrecognised — update hash to canonical form
+  setHash('#/')
+}
+
+function handleHashChange() {
+  if (suppressHashChange) return
+  // Only react if the hash changed due to browser back/forward (not our own pushes)
+  const { view: v, itemId } = parseHash()
+  if (v === 'detail' && itemId) {
+    // Try to find in the already-loaded list first to avoid a fetch
+    const cached = items.value.find(i => i.id === itemId)
+    if (cached) {
+      selectedItem.value = cached
+      view.value = 'detail'
+    } else {
+      restoreFromHash()
+    }
+  } else if (v !== view.value) {
+    view.value = v
+    selectedItem.value = null
+    if (v !== 'home') loadItems()
+  }
+}
 
 function handleBeforeUnload(e) {
   if (enrich.running.value) {
@@ -200,6 +272,7 @@ async function loadItems() {
 function switchView(newView) {
   view.value = newView
   selectedItem.value = null
+  setHash(hashForView(newView))
   if (newView !== 'home') {
     loadItems()
   }
@@ -211,6 +284,7 @@ function showDetail(item) {
   previousView.value = view.value
   selectedItem.value = item
   view.value = 'detail'
+  setHash(hashForView('detail', item.id))
   // Auto-enrich items that haven't been enriched yet (search-then-enrich handles missing discogsId)
   const notEnriched = !item.genres && !item.artistBio && !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
   if (notEnriched && autoEnrichOnClick.value) {
@@ -236,8 +310,10 @@ async function triggerEnrich(id) {
 }
 
 async function goBack() {
-  view.value = previousView.value
+  const dest = previousView.value
+  view.value = dest
   selectedItem.value = null
+  setHash(hashForView(dest))
   // Restore scroll position after the list has re-rendered
   const top = savedScrollTop.value
   await nextTick()
