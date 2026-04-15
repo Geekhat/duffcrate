@@ -139,8 +139,10 @@ import ImportModal from './components/ImportModal.vue'
 import ItemDetailView from './components/ItemDetailView.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import { useEnrichQueue } from './composables/useEnrichQueue.js'
+import { useSettings } from './composables/useSettings.js'
 
 const enrich = useEnrichQueue()
+const { autoEnrichOnClick } = useSettings()
 
 // ── state ─────────────────────────────────────────────────────────────────────
 const view = ref('home')
@@ -208,7 +210,7 @@ function showDetail(item) {
   view.value = 'detail'
   // Auto-enrich items that haven't been enriched yet (search-then-enrich handles missing discogsId)
   const notEnriched = !item.genres && !item.artistBio && !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
-  if (notEnriched) {
+  if (notEnriched && autoEnrichOnClick.value) {
     triggerEnrich(item.id)
   }
 }

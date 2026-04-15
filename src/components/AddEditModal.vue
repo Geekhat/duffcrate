@@ -10,11 +10,8 @@
         {{ title }}
       </h2>
 
-      <!-- Discogs search (add mode only) -->
-      <DiscogsSearch
-        v-if="!item"
-        @select="applyDiscogs"
-      />
+      <!-- Discogs search -->
+      <DiscogsSearch @select="applyDiscogs" />
 
       <form @submit.prevent="submit">
         <!-- Two-column row: Artist + Format -->

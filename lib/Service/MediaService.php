@@ -162,9 +162,8 @@ class MediaService
         if (!empty($release['artist'])) {
             $item->setArtist($release['artist']);
         }
-        if (!empty($release['format'])) {
-            $item->setFormat($release['format']);
-        }
+        // Format is not overwritten — the user's stored format is their explicit record
+        // of which pressing/format they own, and should not be changed by enrichment.
         if (isset($release['year'])) {
             $item->setYear($release['year']);
         }

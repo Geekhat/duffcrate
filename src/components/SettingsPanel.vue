@@ -66,6 +66,17 @@
           class="settings-saved"
         >{{ savedMessage }}</span>
       </div>
+
+      <div class="settings-toggles">
+        <label class="settings-toggle">
+          <input
+            v-model="autoEnrichOnClick"
+            type="checkbox"
+            :disabled="!hasToken"
+          >
+          Auto-enrich albums when clicking on them
+        </label>
+      </div>
     </NcAppSettingsSection>
 
     <NcAppSettingsSection
@@ -154,6 +165,7 @@ import { NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcDialog } from '@
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { useEnrichQueue } from '../composables/useEnrichQueue.js'
+import { useSettings } from '../composables/useSettings.js'
 
 defineProps({
   open: { type: Boolean, required: true },
@@ -161,6 +173,7 @@ defineProps({
 defineEmits(['update:open'])
 
 const enrich = useEnrichQueue()
+const { autoEnrichOnClick } = useSettings()
 
 const tokenInput = ref('')
 const hasToken = ref(false)
@@ -305,5 +318,33 @@ async function enrichAll() {
 .settings-saved {
   font-size: 0.875em;
   color: var(--color-success);
+}
+
+.settings-toggles {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-toggle input[type='checkbox'] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.settings-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 </style>

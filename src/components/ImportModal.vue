@@ -138,6 +138,19 @@
           {{ mappingError }}
         </p>
 
+        <div
+          v-if="hasToken"
+          class="import-toggle"
+        >
+          <label class="import-toggle-label">
+            <input
+              v-model="autoEnrichOnImport"
+              type="checkbox"
+            >
+            Enrich from Discogs after importing
+          </label>
+        </div>
+
         <div class="import-actions">
           <NcButton
             type="button"
@@ -242,6 +255,7 @@ import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { useEnrichQueue } from '../composables/useEnrichQueue.js'
+import { useSettings } from '../composables/useSettings.js'
 
 const props = defineProps({
   show: { type: Boolean, required: true },
@@ -252,6 +266,7 @@ const emit = defineEmits(['close', 'imported'])
 
 // Shared enrichment queue (survives modal close/reopen)
 const enrich = useEnrichQueue()
+const { autoEnrichOnImport } = useSettings()
 
 // ── state ────────────────────────────────────────────────────────────────────
 const step = ref('pick')
@@ -361,8 +376,8 @@ async function doImport() {
 
     emit('imported')
 
-    // Start enrichment queue if we have a token and newly created items
-    if (props.hasToken && result.value.itemIds?.length > 0) {
+    // Start enrichment queue if we have a token, the toggle is on, and there are new items
+    if (props.hasToken && autoEnrichOnImport.value && result.value.itemIds?.length > 0) {
       enrich.start(result.value.itemIds)
     }
   } catch (e) {
@@ -575,6 +590,27 @@ function handleClose() {
   color: var(--color-text-maxcontrast);
   margin: 8px 0 0;
   font-style: italic;
+}
+
+/* Import toggle */
+.import-toggle {
+  margin-top: 14px;
+}
+
+.import-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.import-toggle-label input[type='checkbox'] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 /* Actions */

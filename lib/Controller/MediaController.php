@@ -136,11 +136,27 @@ class MediaController extends OCSController
         $item = $this->mediaService->find($id, $this->userId());
 
         try {
-            // If no Discogs ID is stored, search by artist + title and use the top result.
+            // If no Discogs ID is stored, search by artist + title and pick the best match.
             if (empty($item->getDiscogsId())) {
                 $query = trim($item->getArtist() . ' ' . $item->getTitle());
                 $results = $this->discogsService->search($this->userId(), $query);
-                $discogsId = $results[0]['discogsId'] ?? '';
+                if (empty($results)) {
+                    return new DataResponse(
+                        ['error' => 'No Discogs match found for this item.'],
+                        Http::STATUS_NOT_FOUND,
+                    );
+                }
+
+                // Prefer a result whose mapped format matches the item's stored format.
+                // This avoids picking a Vinyl pressing when the item is a CD, etc.
+                $itemFormat = $item->getFormat();
+                $matching = array_values(array_filter(
+                    $results,
+                    fn(array $r) => ($r['format'] ?? '') === $itemFormat,
+                ));
+                $best = !empty($matching) ? $matching[0] : $results[0];
+
+                $discogsId = $best['discogsId'] ?? '';
                 if ($discogsId === '') {
                     return new DataResponse(
                         ['error' => 'No Discogs match found for this item.'],
