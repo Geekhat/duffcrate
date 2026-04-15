@@ -40,6 +40,21 @@
           <span v-else>{{ selectedFile.name }}</span>
         </div>
 
+        <div class="import-or">
+          <span>or</span>
+        </div>
+
+        <div class="import-nc-pick">
+          <NcButton
+            type="button"
+            variant="secondary"
+            :disabled="pickingFromNc"
+            @click="pickFromNextcloud"
+          >
+            {{ pickingFromNc ? 'Loading…' : 'Pick from Nextcloud Files' }}
+          </NcButton>
+        </div>
+
         <p
           v-if="parseError"
           class="import-error"
@@ -309,6 +324,7 @@ function reset() {
   step.value = 'pick'
   selectedFile.value = null
   parsing.value = false
+  pickingFromNc.value = false
   parseError.value = ''
   mappingError.value = ''
   headers.value = []
@@ -322,6 +338,7 @@ function reset() {
 
 // ── file selection ────────────────────────────────────────────────────────────
 const dragging = ref(false)
+const pickingFromNc = ref(false)
 
 function onFileChange(e) {
   const f = e.target.files[0]
@@ -332,6 +349,36 @@ function onDrop(e) {
   dragging.value = false
   const f = e.dataTransfer.files[0]
   if (f) selectedFile.value = f
+}
+
+async function pickFromNextcloud() {
+  const oc = window.OC
+  if (!oc?.dialogs?.filepicker) {
+    alert('Nextcloud file picker is not available.')
+    return
+  }
+  oc.dialogs.filepicker(
+    'Select CSV or XLSX file',
+    async (path) => {
+      pickingFromNc.value = true
+      try {
+        const uid = oc.currentUser ?? ''
+        const webdavUrl = `/remote.php/dav/files/${uid}${path}`
+        const resp = await axios.get(webdavUrl, { responseType: 'arraybuffer' })
+        const fileName = path.split('/').pop() || 'import'
+        const mime = resp.headers['content-type'] || 'application/octet-stream'
+        selectedFile.value = new File([resp.data], fileName, { type: mime })
+        parseError.value = ''
+      } catch (e) {
+        parseError.value = 'Failed to fetch file from Nextcloud.'
+      } finally {
+        pickingFromNc.value = false
+      }
+    },
+    false,
+    [],
+    true,
+  )
 }
 
 // ── step 1 → 2: parse & preview ──────────────────────────────────────────────
@@ -423,6 +470,30 @@ function handleClose() {
   font-size: 0.875em;
   color: var(--color-error);
   margin: 8px 0;
+}
+
+/* Picker divider */
+.import-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  color: var(--color-text-maxcontrast);
+  font-size: 0.85em;
+}
+
+.import-or::before,
+.import-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-dark);
+}
+
+.import-nc-pick {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 /* Drop zone */
