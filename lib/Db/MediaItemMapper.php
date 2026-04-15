@@ -53,6 +53,16 @@ class MediaItemMapper extends QBMapper
         $qb->executeStatement();
     }
 
+    /** Find by id without user ownership check — used for shared-item access. */
+    public function findById(int $id): MediaItem
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+        return $this->findEntity($qb);
+    }
+
     /**
      * Full-text search over title and artist for a user (case-insensitive).
      *

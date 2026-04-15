@@ -34,6 +34,18 @@
         >Removing…</span>
         <NcButton
           variant="tertiary"
+          @click="$emit('addToPlaylist', item)"
+        >
+          Add to playlist
+        </NcButton>
+        <NcButton
+          variant="tertiary"
+          @click="$emit('share', item)"
+        >
+          Share
+        </NcButton>
+        <NcButton
+          variant="tertiary"
           @click="$emit('edit', item)"
         >
           Edit
@@ -171,7 +183,7 @@ const props = defineProps({
   item: { type: Object, required: true },
 })
 
-const emit = defineEmits(['back', 'edit', 'delete', 'enriched'])
+const emit = defineEmits(['back', 'edit', 'delete', 'enriched', 'addToPlaylist', 'share'])
 
 const enriching = ref(false)
 const stripping = ref(false)

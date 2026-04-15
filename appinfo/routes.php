@@ -8,6 +8,7 @@ return [
 		['name' => 'artwork#get',  'url' => '/artwork/{itemId}',   'verb' => 'GET'],
 	],
 	'ocs' => [
+		// ── Media items ────────────────────────────────────────────────────────
 		['name' => 'media#index',   'url' => '/api/v1/media',      'verb' => 'GET'],
 		['name' => 'media#show',    'url' => '/api/v1/media/{id}', 'verb' => 'GET'],
 		['name' => 'media#create',  'url' => '/api/v1/media',      'verb' => 'POST'],
@@ -15,17 +16,39 @@ return [
 		['name' => 'media#destroy',    'url' => '/api/v1/media/{id}', 'verb' => 'DELETE'],
 		['name' => 'media#destroyAll', 'url' => '/api/v1/media',      'verb' => 'DELETE'],
 
+		// ── Discogs enrichment ─────────────────────────────────────────────────
+		['name' => 'media#enrich',      'url' => '/api/v1/media/{id}/enrich', 'verb' => 'POST'],
+		['name' => 'media#stripEnrich', 'url' => '/api/v1/media/{id}/enrich', 'verb' => 'DELETE'],
+
+		// ── Settings ───────────────────────────────────────────────────────────
 		['name' => 'settings#getDiscogsToken', 'url' => '/api/v1/settings/discogs-token', 'verb' => 'GET'],
 		['name' => 'settings#setDiscogsToken', 'url' => '/api/v1/settings/discogs-token', 'verb' => 'POST'],
 
+		// ── Discogs API proxy ──────────────────────────────────────────────────
 		['name' => 'discogs#search',     'url' => '/api/v1/discogs/search',         'verb' => 'GET'],
 		['name' => 'discogs#getRelease', 'url' => '/api/v1/discogs/release/{id}',   'verb' => 'GET'],
 		['name' => 'discogs#getArtist',  'url' => '/api/v1/discogs/artist/{id}',    'verb' => 'GET'],
 
-		['name' => 'media#enrich',       'url' => '/api/v1/media/{id}/enrich',      'verb' => 'POST'],
-		['name' => 'media#stripEnrich',   'url' => '/api/v1/media/{id}/enrich',      'verb' => 'DELETE'],
-
+		// ── Import ─────────────────────────────────────────────────────────────
 		['name' => 'import#preview', 'url' => '/api/v1/import/preview', 'verb' => 'POST'],
 		['name' => 'import#commit',  'url' => '/api/v1/import/commit',  'verb' => 'POST'],
+
+		// ── Playlists ──────────────────────────────────────────────────────────
+		['name' => 'playlist#index',      'url' => '/api/v1/playlists',                         'verb' => 'GET'],
+		['name' => 'playlist#create',     'url' => '/api/v1/playlists',                         'verb' => 'POST'],
+		['name' => 'playlist#show',       'url' => '/api/v1/playlists/{id}',                    'verb' => 'GET'],
+		['name' => 'playlist#update',     'url' => '/api/v1/playlists/{id}',                    'verb' => 'PUT'],
+		['name' => 'playlist#destroy',    'url' => '/api/v1/playlists/{id}',                    'verb' => 'DELETE'],
+		['name' => 'playlist#addItem',    'url' => '/api/v1/playlists/{id}/items',               'verb' => 'POST'],
+		['name' => 'playlist#removeItem', 'url' => '/api/v1/playlists/{id}/items/{mediaItemId}', 'verb' => 'DELETE'],
+
+		// ── Sharing ────────────────────────────────────────────────────────────
+		['name' => 'share#searchUsers',     'url' => '/api/v1/users/search',             'verb' => 'GET'],
+		['name' => 'share#shareAlbum',      'url' => '/api/v1/share/album/{id}',         'verb' => 'POST'],
+		['name' => 'share#sharesForAlbum',  'url' => '/api/v1/share/album/{id}',         'verb' => 'GET'],
+		['name' => 'share#sharePlaylist',   'url' => '/api/v1/share/playlist/{id}',      'verb' => 'POST'],
+		['name' => 'share#sharesForPlaylist', 'url' => '/api/v1/share/playlist/{id}',    'verb' => 'GET'],
+		['name' => 'share#sharedWithMe',    'url' => '/api/v1/share/with-me',            'verb' => 'GET'],
+		['name' => 'share#unshare',         'url' => '/api/v1/share/{id}',               'verb' => 'DELETE'],
 	],
 ];

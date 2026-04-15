@@ -13,9 +13,19 @@
           @click="switchView('collection')"
         />
         <NcAppNavigationItem
+          name="Playlists"
+          :active="view === 'playlists' || view === 'playlist-detail'"
+          @click="switchView('playlists')"
+        />
+        <NcAppNavigationItem
           name="Wishlist"
           :active="view === 'wishlist'"
           @click="switchView('wishlist')"
+        />
+        <NcAppNavigationItem
+          name="Shared with me"
+          :active="view === 'shared'"
+          @click="switchView('shared')"
         />
       </template>
       <template #footer>
@@ -37,6 +47,34 @@
         @edit="openEdit"
         @delete="confirmDelete"
         @enriched="handleEnriched"
+        @add-to-playlist="openAddToPlaylist"
+        @share="openShareAlbum"
+      />
+
+      <!-- Playlist detail view -->
+      <PlaylistDetailView
+        v-else-if="view === 'playlist-detail' && selectedPlaylist"
+        :playlist="selectedPlaylist"
+        @back="goBack"
+        @detail="showDetail"
+        @delete="handleDeletePlaylist"
+        @share="openSharePlaylist"
+        @updated="handlePlaylistUpdated"
+      />
+
+      <!-- Playlists view -->
+      <PlaylistsView
+        v-else-if="view === 'playlists'"
+        ref="playlistsView"
+        @open="showPlaylistDetail"
+      />
+
+      <!-- Shared with me view -->
+      <SharedView
+        v-else-if="view === 'shared'"
+        ref="sharedView"
+        @detail="showDetail"
+        @playlist="showPlaylistDetail"
       />
 
       <!-- Home / landing view -->
@@ -99,6 +137,18 @@
       </template>
     </NcDialog>
 
+    <AddToPlaylistModal
+      :show="showAddToPlaylist"
+      :item="addToPlaylistItem"
+      @close="showAddToPlaylist = false"
+    />
+
+    <ShareModal
+      :show="showShareModal"
+      :target="shareTarget"
+      @close="showShareModal = false"
+    />
+
     <!-- Floating enrichment progress chip (visible when modal is closed but queue is running) -->
     <Transition name="eq-chip">
       <div
@@ -133,11 +183,16 @@ import {
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import AddEditModal from './components/AddEditModal.vue'
+import AddToPlaylistModal from './components/AddToPlaylistModal.vue'
 import CollectionView from './components/CollectionView.vue'
 import HomeView from './components/HomeView.vue'
 import ImportModal from './components/ImportModal.vue'
 import ItemDetailView from './components/ItemDetailView.vue'
+import PlaylistDetailView from './components/PlaylistDetailView.vue'
+import PlaylistsView from './components/PlaylistsView.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import ShareModal from './components/ShareModal.vue'
+import SharedView from './components/SharedView.vue'
 import { useEnrichQueue } from './composables/useEnrichQueue.js'
 import { useSettings } from './composables/useSettings.js'
 
@@ -154,19 +209,25 @@ function setHash(hash) {
   window.location.hash = hash
 }
 
-function hashForView(v, itemId = null) {
-  if (v === 'detail' && itemId) return `#/detail/${itemId}`
+function hashForView(v, id = null) {
+  if (v === 'detail' && id) return `#/detail/${id}`
+  if (v === 'playlist-detail' && id) return `#/playlists/${id}`
   if (v === 'collection') return '#/collection'
   if (v === 'wishlist') return '#/wishlist'
+  if (v === 'playlists') return '#/playlists'
+  if (v === 'shared') return '#/shared'
   return '#/'
 }
 
 function parseHash() {
   const parts = (window.location.hash || '#/').replace(/^#\//, '').split('/')
-  if (parts[0] === 'detail' && parts[1]) return { view: 'detail', itemId: parseInt(parts[1], 10) }
-  if (parts[0] === 'collection') return { view: 'collection', itemId: null }
-  if (parts[0] === 'wishlist') return { view: 'wishlist', itemId: null }
-  return { view: 'home', itemId: null }
+  if (parts[0] === 'detail' && parts[1]) return { view: 'detail', itemId: parseInt(parts[1], 10), playlistId: null }
+  if (parts[0] === 'playlists' && parts[1]) return { view: 'playlist-detail', itemId: null, playlistId: parseInt(parts[1], 10) }
+  if (parts[0] === 'playlists') return { view: 'playlists', itemId: null, playlistId: null }
+  if (parts[0] === 'collection') return { view: 'collection', itemId: null, playlistId: null }
+  if (parts[0] === 'wishlist') return { view: 'wishlist', itemId: null, playlistId: null }
+  if (parts[0] === 'shared') return { view: 'shared', itemId: null, playlistId: null }
+  return { view: 'home', itemId: null, playlistId: null }
 }
 
 // ── state ─────────────────────────────────────────────────────────────────────
@@ -184,6 +245,15 @@ const editingItem = ref(null)
 const deletingItem = ref(null)
 const importOpen = ref(false)
 const hasDiscogsToken = ref(false)
+
+// playlist + sharing state
+const selectedPlaylist = ref(null)
+const playlistsView = ref(null)
+const sharedView = ref(null)
+const addToPlaylistItem = ref(null)
+const showAddToPlaylist = ref(false)
+const shareTarget = ref(null)
+const showShareModal = ref(false)
 
 // ── init ──────────────────────────────────────────────────────────────────────
 onMounted(async () => {
@@ -205,7 +275,7 @@ onUnmounted(() => {
 })
 
 async function restoreFromHash() {
-  const { view: v, itemId } = parseHash()
+  const { view: v, itemId, playlistId } = parseHash()
   if (v === 'detail' && itemId) {
     try {
       const res = await axios.get(generateOcsUrl(`/apps/crate/api/v1/media/${itemId}`))
@@ -217,9 +287,23 @@ async function restoreFromHash() {
         return
       }
     } catch { /* fall through to home */ }
+  } else if (v === 'playlist-detail' && playlistId) {
+    try {
+      const res = await axios.get(generateOcsUrl(`/apps/crate/api/v1/playlists/${playlistId}`))
+      const playlist = res.data.ocs?.data
+      if (playlist) {
+        selectedPlaylist.value = playlist
+        previousView.value = 'playlists'
+        view.value = 'playlist-detail'
+        return
+      }
+    } catch { /* fall through to home */ }
   } else if (v === 'collection' || v === 'wishlist') {
     view.value = v
     loadItems()
+    return
+  } else if (v === 'playlists' || v === 'shared') {
+    view.value = v
     return
   }
   // home or unrecognised — update hash to canonical form
@@ -232,7 +316,7 @@ function handleHashChange() {
     return
   }
   // Only reached for genuine browser back/forward navigation
-  const { view: v, itemId } = parseHash()
+  const { view: v, itemId, playlistId } = parseHash()
   if (v === 'detail' && itemId) {
     // If we're already showing this exact item, nothing to do
     if (view.value === 'detail' && selectedItem.value?.id === itemId) return
@@ -242,13 +326,18 @@ function handleHashChange() {
       selectedItem.value = cached
       view.value = 'detail'
     }
-    // If not cached (e.g. came from HomeView), don't call restoreFromHash —
-    // that would overwrite previousView. The item is already loaded in the
-    // detail view; this hashchange is redundant and can be ignored.
+    // If not cached, do nothing — don't call restoreFromHash (would overwrite previousView)
+  } else if (v === 'playlist-detail' && playlistId) {
+    if (view.value === 'playlist-detail' && selectedPlaylist.value?.id === playlistId) return
+    // selectedPlaylist should still be in memory from navigation
+    if (selectedPlaylist.value?.id === playlistId) {
+      view.value = 'playlist-detail'
+    }
   } else if (v !== view.value) {
     view.value = v
     selectedItem.value = null
-    if (v !== 'home') loadItems()
+    selectedPlaylist.value = null
+    if (v === 'collection' || v === 'wishlist') loadItems()
   }
 }
 
@@ -279,9 +368,14 @@ async function loadItems() {
 function switchView(newView) {
   view.value = newView
   selectedItem.value = null
+  selectedPlaylist.value = null
   setHash(hashForView(newView))
-  if (newView !== 'home') {
+  if (newView === 'collection' || newView === 'wishlist') {
     loadItems()
+  } else if (newView === 'playlists') {
+    nextTick(() => playlistsView.value?.load())
+  } else if (newView === 'shared') {
+    nextTick(() => sharedView.value?.load())
   }
 }
 
@@ -320,11 +414,48 @@ async function goBack() {
   const dest = previousView.value
   view.value = dest
   selectedItem.value = null
+  if (dest !== 'playlist-detail') selectedPlaylist.value = null
   setHash(hashForView(dest))
   // Restore scroll position after the list has re-rendered
   const top = savedScrollTop.value
   await nextTick()
   document.getElementById('app-content-vue')?.scrollTo({ top, behavior: 'instant' })
+}
+
+// ── playlist navigation ───────────────────────────────────────────────────────
+function showPlaylistDetail(playlist) {
+  savedScrollTop.value = document.getElementById('app-content-vue')?.scrollTop ?? 0
+  previousView.value = view.value
+  selectedPlaylist.value = playlist
+  view.value = 'playlist-detail'
+  setHash(hashForView('playlist-detail', playlist.id))
+}
+
+function handleDeletePlaylist() {
+  view.value = 'playlists'
+  selectedPlaylist.value = null
+  setHash('#/playlists')
+  nextTick(() => playlistsView.value?.load())
+}
+
+function handlePlaylistUpdated(updatedPlaylist) {
+  selectedPlaylist.value = updatedPlaylist
+}
+
+// ── add to playlist / share modals ────────────────────────────────────────────
+function openAddToPlaylist(item) {
+  addToPlaylistItem.value = item
+  showAddToPlaylist.value = true
+}
+
+function openShareAlbum(item) {
+  shareTarget.value = { type: 'album', id: item.id, name: `${item.artist} — ${item.title}` }
+  showShareModal.value = true
+}
+
+function openSharePlaylist(playlist) {
+  shareTarget.value = { type: 'playlist', id: playlist.id, name: playlist.name }
+  showShareModal.value = true
 }
 
 // ── modal helpers ─────────────────────────────────────────────────────────────
