@@ -428,9 +428,17 @@ async function goBack() {
 }
 
 // ── playlist navigation ───────────────────────────────────────────────────────
-function showPlaylistDetail(playlist) {
+async function showPlaylistDetail(playlist) {
   savedScrollTop.value = document.getElementById('app-content-vue')?.scrollTop ?? 0
   previousView.value = view.value
+  // If the playlist came from the grid list it only has itemCount/coverId.
+  // Fetch the full object (with items[]) before showing the detail view.
+  if (!Array.isArray(playlist.items)) {
+    try {
+      const res = await axios.get(generateOcsUrl(`/apps/crate/api/v1/playlists/${playlist.id}`))
+      playlist = res.data.ocs?.data ?? playlist
+    } catch { /* fall through with whatever we have */ }
+  }
   selectedPlaylist.value = playlist
   view.value = 'playlist-detail'
   setHash(hashForView('playlist-detail', playlist.id))

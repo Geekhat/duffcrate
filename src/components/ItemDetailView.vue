@@ -270,8 +270,10 @@ async function stripEnrich() {
 /* Top bar */
 .detail-topbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
   padding: 8px 0 16px;
   /* Push below the Nextcloud top-bar / sidebar-toggle button */
   padding-top: calc(var(--default-clickable-area, 44px) + 8px);
@@ -281,11 +283,16 @@ async function stripEnrich() {
   z-index: 10;
 }
 
+.detail-back {
+  flex-shrink: 0;
+}
+
 .detail-topbar-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .detail-enriching {
