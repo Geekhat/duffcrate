@@ -6,14 +6,24 @@
     @close="$emit('close')"
   >
     <div class="atp-modal">
-      <h2 id="atp-modal-title">Add to playlist</h2>
+      <h2 id="atp-modal-title">
+        Add to playlist
+      </h2>
       <p class="atp-subtitle">
         <strong>{{ item?.artist }}</strong> — {{ item?.title }}
       </p>
 
-      <p v-if="loading" class="atp-status">Loading playlists…</p>
+      <p
+        v-if="loading"
+        class="atp-status"
+      >
+        Loading playlists…
+      </p>
 
-      <div v-else class="atp-list">
+      <div
+        v-else
+        class="atp-list"
+      >
         <button
           v-for="pl in playlists"
           :key="pl.id"
@@ -22,15 +32,24 @@
           :disabled="addedIds.has(pl.id)"
           @click="addTo(pl)"
         >
-          <div class="atp-row-art" :style="coverStyle(pl)" />
+          <div
+            class="atp-row-art"
+            :style="coverStyle(pl)"
+          />
           <div class="atp-row-info">
             <span class="atp-row-name">{{ pl.name }}</span>
             <span class="atp-row-count">{{ pl.itemCount }} albums</span>
           </div>
-          <span v-if="addedIds.has(pl.id)" class="atp-check">✓</span>
+          <span
+            v-if="addedIds.has(pl.id)"
+            class="atp-check"
+          >✓</span>
         </button>
 
-        <div v-if="playlists.length === 0" class="atp-empty">
+        <div
+          v-if="playlists.length === 0"
+          class="atp-empty"
+        >
           No playlists yet.
         </div>
       </div>
@@ -68,21 +87,13 @@ const props = defineProps({
   item: { type: Object, default: null },
 })
 
-const emit = defineEmits(['close'])
+defineEmits(['close'])
 
 const playlists = ref([])
 const loading = ref(false)
 const addedIds = ref(new Set())
 const newName = ref('')
 const creating = ref(false)
-
-const FORMAT_COLOURS = {
-  Vinyl: ['#6b21a8', '#a855f7'],
-  CD: ['#1d4ed8', '#60a5fa'],
-  SACD: ['#0f766e', '#2dd4bf'],
-  Cassette: ['#b45309', '#fbbf24'],
-  MiniDisc: ['#0e7490', '#38bdf8'],
-}
 
 function coverStyle(pl) {
   if (pl.coverId) {

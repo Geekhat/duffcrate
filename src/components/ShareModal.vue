@@ -6,7 +6,9 @@
     @close="$emit('close')"
   >
     <div class="share-modal">
-      <h2 id="share-modal-title">Share</h2>
+      <h2 id="share-modal-title">
+        Share
+      </h2>
       <p class="share-subtitle">
         <strong>{{ displayName }}</strong>
       </p>
@@ -24,7 +26,10 @@
       </div>
 
       <!-- Search results -->
-      <div v-if="searchResults.length > 0" class="share-results">
+      <div
+        v-if="searchResults.length > 0"
+        class="share-results"
+      >
         <button
           v-for="user in searchResults"
           :key="user.uid"
@@ -36,13 +41,21 @@
         </button>
       </div>
 
-      <p v-if="query.length >= 2 && searchResults.length === 0 && !searching" class="share-no-results">
+      <p
+        v-if="query.length >= 2 && searchResults.length === 0 && !searching"
+        class="share-no-results"
+      >
         No users found.
       </p>
 
       <!-- Current shares -->
-      <div v-if="currentShares.length > 0" class="share-current">
-        <p class="share-current-label">Shared with</p>
+      <div
+        v-if="currentShares.length > 0"
+        class="share-current"
+      >
+        <p class="share-current-label">
+          Shared with
+        </p>
         <div
           v-for="share in currentShares"
           :key="share.id"
@@ -60,7 +73,11 @@
         </div>
       </div>
 
-      <p v-if="statusMessage" class="share-status" :class="{ 'share-status--error': statusError }">
+      <p
+        v-if="statusMessage"
+        class="share-status"
+        :class="{ 'share-status--error': statusError }"
+      >
         {{ statusMessage }}
       </p>
     </div>
@@ -79,7 +96,7 @@ const props = defineProps({
   target: { type: Object, default: null },
 })
 
-const emit = defineEmits(['close'])
+defineEmits(['close'])
 
 const query = ref('')
 const searching = ref(false)

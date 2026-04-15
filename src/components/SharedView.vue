@@ -1,19 +1,34 @@
 <template>
   <div class="shared-view">
     <div class="sv-toolbar">
-      <h2 class="sv-heading">Shared with me</h2>
+      <h2 class="sv-heading">
+        Shared with me
+      </h2>
     </div>
 
-    <p v-if="loading" class="sv-status">Loading…</p>
+    <p
+      v-if="loading"
+      class="sv-status"
+    >
+      Loading…
+    </p>
 
-    <div v-else-if="albums.length === 0 && playlists.length === 0" class="sv-empty">
+    <div
+      v-else-if="albums.length === 0 && playlists.length === 0"
+      class="sv-empty"
+    >
       <p>Nothing has been shared with you yet.</p>
     </div>
 
     <template v-else>
       <!-- Shared albums -->
-      <section v-if="albums.length > 0" class="sv-section">
-        <h3 class="sv-section-title">Albums</h3>
+      <section
+        v-if="albums.length > 0"
+        class="sv-section"
+      >
+        <h3 class="sv-section-title">
+          Albums
+        </h3>
         <div class="sv-list">
           <div
             v-for="item in albums"
@@ -21,7 +36,10 @@
             class="sv-row"
             @click="$emit('detail', item)"
           >
-            <div class="sv-thumb" :style="thumbStyle(item)" />
+            <div
+              class="sv-thumb"
+              :style="thumbStyle(item)"
+            />
             <div class="sv-info">
               <span class="sv-title">{{ item.title }}</span>
               <span class="sv-artist">{{ item.artist }}</span>
@@ -36,8 +54,13 @@
       </section>
 
       <!-- Shared playlists -->
-      <section v-if="playlists.length > 0" class="sv-section">
-        <h3 class="sv-section-title">Playlists</h3>
+      <section
+        v-if="playlists.length > 0"
+        class="sv-section"
+      >
+        <h3 class="sv-section-title">
+          Playlists
+        </h3>
         <div class="sv-playlist-grid">
           <div
             v-for="pl in playlists"
@@ -45,7 +68,10 @@
             class="sv-pl-card"
             @click="$emit('playlist', pl)"
           >
-            <div class="sv-pl-art" :style="playlistCoverStyle(pl)" />
+            <div
+              class="sv-pl-art"
+              :style="playlistCoverStyle(pl)"
+            />
             <div class="sv-pl-info">
               <span class="sv-pl-name">{{ pl.name }}</span>
               <span class="sv-pl-meta">{{ pl.itemCount }} albums · by {{ pl.sharedByUser }}</span>

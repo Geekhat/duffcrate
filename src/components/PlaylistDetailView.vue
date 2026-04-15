@@ -2,36 +2,73 @@
   <div class="playlist-detail">
     <!-- Top bar -->
     <div class="pd-topbar">
-      <NcButton variant="tertiary" class="pd-back" @click="$emit('back')">← Back</NcButton>
+      <NcButton
+        variant="tertiary"
+        class="pd-back"
+        @click="$emit('back')"
+      >
+        ← Back
+      </NcButton>
       <div class="pd-topbar-actions">
-        <NcButton variant="tertiary" @click="$emit('share', playlist)">Share</NcButton>
-        <NcButton variant="error" @click="confirmDelete = true">Delete playlist</NcButton>
+        <NcButton
+          variant="tertiary"
+          @click="$emit('share', playlist)"
+        >
+          Share
+        </NcButton>
+        <NcButton
+          variant="error"
+          @click="confirmDelete = true"
+        >
+          Delete playlist
+        </NcButton>
       </div>
     </div>
 
     <!-- Header -->
     <div class="pd-header">
-      <div class="pd-cover" :style="coverStyle" />
+      <div
+        class="pd-cover"
+        :style="coverStyle"
+      />
       <div class="pd-header-info">
-        <h2 class="pd-title">{{ playlist.name }}</h2>
-        <p v-if="playlist.description" class="pd-desc">{{ playlist.description }}</p>
-        <p class="pd-count">{{ playlist.items?.length ?? 0 }} {{ (playlist.items?.length ?? 0) === 1 ? 'album' : 'albums' }}</p>
+        <h2 class="pd-title">
+          {{ playlist.name }}
+        </h2>
+        <p
+          v-if="playlist.description"
+          class="pd-desc"
+        >
+          {{ playlist.description }}
+        </p>
+        <p class="pd-count">
+          {{ playlist.items?.length ?? 0 }} {{ (playlist.items?.length ?? 0) === 1 ? 'album' : 'albums' }}
+        </p>
       </div>
     </div>
 
     <!-- Items -->
-    <div v-if="!playlist.items || playlist.items.length === 0" class="pd-empty">
+    <div
+      v-if="!playlist.items || playlist.items.length === 0"
+      class="pd-empty"
+    >
       <p>No albums in this playlist yet. Open an album and use "Add to playlist" to add it here.</p>
     </div>
 
-    <div v-else class="pd-list">
+    <div
+      v-else
+      class="pd-list"
+    >
       <div
         v-for="item in playlist.items"
         :key="item.id"
         class="pd-row"
         @click="$emit('detail', item)"
       >
-        <div class="pd-thumb" :style="thumbStyle(item)" />
+        <div
+          class="pd-thumb"
+          :style="thumbStyle(item)"
+        />
         <div class="pd-info">
           <span class="pd-item-title">{{ item.title }}</span>
           <span class="pd-item-artist">{{ item.artist }}</span>
@@ -40,7 +77,10 @@
             <template v-if="item.year">&thinsp;{{ item.year }}</template>
           </span>
         </div>
-        <div class="pd-actions" @click.stop>
+        <div
+          class="pd-actions"
+          @click.stop
+        >
           <NcButton
             variant="tertiary"
             :aria-label="'Remove ' + item.title + ' from playlist'"
@@ -61,8 +101,18 @@
     >
       <p>Delete <strong>{{ playlist.name }}</strong>? The albums in it won't be deleted.</p>
       <template #actions>
-        <NcButton variant="tertiary" @click="confirmDelete = false">Cancel</NcButton>
-        <NcButton variant="error" @click="$emit('delete', playlist)">Delete</NcButton>
+        <NcButton
+          variant="tertiary"
+          @click="confirmDelete = false"
+        >
+          Cancel
+        </NcButton>
+        <NcButton
+          variant="error"
+          @click="$emit('delete', playlist)"
+        >
+          Delete
+        </NcButton>
       </template>
     </NcDialog>
   </div>

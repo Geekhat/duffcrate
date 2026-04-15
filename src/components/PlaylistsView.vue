@@ -2,37 +2,81 @@
   <div class="playlists-view">
     <!-- Toolbar -->
     <div class="pv-toolbar">
-      <h2 class="pv-heading">Playlists</h2>
-      <NcButton variant="primary" @click="showCreate = true">
-        <template #icon><span class="pv-plus">+</span></template>
+      <h2 class="pv-heading">
+        Playlists
+      </h2>
+      <NcButton
+        variant="primary"
+        @click="showCreate = true"
+      >
+        <template #icon>
+          <span class="pv-plus">+</span>
+        </template>
         New playlist
       </NcButton>
     </div>
 
-    <p v-if="loading" class="pv-status">Loading…</p>
+    <p
+      v-if="loading"
+      class="pv-status"
+    >
+      Loading…
+    </p>
 
-    <div v-else-if="playlists.length === 0" class="pv-empty">
+    <div
+      v-else-if="playlists.length === 0"
+      class="pv-empty"
+    >
       <p>No playlists yet. Create one to organise your collection.</p>
-      <NcButton variant="primary" @click="showCreate = true">Create a playlist</NcButton>
+      <NcButton
+        variant="primary"
+        @click="showCreate = true"
+      >
+        Create a playlist
+      </NcButton>
     </div>
 
-    <div v-else class="pv-grid">
+    <div
+      v-else
+      class="pv-grid"
+    >
       <div
         v-for="pl in playlists"
         :key="pl.id"
         class="pv-card"
         @click="$emit('open', pl)"
       >
-        <div class="pv-card-art" :style="coverStyle(pl)">
+        <div
+          class="pv-card-art"
+          :style="coverStyle(pl)"
+        >
           <span class="pv-card-count">{{ pl.itemCount }} {{ pl.itemCount === 1 ? 'album' : 'albums' }}</span>
         </div>
         <div class="pv-card-info">
           <span class="pv-card-name">{{ pl.name }}</span>
-          <span v-if="pl.description" class="pv-card-desc">{{ pl.description }}</span>
+          <span
+            v-if="pl.description"
+            class="pv-card-desc"
+          >{{ pl.description }}</span>
         </div>
-        <div class="pv-card-actions" @click.stop>
-          <NcButton variant="tertiary" :aria-label="'Rename ' + pl.name" @click="startRename(pl)">Rename</NcButton>
-          <NcButton variant="tertiary" :aria-label="'Delete ' + pl.name" @click="confirmDelete(pl)">Delete</NcButton>
+        <div
+          class="pv-card-actions"
+          @click.stop
+        >
+          <NcButton
+            variant="tertiary"
+            :aria-label="'Rename ' + pl.name"
+            @click="startRename(pl)"
+          >
+            Rename
+          </NcButton>
+          <NcButton
+            variant="tertiary"
+            :aria-label="'Delete ' + pl.name"
+            @click="confirmDelete(pl)"
+          >
+            Delete
+          </NcButton>
         </div>
       </div>
     </div>
@@ -70,8 +114,17 @@
         </div>
       </div>
       <template #actions>
-        <NcButton variant="tertiary" @click="showCreate = false">Cancel</NcButton>
-        <NcButton variant="primary" :disabled="!createName.trim() || creating" @click="doCreate">
+        <NcButton
+          variant="tertiary"
+          @click="showCreate = false"
+        >
+          Cancel
+        </NcButton>
+        <NcButton
+          variant="primary"
+          :disabled="!createName.trim() || creating"
+          @click="doCreate"
+        >
           {{ creating ? 'Creating…' : 'Create' }}
         </NcButton>
       </template>
@@ -108,8 +161,17 @@
         </div>
       </div>
       <template #actions>
-        <NcButton variant="tertiary" @click="renamingPlaylist = null">Cancel</NcButton>
-        <NcButton variant="primary" :disabled="!renameValue.trim() || renaming" @click="doRename">
+        <NcButton
+          variant="tertiary"
+          @click="renamingPlaylist = null"
+        >
+          Cancel
+        </NcButton>
+        <NcButton
+          variant="primary"
+          :disabled="!renameValue.trim() || renaming"
+          @click="doRename"
+        >
           {{ renaming ? 'Saving…' : 'Save' }}
         </NcButton>
       </template>
@@ -124,8 +186,18 @@
     >
       <p>Delete <strong>{{ deletingPlaylist.name }}</strong>? The albums in it won't be deleted.</p>
       <template #actions>
-        <NcButton variant="tertiary" @click="deletingPlaylist = null">Cancel</NcButton>
-        <NcButton variant="error" @click="doDelete">Delete</NcButton>
+        <NcButton
+          variant="tertiary"
+          @click="deletingPlaylist = null"
+        >
+          Cancel
+        </NcButton>
+        <NcButton
+          variant="error"
+          @click="doDelete"
+        >
+          Delete
+        </NcButton>
       </template>
     </NcDialog>
   </div>
@@ -153,14 +225,6 @@ const renameDesc = ref('')
 const renaming = ref(false)
 
 const deletingPlaylist = ref(null)
-
-const FORMAT_COLOURS = {
-  Vinyl: ['#6b21a8', '#a855f7'],
-  CD: ['#1d4ed8', '#60a5fa'],
-  SACD: ['#0f766e', '#2dd4bf'],
-  Cassette: ['#b45309', '#fbbf24'],
-  MiniDisc: ['#0e7490', '#38bdf8'],
-}
 
 function coverStyle(pl) {
   if (pl.coverId) {
