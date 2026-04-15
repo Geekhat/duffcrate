@@ -6,8 +6,8 @@
     @update:open="$emit('update:open', $event)"
   >
     <NcAppSettingsSection
-      id="crate-settings-discogs"
-      name="Discogs"
+      id="crate-settings-enrich"
+      name="Enrichment"
     >
       <p class="settings-hint">
         Crate uses the
@@ -16,8 +16,8 @@
           target="_blank"
           rel="noopener"
         >Discogs API</a>
-        to search for album metadata and artwork. Enter your personal access token below.
-        You can generate one at
+        to fetch album metadata, artwork, tracklists, genres and artist info.
+        Enter your personal access token below — you can generate one at
         <a
           href="https://www.discogs.com/settings/developers"
           target="_blank"
@@ -67,46 +67,35 @@
         >{{ savedMessage }}</span>
       </div>
 
-      <div class="settings-toggles">
-        <label class="settings-toggle">
-          <input
-            v-model="autoEnrichOnClick"
-            type="checkbox"
-            :disabled="!hasToken"
-          >
+      <div class="settings-enrichment-options">
+        <NcCheckboxRadioSwitch
+          v-model="autoEnrichOnClick"
+          :disabled="!hasToken"
+        >
           Auto-enrich albums when clicking on them
-        </label>
-      </div>
-    </NcAppSettingsSection>
+        </NcCheckboxRadioSwitch>
 
-    <NcAppSettingsSection
-      id="crate-settings-enrich"
-      name="Enrichment"
-    >
-      <p class="settings-hint">
-        Enrich your entire collection with artwork, tracklists, genres and artist info from Discogs.
-        Only items without existing enrichment data will be processed.
-      </p>
-      <div class="settings-actions">
-        <NcButton
-          variant="secondary"
-          :disabled="!hasToken || enrich.running.value"
-          @click="enrichAll"
-        >
-          {{ enrich.running.value ? `Enriching… ${enrich.done.value} / ${enrich.total.value}` : 'Enrich all un-enriched items' }}
-        </NcButton>
-        <NcButton
-          v-if="enrich.running.value"
-          variant="tertiary"
-          @click="enrich.cancel()"
-        >
-          Stop
-        </NcButton>
-        <span
-          v-if="!hasToken"
-          class="settings-hint"
-          style="margin:0"
-        >Requires a Discogs token — save one above first.</span>
+        <div class="settings-actions settings-enrich-all">
+          <NcButton
+            variant="secondary"
+            :disabled="!hasToken || enrich.running.value"
+            @click="enrichAll"
+          >
+            {{ enrich.running.value ? `Enriching… ${enrich.done.value} / ${enrich.total.value}` : 'Enrich all un-enriched items' }}
+          </NcButton>
+          <NcButton
+            v-if="enrich.running.value"
+            variant="tertiary"
+            @click="enrich.cancel()"
+          >
+            Stop
+          </NcButton>
+          <span
+            v-if="!hasToken"
+            class="settings-hint"
+            style="margin:0"
+          >Add a token above to enable enrichment.</span>
+        </div>
       </div>
     </NcAppSettingsSection>
 
@@ -161,7 +150,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcDialog } from '@nextcloud/vue'
+import { NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcDialog } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { useEnrichQueue } from '../composables/useEnrichQueue.js'
@@ -320,31 +309,14 @@ async function enrichAll() {
   color: var(--color-success);
 }
 
-.settings-toggles {
-  margin-top: 14px;
+.settings-enrichment-options {
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.settings-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.875em;
-  cursor: pointer;
-  user-select: none;
-}
-
-.settings-toggle input[type='checkbox'] {
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.settings-toggle input:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+.settings-enrich-all {
+  margin-top: 4px;
 }
 </style>
