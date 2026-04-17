@@ -126,6 +126,19 @@ class MediaService
     public function stripEnrichment(int $id, string $userId): MediaItem
     {
         $item = $this->mapper->findByUser($id, $userId);
+
+        // Restore pre-enrichment values if a snapshot was taken, then clear it.
+        if ($item->getOriginalTitle() !== null) {
+            $item->setTitle($item->getOriginalTitle());
+            $item->setArtist($item->getOriginalArtist());
+            $item->setYear($item->getOriginalYear());
+            $item->setArtworkPath($item->getOriginalArtworkPath());
+            $item->setOriginalTitle(null);
+            $item->setOriginalArtist(null);
+            $item->setOriginalYear(null);
+            $item->setOriginalArtworkPath(null);
+        }
+
         $item->setGenres(null);
         $item->setTracklist(null);
         $item->setPressingNotes(null);
@@ -155,6 +168,15 @@ class MediaService
     public function applyReleaseData(int $id, string $userId, array $release, array $artist = []): MediaItem
     {
         $item = $this->mapper->findByUser($id, $userId);
+
+        // Snapshot the pre-enrichment values on first enrichment only, so that
+        // "Remove Discogs data" can restore exactly what the user originally entered.
+        if ($item->getOriginalTitle() === null) {
+            $item->setOriginalTitle($item->getTitle());
+            $item->setOriginalArtist($item->getArtist());
+            $item->setOriginalYear($item->getYear());
+            $item->setOriginalArtworkPath($item->getArtworkPath());
+        }
 
         if (!empty($release['title'])) {
             $item->setTitle($release['title']);

@@ -43,6 +43,14 @@ use OCP\AppFramework\Db\Entity;
  * @method void setArtistBio(?string $artistBio)
  * @method string|null getArtistMembers()
  * @method void setArtistMembers(?string $artistMembers)
+ * @method string|null getOriginalTitle()
+ * @method void setOriginalTitle(?string $originalTitle)
+ * @method string|null getOriginalArtist()
+ * @method void setOriginalArtist(?string $originalArtist)
+ * @method int|null getOriginalYear()
+ * @method void setOriginalYear(?int $originalYear)
+ * @method string|null getOriginalArtworkPath()
+ * @method void setOriginalArtworkPath(?string $originalArtworkPath)
  * @method string|null getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  * @method string|null getUpdatedAt()
@@ -68,12 +76,17 @@ class MediaItem extends Entity implements \JsonSerializable
     protected ?string $discogsArtistId = null;
     protected ?string $artistBio = null;
     protected ?string $artistMembers = null;
+    protected ?string $originalTitle = null;
+    protected ?string $originalArtist = null;
+    protected ?int $originalYear = null;
+    protected ?string $originalArtworkPath = null;
     protected ?string $createdAt = null;
     protected ?string $updatedAt = null;
 
     public function __construct()
     {
         $this->addType('year', 'integer');
+        $this->addType('originalYear', 'integer');
     }
 
     public function jsonSerialize(): array
