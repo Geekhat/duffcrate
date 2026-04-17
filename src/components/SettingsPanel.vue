@@ -113,7 +113,7 @@
           v-model="autoFetchMarketRates"
           :disabled="!hasToken"
         >
-          Automatically fetch market rates after enriching an album
+          Fetch market rates automatically
         </NcCheckboxRadioSwitch>
 
         <div class="settings-field">

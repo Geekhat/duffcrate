@@ -198,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 import { NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
@@ -313,6 +313,20 @@ function formatFetchedAt(dateStr) {
     return dateStr
   }
 }
+
+function shouldAutoFetchMarket() {
+  return autoFetchMarketRates.value && props.item.discogsId && !props.item.marketValue
+}
+
+onMounted(() => {
+  if (shouldAutoFetchMarket()) fetchMarketValue()
+})
+
+// Fires when App.vue's triggerEnrich auto-enriches and updates props.item —
+// discogsId goes from falsy to a real value, so fetch market rate if needed.
+watch(() => props.item.discogsId, (newId, oldId) => {
+  if (newId && !oldId && shouldAutoFetchMarket()) fetchMarketValue()
+})
 
 async function stripEnrich() {
   stripping.value = true
