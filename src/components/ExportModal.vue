@@ -11,6 +11,33 @@
       </h2>
 
       <div class="export-field">
+        <label class="export-label">Items to export</label>
+        <div class="export-radio-group">
+          <label class="export-radio-label">
+            <input
+              v-model="selectedScope"
+              type="radio"
+              value="owned"
+            > Collection (owned)
+          </label>
+          <label class="export-radio-label">
+            <input
+              v-model="selectedScope"
+              type="radio"
+              value="wanted"
+            > Wishlist
+          </label>
+          <label class="export-radio-label">
+            <input
+              v-model="selectedScope"
+              type="radio"
+              value="all"
+            > All items
+          </label>
+        </div>
+      </div>
+
+      <div class="export-field">
         <label class="export-label">Format</label>
         <div class="export-radio-group">
           <label class="export-radio-label">
@@ -89,6 +116,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const selectedScope   = ref(props.scope)
 const format          = ref('csv')
 const includeEnriched = ref(false)
 const includeMarket   = ref(false)
@@ -96,7 +124,10 @@ const exporting       = ref(false)
 const error           = ref('')
 
 watch(() => props.show, (open) => {
-  if (open) error.value = ''
+  if (open) {
+    selectedScope.value = props.scope
+    error.value = ''
+  }
 })
 
 async function doExport() {
@@ -105,7 +136,7 @@ async function doExport() {
   try {
     const params = new URLSearchParams({
       format:          format.value,
-      scope:           props.scope,
+      scope:           selectedScope.value,
       includeEnriched: includeEnriched.value ? '1' : '0',
       includeMarket:   includeMarket.value   ? '1' : '0',
     })
