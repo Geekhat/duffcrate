@@ -728,4 +728,13 @@ function handleEnriched(updated) {
 
 .eq-chip-enter-active, .eq-chip-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .eq-chip-enter-from, .eq-chip-leave-to { opacity: 0; transform: translateY(12px); }
+
+@media (max-width: 480px) {
+  .enrich-chip {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    min-width: 0;
+  }
+}
 </style>

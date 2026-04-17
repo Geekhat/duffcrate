@@ -490,6 +490,18 @@ function thumbStyle(item) {
   padding: 0 36px 40px 20px;
 }
 
+@media (max-width: 600px) {
+  .collection-view {
+    padding: 0 12px 40px 12px;
+  }
+  .cv-index {
+    display: none;
+  }
+  .crate-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
 /* Toolbar */
 .cv-toolbar {
   display: flex;
