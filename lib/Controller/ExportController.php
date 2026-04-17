@@ -35,19 +35,19 @@ class ExportController extends Controller
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function export(
-        string $format          = 'csv',
-        string $scope           = 'owned',
-        int    $includeEnriched = 0,
-        int    $includeMarket   = 0,
+        string $format = 'csv',
+        string $scope = 'owned',
+        int $includeEnriched = 0,
+        int $includeMarket = 0,
     ): DataDownloadResponse {
         $userId = $this->userSession->getUser()->getUID();
 
         [$content, $mimeType, $filename] = $this->exportService->generate(
             $userId,
             in_array($format, ['csv', 'xlsx'], true) ? $format : 'csv',
-            in_array($scope,  ['owned', 'wanted', 'all'], true) ? $scope : 'owned',
+            in_array($scope, ['owned', 'wanted', 'all'], true) ? $scope : 'owned',
             $includeEnriched === 1,
-            $includeMarket   === 1,
+            $includeMarket === 1,
         );
 
         return new DataDownloadResponse($content, $filename, $mimeType);

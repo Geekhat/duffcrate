@@ -11,7 +11,8 @@ class ExportService
 {
     public function __construct(
         private readonly MediaItemMapper $mapper,
-    ) {}
+    ) {
+    }
 
     /**
      * Generate a CSV or XLSX export of the user's collection.
@@ -121,12 +122,12 @@ class ExportService
         $zip = new \ZipArchive();
         $zip->open($tmp, \ZipArchive::OVERWRITE);
 
-        $zip->addFromString('[Content_Types].xml',          $this->xlContentTypes());
-        $zip->addFromString('_rels/.rels',                  $this->xlRels());
-        $zip->addFromString('xl/workbook.xml',              $this->xlWorkbook());
-        $zip->addFromString('xl/_rels/workbook.xml.rels',   $this->xlWorkbookRels());
-        $zip->addFromString('xl/styles.xml',                $this->xlStyles());
-        $zip->addFromString('xl/worksheets/sheet1.xml',     $this->xlSheet($headers, $rows));
+        $zip->addFromString('[Content_Types].xml', $this->xlContentTypes());
+        $zip->addFromString('_rels/.rels', $this->xlRels());
+        $zip->addFromString('xl/workbook.xml', $this->xlWorkbook());
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $this->xlWorkbookRels());
+        $zip->addFromString('xl/styles.xml', $this->xlStyles());
+        $zip->addFromString('xl/worksheets/sheet1.xml', $this->xlSheet($headers, $rows));
 
         $zip->close();
 
