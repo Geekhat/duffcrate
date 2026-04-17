@@ -45,8 +45,9 @@ class SettingsController extends OCSController
     public function getMarketSettings(): DataResponse
     {
         $uid = $this->userId();
+        $autoFetch = $this->config->getUserValue($uid, 'crate', 'auto_fetch_market_rates', '0') === '1';
         return new DataResponse([
-            'autoFetchMarketRates' => $this->config->getUserValue($uid, 'crate', 'auto_fetch_market_rates', '0') === '1',
+            'autoFetchMarketRates' => $autoFetch,
             'marketCurrency'       => $this->config->getUserValue($uid, 'crate', 'market_currency', 'GBP'),
         ]);
     }
