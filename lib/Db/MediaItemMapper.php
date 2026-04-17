@@ -33,6 +33,56 @@ class MediaItemMapper extends QBMapper
     }
 
     /**
+     * Paginated, filterable query — used by the REST API.
+     *
+     * @return MediaItem[]
+     */
+    public function findPaginated(
+        string $userId,
+        ?string $status = null,
+        ?string $updatedSince = null,
+        int $limit = 50,
+        int $offset = 0,
+    ): array {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+            ->orderBy('created_at', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        if ($status !== null) {
+            $qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($status)));
+        }
+        if ($updatedSince !== null) {
+            $qb->andWhere($qb->expr()->gt('updated_at', $qb->createNamedParameter($updatedSince)));
+        }
+
+        return $this->findEntities($qb);
+    }
+
+    public function countAll(string $userId, ?string $status = null, ?string $updatedSince = null): int
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->func()->count('*', 'cnt'))
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+
+        if ($status !== null) {
+            $qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($status)));
+        }
+        if ($updatedSince !== null) {
+            $qb->andWhere($qb->expr()->gt('updated_at', $qb->createNamedParameter($updatedSince)));
+        }
+
+        $result = $qb->executeQuery();
+        $val = $result->fetchOne();
+        $result->closeCursor();
+        return (int) $val;
+    }
+
+    /**
      * @throws DoesNotExistException
      */
     public function findByUser(int $id, string $userId): MediaItem

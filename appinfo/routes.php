@@ -58,5 +58,10 @@ return [
 		['name' => 'share#sharesForPlaylist', 'url' => '/api/v1/share/playlist/{id}',    'verb' => 'GET'],
 		['name' => 'share#sharedWithMe',    'url' => '/api/v1/share/with-me',            'verb' => 'GET'],
 		['name' => 'share#unshare',         'url' => '/api/v1/share/{id}',               'verb' => 'DELETE'],
+
+		// ── Android / mobile API ───────────────────────────────────────────────
+		['name' => 'settings#me',                  'url' => '/api/v1/me',                       'verb' => 'GET'],
+		['name' => 'home#home',                    'url' => '/api/v1/home',                     'verb' => 'GET'],
+		['name' => 'media#refreshAllMarketValues', 'url' => '/api/v1/market-value/refresh-all', 'verb' => 'POST'],
 	],
 ];

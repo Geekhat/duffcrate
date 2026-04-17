@@ -19,6 +19,24 @@ class MediaService
         return $this->mapper->findAll($userId);
     }
 
+    /**
+     * Paginated list for the REST API.
+     * Returns ['items' => MediaItem[], 'total' => int].
+     */
+    public function findPaginated(
+        string $userId,
+        ?string $status = null,
+        ?string $updatedSince = null,
+        int $limit = 50,
+        int $offset = 0,
+    ): array {
+        $limit = max(1, min(200, $limit));
+        return [
+            'items' => $this->mapper->findPaginated($userId, $status, $updatedSince, $limit, $offset),
+            'total' => $this->mapper->countAll($userId, $status, $updatedSince),
+        ];
+    }
+
     public function find(int $id, string $userId): MediaItem
     {
         return $this->mapper->findByUser($id, $userId);

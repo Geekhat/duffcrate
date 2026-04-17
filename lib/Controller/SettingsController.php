@@ -60,4 +60,27 @@ class SettingsController extends OCSController
         $this->config->setUserValue($uid, 'crate', 'market_currency', strtoupper($marketCurrency));
         return new DataResponse([]);
     }
+
+    /**
+     * GET /api/v1/me
+     * Returns the current user's profile and app settings — used by the Android app.
+     */
+    #[NoAdminRequired]
+    public function me(): DataResponse
+    {
+        $user     = $this->userSession->getUser();
+        $uid      = $user->getUID();
+        $currency = $this->config->getUserValue($uid, 'crate', 'market_currency', 'GBP');
+        $hasToken = $this->config->getUserValue($uid, 'crate', 'discogs_token', '') !== '';
+        $autoFetch = $this->config->getUserValue($uid, 'crate', 'auto_fetch_market_rates', '0') === '1';
+
+        return new DataResponse([
+            'userId'              => $uid,
+            'displayName'         => $user->getDisplayName(),
+            'avatarUrl'           => '/index.php/avatar/' . urlencode($uid) . '/64',
+            'hasDiscogsToken'     => $hasToken,
+            'marketCurrency'      => $currency,
+            'autoFetchMarketRates' => $autoFetch,
+        ]);
+    }
 }

@@ -16,6 +16,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -32,6 +33,7 @@ class MediaController extends OCSController
         private readonly PlaylistItemMapper $playlistItemMapper,
         private readonly CrateShareMapper $shareMapper,
         private readonly IAppDataFactory $appDataFactory,
+        private readonly IConfig $config,
     ) {
         parent::__construct($appName, $request);
     }
@@ -42,8 +44,29 @@ class MediaController extends OCSController
     }
 
     #[NoAdminRequired]
-    public function index(): DataResponse
-    {
+    public function index(
+        ?string $status = null,
+        ?string $updatedSince = null,
+        int $limit = 50,
+        int $offset = 0,
+    ): DataResponse {
+        // Legacy callers (web app) get the flat array; API callers using
+        // limit/offset/updatedSince get wrapped pagination metadata.
+        $isPaginated = $this->request->getParam('limit') !== null
+            || $this->request->getParam('offset') !== null
+            || $this->request->getParam('updatedSince') !== null
+            || $this->request->getParam('status') !== null;
+
+        if ($isPaginated) {
+            $result = $this->mediaService->findPaginated($this->userId(), $status, $updatedSince, $limit, $offset);
+            return new DataResponse([
+                'items'  => $result['items'],
+                'total'  => $result['total'],
+                'limit'  => $limit,
+                'offset' => $offset,
+            ]);
+        }
+
         return new DataResponse($this->mediaService->findAll($this->userId()));
     }
 
@@ -243,6 +266,27 @@ class MediaController extends OCSController
      *
      * POST /api/v1/media/{id}/market-value
      */
+    /**
+     * Return the IDs of items that have a discogsId and can have market values fetched.
+     * The Android app uses this to queue individual fetchMarketValue calls.
+     * POST /api/v1/market-value/refresh-all
+     */
+    #[NoAdminRequired]
+    public function refreshAllMarketValues(): DataResponse
+    {
+        $userId   = $this->userId();
+        $currency = $this->config->getUserValue($userId, 'crate', 'market_currency', 'GBP');
+        $items    = $this->mediaService->findAll($userId);
+        $eligible = array_values(
+            array_filter($items, fn($i) => $i->getDiscogsId() !== null && $i->getDiscogsId() !== '')
+        );
+        return new DataResponse([
+            'currency' => $currency,
+            'total'    => count($eligible),
+            'itemIds'  => array_map(fn($i) => $i->getId(), $eligible),
+        ]);
+    }
+
     #[NoAdminRequired]
     public function fetchMarketValue(int $id, string $currency = 'GBP'): DataResponse
     {

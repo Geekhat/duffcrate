@@ -33,7 +33,7 @@ class ArtworkController extends Controller
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
-    public function get(int $itemId): Response
+    public function get(int $itemId, string $size = 'full'): Response
     {
         $userId = $this->userSession->getUser()->getUID();
 
@@ -66,6 +66,9 @@ class ArtworkController extends Controller
                         '.gif'  => 'image/gif',
                         default => 'image/jpeg',
                     };
+                    if ($size === 'thumb') {
+                        return $this->thumbResponse((string) $file->getContent(), $mime);
+                    }
                     $response = new FileDisplayResponse($file, Http::STATUS_OK, ['Content-Type' => $mime]);
                     $response->cacheFor(3600);
                     return $response;
@@ -106,7 +109,46 @@ class ArtworkController extends Controller
         }
 
         $mime = str_ends_with($cacheFile, '.png') ? 'image/png' : 'image/jpeg';
+        if ($size === 'thumb') {
+            return $this->thumbResponse((string) $file->getContent(), $mime);
+        }
         $response = new FileDisplayResponse($file, Http::STATUS_OK, ['Content-Type' => $mime]);
+        $response->cacheFor(86400);
+        return $response;
+    }
+
+    /**
+     * Resize image bytes to a 200×200-bounded thumbnail using GD.
+     * Falls back to the original data if GD is unavailable.
+     */
+    private function thumbResponse(string $data, string $mime): Response
+    {
+        $thumbSize = 200;
+        if (function_exists('imagecreatefromstring') && function_exists('imagescale')) {
+            $src = @imagecreatefromstring($data);
+            if ($src !== false) {
+                $w = imagesx($src);
+                $h = imagesy($src);
+                $scale = min($thumbSize / $w, $thumbSize / $h, 1.0);
+                $nw = max(1, (int) round($w * $scale));
+                $nh = max(1, (int) round($h * $scale));
+                $dst = imagescale($src, $nw, $nh, IMG_BILINEAR_FIXED);
+                imagedestroy($src);
+                if ($dst !== false) {
+                    ob_start();
+                    imagejpeg($dst, null, 85);
+                    $out = ob_get_clean();
+                    imagedestroy($dst);
+                    if ($out !== false && $out !== '') {
+                        $response = new \OCP\AppFramework\Http\DataDisplayResponse($out, Http::STATUS_OK, ['Content-Type' => 'image/jpeg']);
+                        $response->cacheFor(86400);
+                        return $response;
+                    }
+                }
+            }
+        }
+        // GD unavailable or failed — return full image
+        $response = new \OCP\AppFramework\Http\DataDisplayResponse($data, Http::STATUS_OK, ['Content-Type' => $mime]);
         $response->cacheFor(86400);
         return $response;
     }
