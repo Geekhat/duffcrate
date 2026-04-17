@@ -154,23 +154,23 @@
       @close="showShareModal = false"
     />
 
-    <!-- Floating enrichment progress chip (visible when modal is closed but queue is running) -->
+    <!-- Floating progress chip (visible when modal is closed but a queue is running) -->
     <Transition name="eq-chip">
       <div
-        v-if="enrich.running.value && !importOpen"
+        v-if="activeQueue && !importOpen"
         class="enrich-chip"
       >
-        <span class="enrich-chip__text">Enriching {{ enrich.done.value }} / {{ enrich.total.value }}</span>
+        <span class="enrich-chip__text">{{ activeQueue.label }} {{ activeQueue.queue.done.value }} / {{ activeQueue.queue.total.value }}</span>
         <div class="enrich-chip__bar-wrap">
           <div
             class="enrich-chip__bar"
-            :style="{ width: enrich.progress.value + '%' }"
+            :style="{ width: activeQueue.queue.progress.value + '%' }"
           />
         </div>
         <button
           class="enrich-chip__cancel"
-          title="Stop enrichment"
-          @click="enrich.cancel()"
+          title="Stop"
+          @click="activeQueue.queue.cancel()"
         >
           ✕
         </button>
@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   NcContent, NcAppContent, NcAppNavigation, NcAppNavigationItem,
   NcAppNavigationSettings, NcButton, NcDialog,
@@ -199,10 +199,18 @@ import SettingsPanel from './components/SettingsPanel.vue'
 import ShareModal from './components/ShareModal.vue'
 import SharedView from './components/SharedView.vue'
 import { useEnrichQueue } from './composables/useEnrichQueue.js'
+import { useMarketValueQueue } from './composables/useMarketValueQueue.js'
 import { useSettings } from './composables/useSettings.js'
 
 const enrich = useEnrichQueue()
+const market = useMarketValueQueue()
 const { autoEnrichOnClick } = useSettings()
+
+const activeQueue = computed(() => {
+  if (enrich.running.value) return { queue: enrich, label: 'Enriching albums' }
+  if (market.running.value) return { queue: market, label: 'Fetching market rates' }
+  return null
+})
 
 // ── hash routing ──────────────────────────────────────────────────────────────
 // Counter-based suppression: each programmatic setHash increments this; the
@@ -347,9 +355,9 @@ function handleHashChange() {
 }
 
 function handleBeforeUnload(e) {
-  if (enrich.running.value) {
+  if (enrich.running.value || market.running.value) {
     e.preventDefault()
-    e.returnValue = 'Discogs enrichment is still running. Leaving the page will stop it.'
+    e.returnValue = 'A Discogs operation is still running. Leaving the page will stop it.'
   }
 }
 

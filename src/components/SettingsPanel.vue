@@ -78,7 +78,7 @@
         <div class="settings-actions settings-enrich-all">
           <NcButton
             variant="secondary"
-            :disabled="!hasToken || enrich.running.value"
+            :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
             @click="enrichAll"
           >
             {{ enrich.running.value ? `Enriching… ${enrich.done.value} / ${enrich.total.value}` : 'Enrich all un-enriched items' }}
@@ -136,7 +136,7 @@
         <div class="settings-actions settings-enrich-all">
           <NcButton
             variant="secondary"
-            :disabled="!hasToken || marketQueue.running.value"
+            :disabled="!hasToken || marketQueue.running.value || enrich.running.value"
             @click="refreshAllMarketRates"
           >
             {{ marketQueue.running.value
