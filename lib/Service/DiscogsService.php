@@ -6,6 +6,7 @@ namespace OCA\Crate\Service;
 
 use OCP\Http\Client\IClientService;
 use OCP\Security\ICredentialsManager;
+use Psr\Log\LoggerInterface;
 
 class DiscogsService
 {
@@ -15,6 +16,7 @@ class DiscogsService
     public function __construct(
         private readonly IClientService $clientService,
         private readonly ICredentialsManager $credentialsManager,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -174,7 +176,12 @@ class DiscogsService
             return $this->discogsGet($token, $url);
         } catch (\OCA\Crate\Exception\DiscogsRateLimitException $e) {
             throw $e;
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            $this->logger->warning('Discogs API error for {url}: {msg}', [
+                'url' => $url,
+                'msg' => $e->getMessage(),
+                'app' => 'crate',
+            ]);
             return [];
         }
     }

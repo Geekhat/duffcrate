@@ -39,11 +39,12 @@ export function createApiQueue(urlFn, payloadFn = () => ({}), opts = {}) {
 
     for (const id of itemIds) {
       if (cancelRequested) break
-      const ok = await processOne(id, ...args)
-      if (!ok) {
+      let result = await processOne(id, ...args)
+      if (result === 'rate-limited') {
         await sleep(retryDelay)
-        await processOne(id, ...args)
+        result = await processOne(id, ...args)
       }
+      if (result !== 'ok') failed.value++
       done.value++
       if (!cancelRequested) await sleep(delay)
     }
@@ -51,15 +52,14 @@ export function createApiQueue(urlFn, payloadFn = () => ({}), opts = {}) {
     finished.value = true
   }
 
+  /** @returns {'ok' | 'rate-limited' | 'error'} */
   async function processOne(id, ...args) {
     try {
       await axios.post(urlFn(id), payloadFn(id, ...args))
-      return true
+      return 'ok'
     } catch (err) {
-      const status = err.response?.status
-      if (status === 429) return false
-      failed.value++
-      return true
+      if (err.response?.status === 429) return 'rate-limited'
+      return 'error'
     }
   }
 

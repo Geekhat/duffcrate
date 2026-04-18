@@ -90,14 +90,15 @@ class MediaService
         $item->setDiscogsId($data->discogsId);
         // Only overwrite artwork / label / country if the caller explicitly provides a value,
         // so that enriched data is not wiped when the user edits notes or other basic fields.
+        // null = don't change; empty string = clear to null; non-empty = set value.
         if ($data->artworkPath !== null) {
-            $item->setArtworkPath($data->artworkPath);
+            $item->setArtworkPath($data->artworkPath !== '' ? $data->artworkPath : null);
         }
         if ($data->label !== null) {
-            $item->setLabel($data->label);
+            $item->setLabel($data->label !== '' ? $data->label : null);
         }
         if ($data->country !== null) {
-            $item->setCountry($data->country);
+            $item->setCountry($data->country !== '' ? $data->country : null);
         }
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
         return $this->mapper->update($item);

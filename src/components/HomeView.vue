@@ -177,6 +177,7 @@ function seededShuffle(arr, seed) {
 }
 
 const albumOfDay = computed(() => {
+  if (items.value.length === 0) return null
   const seed = dateSeed()
   const idx = seed % items.value.length
   return items.value[idx]

@@ -52,6 +52,8 @@ class MediaController extends OCSController
             || $this->request->getParam('updatedSince') !== null
             || $this->request->getParam('status') !== null;
 
+        $offset = max(0, $offset);
+
         if ($isPaginated) {
             $result = $this->mediaService->findPaginated($this->userId(), $status, $updatedSince, $limit, $offset);
             return new DataResponse([

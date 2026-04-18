@@ -8,6 +8,7 @@ use OCA\Crate\Db\CrateShare;
 use OCA\Crate\Db\CrateShareMapper;
 use OCA\Crate\Db\MediaItemMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IUserManager;
 
 class ShareService
 {
@@ -15,6 +16,7 @@ class ShareService
         private readonly CrateShareMapper $shareMapper,
         private readonly MediaItemMapper $mediaItemMapper,
         private readonly PlaylistService $playlistService,
+        private readonly IUserManager $userManager,
     ) {
     }
 
@@ -26,6 +28,8 @@ class ShareService
      */
     public function shareAlbum(string $ownerUserId, int $mediaItemId, string $sharedWithUserId): array
     {
+        $this->validateTargetUser($sharedWithUserId, $ownerUserId);
+
         // Verify item belongs to owner
         $this->mediaItemMapper->findByUser($mediaItemId, $ownerUserId);
 
@@ -43,6 +47,8 @@ class ShareService
      */
     public function sharePlaylist(string $ownerUserId, int $playlistId, string $sharedWithUserId): array
     {
+        $this->validateTargetUser($sharedWithUserId, $ownerUserId);
+
         // Verify playlist belongs to owner (will throw DoesNotExistException if not)
         $this->playlistService->find($playlistId, $ownerUserId);
 
@@ -143,5 +149,16 @@ class ShareService
         $share->setShareableId($shareableId);
         $share->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
         return $this->shareMapper->insert($share);
+    }
+
+    /** Verify the target user exists and is not the owner. */
+    private function validateTargetUser(string $targetUserId, string $ownerUserId): void
+    {
+        if ($targetUserId === $ownerUserId) {
+            throw new \InvalidArgumentException('Cannot share with yourself.');
+        }
+        if ($this->userManager->get($targetUserId) === null) {
+            throw new \InvalidArgumentException('User does not exist.');
+        }
     }
 }

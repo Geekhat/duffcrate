@@ -298,7 +298,7 @@ async function restoreFromHash() {
   setHash('#/')
 }
 
-function handleHashChange() {
+async function handleHashChange() {
   if (consumePendingHash()) return
   // Only reached for genuine browser back/forward navigation
   const { view: v, itemId, playlistId } = parseHash()
@@ -310,8 +310,18 @@ function handleHashChange() {
     if (cached) {
       selectedItem.value = cached
       view.value = 'detail'
+    } else {
+      // Not cached — fetch from API so back-nav works for deep-linked items
+      try {
+        const res = await axios.get(generateOcsUrl(`/apps/crate/api/v1/media/${itemId}`))
+        const item = res.data.ocs?.data
+        if (item) {
+          selectedItem.value = item
+          previousView.value = 'collection'
+          view.value = 'detail'
+        }
+      } catch { /* item no longer exists — stay on current view */ }
     }
-    // If not cached, do nothing — don't call restoreFromHash (would overwrite previousView)
   } else if (v === 'playlist-detail' && playlistId) {
     if (view.value === 'playlist-detail' && selectedPlaylist.value?.id === playlistId) return
     // selectedPlaylist should still be in memory from navigation

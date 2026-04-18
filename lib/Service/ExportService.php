@@ -99,6 +99,9 @@ class ExportService
     private function buildCsv(array $headers, array $rows): string
     {
         $buf = fopen('php://memory', 'r+');
+        if ($buf === false) {
+            throw new \RuntimeException('Failed to open memory buffer for CSV export');
+        }
         // UTF-8 BOM so Excel opens it correctly
         fwrite($buf, "\xEF\xBB\xBF");
         fputcsv($buf, $headers);
@@ -118,9 +121,15 @@ class ExportService
     private function buildXlsx(array $headers, array $rows): string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'crate_export_');
+        if ($tmp === false) {
+            throw new \RuntimeException('Failed to create temporary file for XLSX export');
+        }
 
         $zip = new \ZipArchive();
-        $zip->open($tmp, \ZipArchive::OVERWRITE);
+        if ($zip->open($tmp, \ZipArchive::OVERWRITE) !== true) {
+            unlink($tmp);
+            throw new \RuntimeException('Failed to open temporary ZIP archive');
+        }
 
         $zip->addFromString('[Content_Types].xml', $this->xlContentTypes());
         $zip->addFromString('_rels/.rels', $this->xlRels());
@@ -133,6 +142,9 @@ class ExportService
 
         $content = file_get_contents($tmp);
         unlink($tmp);
+        if ($content === false) {
+            throw new \RuntimeException('Failed to read generated XLSX file');
+        }
         return $content;
     }
 

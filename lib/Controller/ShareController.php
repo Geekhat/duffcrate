@@ -46,6 +46,9 @@ class ShareController extends OCSController
                 'uid'         => $user->getUID(),
                 'displayName' => $user->getDisplayName(),
             ];
+            if (count($result) >= 25) {
+                break;
+            }
         }
         return new DataResponse($result);
     }

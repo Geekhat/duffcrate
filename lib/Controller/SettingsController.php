@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Controller;
 
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
@@ -15,6 +16,12 @@ use OCP\Security\ICredentialsManager;
 class SettingsController extends OCSController
 {
     use UsesAuthenticatedUser;
+
+    private const VALID_CURRENCIES = [
+        'GBP', 'USD', 'EUR', 'JPY', 'AUD', 'CAD', 'CHF', 'SEK', 'NOK', 'DKK',
+        'NZD', 'ZAR', 'BRL', 'MXN', 'PLN', 'CZK', 'HUF', 'RUB', 'INR', 'CNY',
+        'KRW', 'HKD', 'SGD', 'TWD', 'THB', 'MYR', 'PHP', 'IDR', 'TRY', 'ILS',
+    ];
 
     public function __construct(
         string $appName,
@@ -61,8 +68,12 @@ class SettingsController extends OCSController
     public function setMarketSettings(bool $autoFetchMarketRates = false, string $marketCurrency = 'GBP'): DataResponse
     {
         $uid = $this->userId();
+        $currency = strtoupper($marketCurrency);
+        if (!in_array($currency, self::VALID_CURRENCIES, true)) {
+            return new DataResponse(['error' => 'Invalid currency'], Http::STATUS_BAD_REQUEST);
+        }
         $this->config->setUserValue($uid, 'crate', 'auto_fetch_market_rates', $autoFetchMarketRates ? '1' : '0');
-        $this->config->setUserValue($uid, 'crate', 'market_currency', strtoupper($marketCurrency));
+        $this->config->setUserValue($uid, 'crate', 'market_currency', $currency);
         return new DataResponse([]);
     }
 
@@ -73,8 +84,12 @@ class SettingsController extends OCSController
     #[NoAdminRequired]
     public function setCurrency(string $currency = 'GBP'): DataResponse
     {
-        $this->config->setUserValue($this->userId(), 'crate', 'market_currency', strtoupper($currency));
-        return new DataResponse(['marketCurrency' => strtoupper($currency)]);
+        $c = strtoupper($currency);
+        if (!in_array($c, self::VALID_CURRENCIES, true)) {
+            return new DataResponse(['error' => 'Invalid currency'], Http::STATUS_BAD_REQUEST);
+        }
+        $this->config->setUserValue($this->userId(), 'crate', 'market_currency', $c);
+        return new DataResponse(['marketCurrency' => $c]);
     }
 
     /**

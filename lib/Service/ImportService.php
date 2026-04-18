@@ -64,6 +64,12 @@ class ImportService
     /** @return array{headers: string[], rows: array<array<string|null>>} */
     private function parseCsv(string $path): array
     {
+        // Guard against excessively large files (10 MB limit)
+        $size = filesize($path);
+        if ($size === false || $size > 10 * 1024 * 1024) {
+            throw new \RuntimeException('File too large (max 10 MB)');
+        }
+
         // Strip UTF-8 BOM if present
         $content = file_get_contents($path);
         if ($content === false) {
@@ -82,7 +88,11 @@ class ImportService
             if (empty($headers)) {
                 $headers = array_map('trim', array_map('strval', $line));
             } else {
-                $rows[] = array_map(fn($v) => $v !== '' ? $v : null, $line);
+                // Skip blank lines (all-empty or single-null-element rows)
+                $nonEmpty = array_filter($line, fn($v) => $v !== null && $v !== '');
+                if (!empty($nonEmpty)) {
+                    $rows[] = array_map(fn($v) => $v !== '' ? $v : null, $line);
+                }
             }
         }
         fclose($tmp);
@@ -97,6 +107,12 @@ class ImportService
      */
     private function parseXlsx(string $path): array
     {
+        // Guard against excessively large files (10 MB limit)
+        $size = filesize($path);
+        if ($size === false || $size > 10 * 1024 * 1024) {
+            throw new \RuntimeException('File too large (max 10 MB)');
+        }
+
         $zip = new \ZipArchive();
         if ($zip->open($path) !== true) {
             throw new \RuntimeException('Could not open spreadsheet file');
