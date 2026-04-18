@@ -44,6 +44,7 @@
     <SettingsPanel
       v-model:open="settingsOpen"
       @token-changed="v => hasDiscogsToken = v"
+      @collection-wiped="handleCollectionWiped"
     />
 
     <NcAppContent ref="appContentRef">
@@ -347,6 +348,11 @@ function handleBeforeUnload(e) {
 }
 
 // ── data loading ──────────────────────────────────────────────────────────────
+function handleCollectionWiped() {
+  items.value = []
+  if (homeView.value?.load) homeView.value.load()
+}
+
 async function loadItems() {
   loading.value = true
   try {

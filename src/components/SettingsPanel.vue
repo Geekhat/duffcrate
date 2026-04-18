@@ -94,7 +94,7 @@
             v-if="!hasToken"
             class="settings-hint"
             style="margin:0"
-          >Add a token above to enable enrichment.</span>
+          >Add a Discogs token above to enable enrichment.</span>
         </div>
       </div>
     </NcAppSettingsSection>
@@ -221,7 +221,7 @@ import { useSettings } from '../composables/useSettings.js'
 defineProps({
   open: { type: Boolean, required: true },
 })
-const emit = defineEmits(['update:open', 'token-changed'])
+const emit = defineEmits(['update:open', 'token-changed', 'collection-wiped'])
 
 const enrich = useEnrichQueue()
 const marketQueue = useMarketValueQueue()
@@ -293,6 +293,7 @@ async function wipeCollection() {
   try {
     await axios.delete(generateOcsUrl('/apps/crate/api/v1/media'))
     wipedMessage.value = 'Collection wiped.'
+    emit('collection-wiped')
     setTimeout(() => { wipedMessage.value = '' }, 4000)
   } catch (e) {
     console.error('Failed to wipe collection', e)
