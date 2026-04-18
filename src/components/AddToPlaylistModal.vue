@@ -141,21 +141,32 @@ async function addTo(pl) {
 async function createAndAdd() {
   if (!newName.value.trim() || !props.item) return
   creating.value = true
+  let created = null
   try {
     // Create playlist
     const res = await axios.post(generateOcsUrl('/apps/crate/api/v1/playlists'), {
       name: newName.value.trim(),
     })
-    const created = res.data.ocs?.data
-    if (created) {
+    created = res.data.ocs?.data
+    if (!created) return
+    try {
       // Add item
       await axios.post(generateOcsUrl(`/apps/crate/api/v1/playlists/${created.id}/items`), {
         mediaItemId: props.item.id,
       })
-      playlists.value.push({ ...created, itemCount: 1, coverId: props.item.artworkPath ? props.item.id : null })
-      addedIds.value = new Set([...addedIds.value, created.id])
-      newName.value = ''
+    } catch (addErr) {
+      // Rollback: the playlist exists but has no items — roll it back so the
+      // user isn't left with a lingering empty playlist.
+      try {
+        await axios.delete(generateOcsUrl(`/apps/crate/api/v1/playlists/${created.id}`))
+      } catch (rollbackErr) {
+        console.error('Failed to roll back empty playlist', rollbackErr)
+      }
+      throw addErr
     }
+    playlists.value.push({ ...created, itemCount: 1, coverId: props.item.artworkPath ? props.item.id : null })
+    addedIds.value = new Set([...addedIds.value, created.id])
+    newName.value = ''
   } catch (e) {
     console.error('Failed to create playlist and add item', e)
     showError('Failed to create playlist')

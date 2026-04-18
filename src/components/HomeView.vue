@@ -197,6 +197,14 @@ const albumOfDay = computed(() => {
   return items.value[idx]
 })
 
+function stringHash(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(31, h) + s.charCodeAt(i) | 0
+  }
+  return Math.abs(h)
+}
+
 const formatRows = computed(() => {
   const seed = dateSeed()
   const formatOrder = ['Vinyl', 'CD', 'Cassette', 'SACD', 'MiniDisc']
@@ -207,12 +215,13 @@ const formatRows = computed(() => {
   const allFormats = [...new Set(items.value.map(i => i.format).filter(Boolean))]
   const ordered = [
     ...formatOrder.filter(f => allFormats.includes(f)),
+    ...allFormats.filter(f => !formatOrder.includes(f)),
   ]
 
   for (const fmt of ordered) {
     const pool = items.value.filter(i => i.format === fmt)
     if (pool.length === 0) continue
-    const shuffled = seededShuffle(pool, seed + fmt.charCodeAt(0))
+    const shuffled = seededShuffle(pool, seed + stringHash(fmt))
     const picks = shuffled.slice(0, rowCount.value)
     picks.forEach(i => seen.add(i.id))
     rows.push({ format: fmt, label: pluralLabel(fmt), items: picks })

@@ -32,7 +32,7 @@ class ShareController extends OCSController
     #[NoAdminRequired]
     public function searchUsers(string $q = ''): DataResponse
     {
-        if (strlen(trim($q)) < 1) {
+        if (strlen(trim($q)) < 2) {
             return new DataResponse([]);
         }
         $me = $this->userId();

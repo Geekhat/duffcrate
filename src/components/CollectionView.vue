@@ -158,8 +158,8 @@
     <template v-else>
       <div
         v-for="group in groupedItems"
-        :id="'cv-grp-' + groupId(group.header)"
         :key="group.header"
+        :ref="el => registerGroupEl(group.header, el)"
         class="cv-group"
       >
         <div class="cv-group-header">
@@ -390,6 +390,13 @@ const groupedItems = computed(() => {
 // ── index / quick-nav ────────────────────────────────────────────────────────
 const activeGroup = ref('')
 
+// Map of group header → DOM element, populated via :ref in the template.
+const groupEls = new Map()
+function registerGroupEl(header, el) {
+  if (el) groupEls.set(header, el)
+  else groupEls.delete(header)
+}
+
 function updateActiveGroup() {
   const groups = groupedItems.value
   if (!groups.length) return
@@ -397,7 +404,7 @@ function updateActiveGroup() {
   // Use a threshold of ~140px from top to account for the sticky toolbar
   const threshold = 140
   for (const group of groups) {
-    const el = document.getElementById('cv-grp-' + groupId(group.header))
+    const el = groupEls.get(group.header)
     if (!el) continue
     const rect = el.getBoundingClientRect()
     if (rect.top <= threshold) {
@@ -436,10 +443,6 @@ onBeforeUnmount(() => {
 })
 watch(groupedItems, () => setTimeout(updateActiveGroup, 50))
 
-function groupId(header) {
-  return header.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '_')
-}
-
 function shortLabel(header) {
   if (header.length <= 3) return header
   // Decade like "1970s" → "70s"
@@ -456,7 +459,7 @@ function shortLabel(header) {
 
 function scrollToGroup(header) {
   activeGroup.value = header
-  const el = document.getElementById('cv-grp-' + groupId(header))
+  const el = groupEls.get(header)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 

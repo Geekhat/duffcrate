@@ -87,7 +87,7 @@
       <div class="export-actions">
         <NcButton
           variant="tertiary"
-          @click="$emit('close')"
+          @click="onCancel"
         >
           Cancel
         </NcButton>
@@ -124,16 +124,28 @@ const includeMarket   = ref(false)
 const exporting       = ref(false)
 const error           = ref('')
 
+let abortController = null
+
 watch(() => props.show, (open) => {
   if (open) {
     selectedScope.value = props.scope
     error.value = ''
+  } else if (abortController) {
+    // Modal closed mid-export: cancel the in-flight request.
+    abortController.abort()
+    abortController = null
   }
 })
+
+function onCancel() {
+  if (abortController) abortController.abort()
+  emit('close')
+}
 
 async function doExport() {
   exporting.value = true
   error.value = ''
+  abortController = new AbortController()
   try {
     const params = new URLSearchParams({
       format:          format.value,
@@ -142,7 +154,11 @@ async function doExport() {
       includeMarket:   includeMarket.value   ? '1' : '0',
     })
     const url = generateUrl('/apps/crate/export') + '?' + params.toString()
-    const res = await axios.get(url, { responseType: 'blob' })
+    const res = await axios.get(url, {
+      responseType: 'blob',
+      timeout: 60000,
+      signal: abortController.signal,
+    })
 
     const ext      = format.value === 'xlsx' ? 'xlsx' : 'csv'
     const filename = `crate-export-${new Date().toISOString().slice(0, 10)}.${ext}`
@@ -158,11 +174,21 @@ async function doExport() {
 
     emit('close')
   } catch (e) {
+    if (axios.isCancel?.(e) || e.name === 'CanceledError' || e.code === 'ERR_CANCELED') {
+      // User cancelled — no error message needed.
+      return
+    }
     console.error('Export failed', e)
-    showError('Export failed')
-    error.value = 'Export failed — please try again.'
+    if (e.code === 'ECONNABORTED') {
+      showError('Export timed out')
+      error.value = 'Export took too long — try exporting without enriched/market data.'
+    } else {
+      showError('Export failed')
+      error.value = 'Export failed — please try again.'
+    }
   } finally {
     exporting.value = false
+    abortController = null
   }
 }
 </script>

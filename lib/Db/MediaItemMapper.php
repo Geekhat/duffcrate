@@ -114,6 +114,25 @@ class MediaItemMapper extends QBMapper
     }
 
     /**
+     * Bulk lookup by id, no user ownership check. Missing IDs are silently
+     * dropped. Used by share listings to avoid N+1 per-share queries.
+     *
+     * @param int[] $ids
+     * @return MediaItem[]
+     */
+    public function findByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->in('id', $qb->createNamedParameter($ids, IQueryBuilder::PARAM_INT_ARRAY)));
+        return $this->findEntities($qb);
+    }
+
+    /**
      * Full-text search over title and artist for a user (case-insensitive).
      *
      * @return MediaItem[]

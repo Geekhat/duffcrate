@@ -106,12 +106,31 @@ class ExportService
         fwrite($buf, "\xEF\xBB\xBF");
         fputcsv($buf, $headers);
         foreach ($rows as $row) {
-            fputcsv($buf, $row);
+            fputcsv($buf, array_map(fn($v) => $this->sanitizeForSpreadsheet($v), $row));
         }
         rewind($buf);
         $content = stream_get_contents($buf);
         fclose($buf);
         return $content;
+    }
+
+    /**
+     * Prevent CSV/spreadsheet formula injection: cells whose first character
+     * is =, +, -, @, TAB or CR can trigger formula evaluation when opened in
+     * Excel / LibreOffice / Google Sheets. Prefix with a single quote so the
+     * content is treated as text.
+     */
+    private function sanitizeForSpreadsheet(mixed $value): string
+    {
+        $s = (string) $value;
+        if ($s === '') {
+            return $s;
+        }
+        $first = $s[0];
+        if ($first === '=' || $first === '+' || $first === '-' || $first === '@' || $first === "\t" || $first === "\r") {
+            return "'" . $s;
+        }
+        return $s;
     }
 
     /**
@@ -236,7 +255,7 @@ class ExportService
             $xml   .= '<row r="' . $rowNum . '">';
             foreach ($row as $ci => $value) {
                 $ref  = $this->cellRef($ci, $rowNum);
-                $text = htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+                $text = htmlspecialchars($this->sanitizeForSpreadsheet($value), ENT_XML1 | ENT_QUOTES, 'UTF-8');
                 $xml .= '<c r="' . $ref . '" t="inlineStr"><is><t>' . $text . '</t></is></c>';
             }
             $xml .= '</row>';

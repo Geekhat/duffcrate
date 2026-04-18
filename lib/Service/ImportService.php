@@ -122,7 +122,7 @@ class ImportService
         $sharedStrings = [];
         $ssXml = $zip->getFromName('xl/sharedStrings.xml');
         if ($ssXml !== false) {
-            $ss = simplexml_load_string($ssXml);
+            $ss = simplexml_load_string($ssXml, \SimpleXMLElement::class, LIBXML_NONET);
             if ($ss !== false) {
                 foreach ($ss->si as $si) {
                     // Concatenate all <t> elements (handles rich text runs)
@@ -143,7 +143,7 @@ class ImportService
             throw new \RuntimeException('Could not read worksheet from spreadsheet');
         }
 
-        $sheet = simplexml_load_string($sheetXml);
+        $sheet = simplexml_load_string($sheetXml, \SimpleXMLElement::class, LIBXML_NONET);
         if ($sheet === false) {
             throw new \RuntimeException('Could not parse worksheet XML');
         }

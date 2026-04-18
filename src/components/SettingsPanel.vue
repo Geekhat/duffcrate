@@ -227,7 +227,7 @@ const enrich = useEnrichQueue()
 const marketQueue = useMarketValueQueue()
 const { autoEnrichOnClick, autoFetchMarketRates, marketCurrency } = useSettings()
 
-const currencies = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'JPY', 'CHF', 'MXN', 'BRL', 'NZD', 'SEK', 'ZAR']
+const currencies = ref([])
 
 const tokenInput = ref('')
 const hasToken = ref(false)
@@ -241,8 +241,12 @@ const wipedMessage = ref('')
 
 async function load() {
   try {
-    const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'))
-    hasToken.value = res.data.ocs?.data?.hasToken ?? false
+    const [tokenRes, currRes] = await Promise.all([
+      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token')),
+      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/currencies')),
+    ])
+    hasToken.value = tokenRes.data.ocs?.data?.hasToken ?? false
+    currencies.value = currRes.data.ocs?.data ?? []
   } catch (e) {
     console.error('Failed to load settings', e)
     showError('Failed to load settings')

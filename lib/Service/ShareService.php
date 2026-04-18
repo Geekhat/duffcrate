@@ -73,26 +73,45 @@ class ShareService
         $albums    = [];
         $playlists = [];
 
+        // Split share list by type and bulk-load album items in a single query.
+        $albumShares    = [];
+        $playlistShares = [];
+        $albumIds       = [];
         foreach ($shares as $share) {
             if ($share->getShareableType() === 'album') {
-                try {
-                    $item = $this->mediaItemMapper->findById($share->getShareableId());
-                    $data = $item->jsonSerialize();
-                    $data['shareId']      = $share->getId();
-                    $data['sharedByUser'] = $share->getOwnerUserId();
-                    $albums[] = $data;
-                } catch (DoesNotExistException) {
-                    // Shared item was deleted — skip
-                }
+                $albumShares[] = $share;
+                $albumIds[]    = $share->getShareableId();
             } elseif ($share->getShareableType() === 'playlist') {
-                try {
-                    $data = $this->playlistService->findForSharedAccess($share->getShareableId());
-                    $data['shareId']      = $share->getId();
-                    $data['sharedByUser'] = $share->getOwnerUserId();
-                    $playlists[] = $data;
-                } catch (DoesNotExistException) {
-                    // Shared playlist was deleted — skip
+                $playlistShares[] = $share;
+            }
+        }
+
+        if (!empty($albumIds)) {
+            $items = $this->mediaItemMapper->findByIds($albumIds);
+            $itemsById = [];
+            foreach ($items as $item) {
+                $itemsById[$item->getId()] = $item;
+            }
+            foreach ($albumShares as $share) {
+                $item = $itemsById[$share->getShareableId()] ?? null;
+                if ($item === null) {
+                    continue; // Shared item was deleted
                 }
+                $data = $item->jsonSerialize();
+                $data['shareId']      = $share->getId();
+                $data['sharedByUser'] = $share->getOwnerUserId();
+                $albums[] = $data;
+            }
+        }
+
+        foreach ($playlistShares as $share) {
+            try {
+                $data = $this->playlistService->findForSharedAccess($share->getShareableId());
+                $data['shareId']      = $share->getId();
+                $data['sharedByUser'] = $share->getOwnerUserId();
+                $playlists[] = $data;
+            } catch (DoesNotExistException) {
+                // Shared playlist was deleted — skip
             }
         }
 
