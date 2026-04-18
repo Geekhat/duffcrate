@@ -11,7 +11,7 @@
       </h2>
 
       <!-- Discogs search -->
-      <DiscogsSearch @select="applyDiscogs" />
+      <DiscogsSearch :has-token="hasToken" @select="applyDiscogs" />
 
       <form @submit.prevent="submit">
         <!-- Two-column row: Artist + Format -->
@@ -193,6 +193,7 @@ const props = defineProps({
   show: { type: Boolean, required: true },
   item: { type: Object, default: null },
   defaultStatus: { type: String, default: 'owned' },
+  hasToken: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'save'])

@@ -121,6 +121,7 @@
       :show="modalOpen"
       :item="editingItem"
       :default-status="view === 'wishlist' ? 'wanted' : 'owned'"
+      :has-token="hasDiscogsToken"
       @close="closeModal"
       @save="saveItem"
     />

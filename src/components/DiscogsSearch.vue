@@ -58,11 +58,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
+
+const props = defineProps({
+  hasToken: { type: Boolean, default: false },
+})
 
 const emit = defineEmits(['select'])
 
@@ -70,22 +74,12 @@ const query = ref('')
 const results = ref([])
 const searching = ref(false)
 const searched = ref(false)
-const noToken = ref(false)
-
-onMounted(async () => {
-  try {
-    const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'))
-    noToken.value = !(res.data.ocs?.data?.hasToken ?? false)
-  } catch {
-    // silently ignore — hint is non-critical
-  }
-})
+const noToken = computed(() => !props.hasToken)
 
 async function search() {
   if (query.value.trim() === '') return
   searching.value = true
   searched.value = false
-  noToken.value = false
   results.value = []
   try {
     const isBarcode = /^\d{8,14}$/.test(query.value.trim())
@@ -95,12 +89,6 @@ async function search() {
 
     const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/discogs/search'), { params })
     const data = res.data.ocs?.data ?? []
-
-    if (data === null || (Array.isArray(data) && data.length === 0 && !isBarcode)) {
-      const settingsRes = await axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'))
-      noToken.value = !(settingsRes.data.ocs?.data?.hasToken ?? false)
-    }
-
     results.value = Array.isArray(data) ? data : []
     searched.value = true
   } catch (e) {

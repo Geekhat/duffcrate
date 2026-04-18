@@ -8,7 +8,7 @@ use OCA\Crate\Db\MediaItem;
 use OCA\Crate\Db\MediaItemMapper;
 use OCA\Crate\Exception\DiscogsRateLimitException;
 use OCP\Http\Client\IClientService;
-use OCP\IConfig;
+use OCP\Security\ICredentialsManager;
 
 class MarketValueService
 {
@@ -23,7 +23,7 @@ class MarketValueService
     public function __construct(
         private readonly MediaItemMapper $mapper,
         private readonly IClientService $clientService,
-        private readonly IConfig $config,
+        private readonly ICredentialsManager $credentialsManager,
     ) {
     }
 
@@ -67,11 +67,14 @@ class MarketValueService
      */
     private function fetchStats(string $userId, string $releaseId, string $currency): ?array
     {
-        $token = $this->config->getUserValue($userId, 'crate', 'discogs_token', '');
+        $token = (string) ($this->credentialsManager->retrieve($userId, 'crate/discogs_token') ?? '');
 
-        $query = ['curr_abbr' => $currency];
+        $headers = [
+            'User-Agent' => self::USER_AGENT,
+            'Accept'     => 'application/json',
+        ];
         if ($token !== '') {
-            $query['token'] = $token;
+            $headers['Authorization'] = 'Discogs token=' . $token;
         }
 
         $client = $this->clientService->newClient();
@@ -79,11 +82,8 @@ class MarketValueService
             $response = $client->get(
                 self::API_BASE . '/marketplace/stats/' . rawurlencode($releaseId),
                 [
-                    'query'   => $query,
-                    'headers' => [
-                        'User-Agent' => self::USER_AGENT,
-                        'Accept'     => 'application/json',
-                    ],
+                    'query'   => ['curr_abbr' => $currency],
+                    'headers' => $headers,
                     'timeout' => 10,
                 ],
             );
