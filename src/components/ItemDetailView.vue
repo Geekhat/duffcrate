@@ -206,6 +206,8 @@ import { NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
 import { useSettings } from '../composables/useSettings.js'
+import { useArtworkStyle } from '../composables/useArtworkStyle.js'
+import { formatMarketValue } from '../utils/formatMarketValue.js'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -292,19 +294,6 @@ async function fetchMarketValue() {
     console.error('Fetch market value failed', e)
   } finally {
     fetchingMarket.value = false
-  }
-}
-
-function formatMarketValue(item) {
-  if (!item.marketValue) return ''
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: item.marketValueCurrency ?? 'GBP',
-      minimumFractionDigits: 2,
-    }).format(item.marketValue)
-  } catch {
-    return `${item.marketValueCurrency ?? ''} ${item.marketValue}`
   }
 }
 

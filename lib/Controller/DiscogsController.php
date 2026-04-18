@@ -15,6 +15,8 @@ use OCP\IUserSession;
 
 class DiscogsController extends OCSController
 {
+    use UsesAuthenticatedUser;
+
     public function __construct(
         string $appName,
         IRequest $request,
@@ -22,15 +24,6 @@ class DiscogsController extends OCSController
         private readonly IUserSession $userSession,
     ) {
         parent::__construct($appName, $request);
-    }
-
-    private function userId(): string
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
-        }
-        return $user->getUID();
     }
 
     #[NoAdminRequired]

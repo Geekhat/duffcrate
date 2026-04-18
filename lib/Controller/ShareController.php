@@ -15,6 +15,8 @@ use OCP\IUserSession;
 
 class ShareController extends OCSController
 {
+    use UsesAuthenticatedUser;
+
     public function __construct(
         string $appName,
         IRequest $request,
@@ -23,15 +25,6 @@ class ShareController extends OCSController
         private readonly IUserManager $userManager,
     ) {
         parent::__construct($appName, $request);
-    }
-
-    private function userId(): string
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
-        }
-        return $user->getUID();
     }
 
     // ── User search ────────────────────────────────────────────────────────────

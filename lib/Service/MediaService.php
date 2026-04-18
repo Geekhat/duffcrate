@@ -8,6 +8,7 @@ use OCA\Crate\Db\CrateShareMapper;
 use OCA\Crate\Db\MediaItem;
 use OCA\Crate\Db\MediaItemMapper;
 use OCA\Crate\Db\PlaylistItemMapper;
+use OCA\Crate\Dto\MediaItemData;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
 
@@ -52,31 +53,21 @@ class MediaService
 
     public function create(
         string $userId,
-        string $title,
-        string $artist,
-        string $format,
-        ?int $year,
-        ?string $barcode,
-        ?string $notes,
-        string $status,
-        ?string $discogsId = null,
-        ?string $artworkPath = null,
-        ?string $label = null,
-        ?string $country = null,
+        MediaItemData $data,
     ): MediaItem {
         $item = new MediaItem();
         $item->setUserId($userId);
-        $item->setTitle($title);
-        $item->setArtist($artist);
-        $item->setFormat($format);
-        $item->setYear($year);
-        $item->setBarcode($barcode);
-        $item->setNotes($notes);
-        $item->setStatus($status);
-        $item->setDiscogsId($discogsId);
-        $item->setArtworkPath($artworkPath);
-        $item->setLabel($label);
-        $item->setCountry($country);
+        $item->setTitle($data->title);
+        $item->setArtist($data->artist);
+        $item->setFormat($data->format);
+        $item->setYear($data->year);
+        $item->setBarcode($data->barcode);
+        $item->setNotes($data->notes);
+        $item->setStatus($data->status);
+        $item->setDiscogsId($data->discogsId);
+        $item->setArtworkPath($data->artworkPath);
+        $item->setLabel($data->label);
+        $item->setCountry($data->country);
         $now = (new \DateTime())->format('Y-m-d H:i:s');
         $item->setCreatedAt($now);
         $item->setUpdatedAt($now);
@@ -86,37 +77,27 @@ class MediaService
     public function update(
         int $id,
         string $userId,
-        string $title,
-        string $artist,
-        string $format,
-        ?int $year,
-        ?string $barcode,
-        ?string $notes,
-        string $status,
-        ?string $discogsId = null,
-        ?string $artworkPath = null,
-        ?string $label = null,
-        ?string $country = null,
+        MediaItemData $data,
     ): MediaItem {
         $item = $this->mapper->findByUser($id, $userId);
-        $item->setTitle($title);
-        $item->setArtist($artist);
-        $item->setFormat($format);
-        $item->setYear($year);
-        $item->setBarcode($barcode);
-        $item->setNotes($notes);
-        $item->setStatus($status);
-        $item->setDiscogsId($discogsId);
+        $item->setTitle($data->title);
+        $item->setArtist($data->artist);
+        $item->setFormat($data->format);
+        $item->setYear($data->year);
+        $item->setBarcode($data->barcode);
+        $item->setNotes($data->notes);
+        $item->setStatus($data->status);
+        $item->setDiscogsId($data->discogsId);
         // Only overwrite artwork / label / country if the caller explicitly provides a value,
         // so that enriched data is not wiped when the user edits notes or other basic fields.
-        if ($artworkPath !== null) {
-            $item->setArtworkPath($artworkPath);
+        if ($data->artworkPath !== null) {
+            $item->setArtworkPath($data->artworkPath);
         }
-        if ($label !== null) {
-            $item->setLabel($label);
+        if ($data->label !== null) {
+            $item->setLabel($data->label);
         }
-        if ($country !== null) {
-            $item->setCountry($country);
+        if ($data->country !== null) {
+            $item->setCountry($data->country);
         }
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
         return $this->mapper->update($item);
@@ -151,6 +132,21 @@ class MediaService
 
     public function deleteAll(string $userId): void
     {
+        $this->mapper->deleteAllByUser($userId);
+    }
+
+    /**
+     * Delete all media items for a user, including related data cleanup.
+     * Handles artwork files, playlist-item references, and album shares.
+     */
+    public function deleteAllForUser(string $userId): void
+    {
+        $items = $this->findAll($userId);
+        foreach ($items as $item) {
+            $this->playlistItemMapper->deleteByMediaItem($item->getId());
+            $this->shareMapper->deleteByShareable('album', $item->getId());
+            $this->deleteArtworkFiles($item->getId());
+        }
         $this->mapper->deleteAllByUser($userId);
     }
 

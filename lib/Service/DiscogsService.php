@@ -99,6 +99,46 @@ class DiscogsService
     }
 
     /**
+     * Perform a GET request against the Discogs API.
+     *
+     * Handles User-Agent, auth header, and rate-limit detection centrally.
+     *
+     * @param array<string, string> $query
+     * @return array<string, mixed>
+     * @throws \OCA\Crate\Exception\DiscogsRateLimitException
+     * @throws \Exception for other HTTP errors
+     */
+    private function discogsGet(string $token, string $url, array $query = []): array
+    {
+        $options = [
+            'headers' => [
+                'User-Agent'    => self::USER_AGENT,
+                'Accept'        => 'application/json',
+                'Authorization' => 'Discogs token=' . $token,
+            ],
+            'timeout' => 10,
+        ];
+        if (!empty($query)) {
+            $options['query'] = $query;
+        }
+
+        try {
+            $response = $this->clientService->newClient()->get($url, $options);
+        } catch (\Exception $e) {
+            if ($e->getCode() === 429) {
+                throw new \OCA\Crate\Exception\DiscogsRateLimitException(
+                    'Discogs rate limit exceeded.',
+                    429,
+                    $e,
+                );
+            }
+            throw $e;
+        }
+
+        return json_decode($response->getBody(), true) ?? [];
+    }
+
+    /**
      * Run a database/search query and return normalised results.
      *
      * @param array<string, string> $params
@@ -112,30 +152,8 @@ class DiscogsService
         }
 
         $params['per_page'] = '10';
+        $body = $this->discogsGet($token, self::API_BASE . '/database/search', $params);
 
-        $client = $this->clientService->newClient();
-        try {
-            $response = $client->get(self::API_BASE . '/database/search', [
-                'query'   => $params,
-                'headers' => [
-                    'User-Agent'    => self::USER_AGENT,
-                    'Accept'        => 'application/json',
-                    'Authorization' => 'Discogs token=' . $token,
-                ],
-                'timeout' => 10,
-            ]);
-        } catch (\Exception $e) {
-            if ($e->getCode() === 429) {
-                throw new \OCA\Crate\Exception\DiscogsRateLimitException(
-                    'Discogs rate limit exceeded.',
-                    429,
-                    $e,
-                );
-            }
-            throw $e;
-        }
-
-        $body    = json_decode($response->getBody(), true);
         $results = $body['results'] ?? [];
 
         return array_values(array_map(
@@ -146,33 +164,19 @@ class DiscogsService
 
     /**
      * Perform a GET against an absolute Discogs URL and return the decoded body.
+     * Non-rate-limit errors are silently swallowed (returns empty array).
      *
      * @return array<string, mixed>
      */
     private function rawGet(string $token, string $url): array
     {
-        $client = $this->clientService->newClient();
         try {
-            $response = $client->get($url, [
-                'headers' => [
-                    'User-Agent'    => self::USER_AGENT,
-                    'Accept'        => 'application/json',
-                    'Authorization' => 'Discogs token=' . $token,
-                ],
-                'timeout' => 10,
-            ]);
-        } catch (\Exception $e) {
-            if ($e->getCode() === 429) {
-                throw new \OCA\Crate\Exception\DiscogsRateLimitException(
-                    'Discogs rate limit exceeded.',
-                    429,
-                    $e,
-                );
-            }
+            return $this->discogsGet($token, $url);
+        } catch (\OCA\Crate\Exception\DiscogsRateLimitException $e) {
+            throw $e;
+        } catch (\Exception) {
             return [];
         }
-
-        return json_decode($response->getBody(), true) ?? [];
     }
 
     /**
@@ -327,6 +331,62 @@ class DiscogsService
     }
 
     /**
+     * Ordered lookup table for mapping Discogs format tokens to canonical names.
+     * Order matters — more specific formats must appear before generic ones
+     * (e.g. "flexi-disc" before "vinyl").
+     */
+    private const FORMAT_MAP = [
+        // Vinyl sub-types (before generic 'vinyl')
+        'flexi-disc'               => 'Flexi-disc',
+        'flexi disc'               => 'Flexi-disc',
+        'lathe cut'                => 'Lathe Cut',
+        'picture disc'             => 'Picture Disc',
+        '7"'                       => '7" Single',
+        "7''"                      => '7" Single',
+        '7-inch'                   => '7" Single',
+        '10"'                      => '10"',
+        "10''"                     => '10"',
+        '12"'                      => '12" Single',
+        "12''"                     => '12" Single',
+        'vinyl'                    => 'Vinyl',
+        'lp'                       => 'Vinyl',
+        // Tape formats
+        '8-track'                  => '8-Track',
+        '8 track'                  => '8-Track',
+        '8track'                   => '8-Track',
+        'reel-to-reel'             => 'Reel-to-Reel',
+        'reel to reel'             => 'Reel-to-Reel',
+        'open reel'                => 'Reel-to-Reel',
+        'dat'                      => 'DAT',
+        'dcc'                      => 'DCC',
+        'digital compact cassette' => 'DCC',
+        'microcassette'            => 'Microcassette',
+        '4-track'                  => '4-Track Cartridge',
+        '4 track'                  => '4-Track Cartridge',
+        'cassette'                 => 'Cassette',
+        // Optical disc formats
+        'sacd'                     => 'SACD',
+        'sacd hybrid'              => 'SACD',
+        'shm-cd'                   => 'SHM-CD',
+        'shm cd'                   => 'SHM-CD',
+        'hdcd'                     => 'HDCD',
+        'cd-r'                     => 'CD-R',
+        'cd r'                     => 'CD-R',
+        'blu-ray'                  => 'Blu-ray Audio',
+        'blu ray'                  => 'Blu-ray Audio',
+        'blu-ray audio'            => 'Blu-ray Audio',
+        'dvd-audio'                => 'DVD-Audio',
+        'dvd audio'                => 'DVD-Audio',
+        'cdv'                      => 'CDV',
+        'laserdisc'                => 'LaserDisc',
+        'laser disc'               => 'LaserDisc',
+        'cd'                       => 'CD',
+        // Other digital carriers
+        'minidisc'                 => 'MiniDisc',
+        'mini disc'                => 'MiniDisc',
+    ];
+
+    /**
      * Map an array of Discogs format tokens (name + descriptions, lowercased)
      * to our canonical format string.
      *
@@ -334,94 +394,18 @@ class DiscogsService
      */
     private function mapFormat(array $formats): string
     {
-        $has = fn(string $needle) => in_array($needle, $formats, true);
-        $hasSubstr = fn(string $needle) => (bool)array_filter(
-            $formats,
-            fn(string $f) => str_contains($f, $needle),
-        );
-
-        // ── Vinyl sub-types (check before generic "vinyl") ───────────────────
-        if ($has('shellac') || $hasSubstr('shellac')) {
-            return 'Shellac';
-        }
-        if ($has('flexi-disc') || $has('flexi disc')) {
-            return 'Flexi-disc';
-        }
-        if ($has('lathe cut')) {
-            return 'Lathe Cut';
-        }
-        if ($has('picture disc')) {
-            return 'Picture Disc';
-        }
-        // Specific sizes — only when vinyl is also present or as standalone token
-        if ($has('7"') || $has('7\'\'') || $has('7-inch')) {
-            return '7" Single';
-        }
-        if ($has('10"') || $has('10\'\'')) {
-            return '10"';
-        }
-        if ($has('12"') || $has('12\'\'')) {
-            return '12" Single';
-        }
-        if ($has('vinyl') || $has('lp')) {
-            return 'Vinyl';
+        // Shellac: needs substring match (Discogs sometimes uses compound tokens)
+        foreach ($formats as $f) {
+            if (str_contains($f, 'shellac')) {
+                return 'Shellac';
+            }
         }
 
-        // ── Tape formats ─────────────────────────────────────────────────────
-        if ($has('8-track') || $has('8 track') || $has('8track')) {
-            return '8-Track';
-        }
-        if ($has('reel-to-reel') || $has('reel to reel') || $has('open reel')) {
-            return 'Reel-to-Reel';
-        }
-        if ($has('dat')) {
-            return 'DAT';
-        }
-        if ($has('dcc') || $has('digital compact cassette')) {
-            return 'DCC';
-        }
-        if ($has('microcassette')) {
-            return 'Microcassette';
-        }
-        if ($has('4-track') || $has('4 track')) {
-            return '4-Track Cartridge';
-        }
-        if ($has('cassette')) {
-            return 'Cassette';
-        }
-
-        // ── Optical disc formats ──────────────────────────────────────────────
-        if ($has('sacd') || $has('sacd hybrid')) {
-            return 'SACD';
-        }
-        if ($has('shm-cd') || $has('shm cd')) {
-            return 'SHM-CD';
-        }
-        if ($has('hdcd')) {
-            return 'HDCD';
-        }
-        if ($has('cd-r') || $has('cd r')) {
-            return 'CD-R';
-        }
-        if ($has('blu-ray') || $has('blu ray') || $has('blu-ray audio')) {
-            return 'Blu-ray Audio';
-        }
-        if ($has('dvd-audio') || $has('dvd audio')) {
-            return 'DVD-Audio';
-        }
-        if ($has('cdv')) {
-            return 'CDV';
-        }
-        if ($has('laserdisc') || $has('laser disc')) {
-            return 'LaserDisc';
-        }
-        if ($has('cd')) {
-            return 'CD';
-        }
-
-        // ── Other digital carriers ────────────────────────────────────────────
-        if ($has('minidisc') || $has('mini disc')) {
-            return 'MiniDisc';
+        // Exact-match lookup — first match wins (order in FORMAT_MAP is significant)
+        foreach (self::FORMAT_MAP as $token => $canonical) {
+            if (in_array($token, $formats, true)) {
+                return $canonical;
+            }
         }
 
         return 'Vinyl'; // sensible default for music

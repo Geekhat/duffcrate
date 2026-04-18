@@ -14,6 +14,8 @@ use OCP\Security\ICredentialsManager;
 
 class SettingsController extends OCSController
 {
+    use UsesAuthenticatedUser;
+
     public function __construct(
         string $appName,
         IRequest $request,
@@ -22,15 +24,6 @@ class SettingsController extends OCSController
         private readonly ICredentialsManager $credentialsManager,
     ) {
         parent::__construct($appName, $request);
-    }
-
-    private function userId(): string
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
-        }
-        return $user->getUID();
     }
 
     #[NoAdminRequired]

@@ -11,6 +11,8 @@ use OCP\AppFramework\OCSController;
 use OCP\IRequest;
 use OCP\IUserSession;
 
+use OCA\Crate\Controller\UsesAuthenticatedUser;
+
 /**
  * GET /api/v1/home
  * Returns all data needed to render the home feed in a single request.
@@ -18,6 +20,8 @@ use OCP\IUserSession;
  */
 class HomeController extends OCSController
 {
+    use UsesAuthenticatedUser;
+
     private const ROW_COUNT     = 6;
     private const FORMAT_ORDER  = ['Vinyl', 'CD', 'Cassette', 'SACD', 'MiniDisc'];
 
@@ -28,15 +32,6 @@ class HomeController extends OCSController
         private readonly IUserSession $userSession,
     ) {
         parent::__construct($appName, $request);
-    }
-
-    private function userId(): string
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
-        }
-        return $user->getUID();
     }
 
     #[NoAdminRequired]

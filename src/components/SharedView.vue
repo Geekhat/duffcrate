@@ -87,6 +87,8 @@
 import { ref, onMounted } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
+import { artworkStyleFor } from '../composables/useArtworkStyle.js'
 
 defineEmits(['detail', 'playlist'])
 
@@ -94,21 +96,8 @@ const albums = ref([])
 const playlists = ref([])
 const loading = ref(false)
 
-const FORMAT_COLOURS = {
-  Vinyl: ['#6b21a8', '#a855f7'],
-  CD: ['#1d4ed8', '#60a5fa'],
-  SACD: ['#0f766e', '#2dd4bf'],
-  Cassette: ['#b45309', '#fbbf24'],
-  MiniDisc: ['#0e7490', '#38bdf8'],
-}
-
 function thumbStyle(item) {
-  if (item.artworkPath) {
-    const url = generateUrl('/apps/crate/artwork/' + item.id)
-    return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-  }
-  const colours = FORMAT_COLOURS[item.format] ?? ['#374151', '#6b7280']
-  return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
+  return artworkStyleFor(item)
 }
 
 function playlistCoverStyle(pl) {
@@ -129,6 +118,7 @@ async function load() {
     playlists.value = data.playlists ?? []
   } catch (e) {
     console.error('Failed to load shared items', e)
+    showError('Failed to load shared items')
   } finally {
     loading.value = false
   }

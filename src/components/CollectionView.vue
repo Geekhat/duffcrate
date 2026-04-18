@@ -262,11 +262,14 @@ import { NcButton } from '@nextcloud/vue'
 import { generateUrl } from '@nextcloud/router'
 import MediaCard from './MediaCard.vue'
 import ExportModal from './ExportModal.vue'
+import { formatMarketValue } from '../utils/formatMarketValue.js'
+import { artworkStyleFor } from '../composables/useArtworkStyle.js'
 
 const props = defineProps({
   items: { type: Array, required: true },
   loading: { type: Boolean, default: false },
   status: { type: String, default: 'owned' }, // 'owned' | 'wanted'
+  scrollContainer: { type: Object, default: null },
 })
 
 const exportOpen = ref(false)
@@ -408,15 +411,17 @@ let _scrollTargets = []
 let _scrollHandler = null
 onMounted(() => {
   _scrollHandler = updateActiveGroup
-  // Attach to all potential Nextcloud scroll containers + window
-  const SELECTORS = [
-    () => document.getElementById('app-content-vue'),
-    () => document.querySelector('.app-content-vue'),
-    () => document.getElementById('content-vue'),
-    () => document.getElementById('app-content'),
-    () => document.querySelector('.app-content'),
-  ]
-  _scrollTargets = SELECTORS.map(s => s()).filter(Boolean)
+  // Use the scroll container prop if provided, otherwise fall back to known selectors
+  const containerEl = props.scrollContainer?.$el
+  if (containerEl) {
+    _scrollTargets = [containerEl]
+  } else {
+    const SELECTORS = [
+      () => document.querySelector('.app-content-vue'),
+      () => document.querySelector('.app-content'),
+    ]
+    _scrollTargets = SELECTORS.map(s => s()).filter(Boolean)
+  }
   _scrollTargets.forEach(el => el.addEventListener('scroll', _scrollHandler, { passive: true }))
   window.addEventListener('scroll', _scrollHandler, { passive: true })
   updateActiveGroup()
@@ -453,35 +458,8 @@ function scrollToGroup(header) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-const FORMAT_COLOURS = {
-  Vinyl: ['#6b21a8', '#a855f7'],
-  CD: ['#1d4ed8', '#60a5fa'],
-  SACD: ['#0f766e', '#2dd4bf'],
-  Cassette: ['#b45309', '#fbbf24'],
-  MiniDisc: ['#0e7490', '#38bdf8'],
-}
-
-function formatMarketValue(item) {
-  if (!item.marketValue) return ''
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: item.marketValueCurrency ?? 'GBP',
-      minimumFractionDigits: 2,
-    }).format(item.marketValue)
-  } catch {
-    return `${item.marketValueCurrency ?? ''} ${item.marketValue}`
-  }
-}
-
 function thumbStyle(item) {
-  if (item.artworkPath) {
-    const v = item.updatedAt ? '?v=' + encodeURIComponent(item.updatedAt) : ''
-    const url = generateUrl('/apps/crate/artwork/' + item.id) + v
-    return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-  }
-  const colours = FORMAT_COLOURS[item.format] ?? ['#374151', '#6b7280']
-  return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
+  return artworkStyleFor(item)
 }
 </script>
 

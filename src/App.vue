@@ -43,7 +43,7 @@
 
     <SettingsPanel v-model:open="settingsOpen" @token-changed="v => hasDiscogsToken = v" />
 
-    <NcAppContent>
+    <NcAppContent ref="appContentRef">
       <!-- Item detail view -->
       <ItemDetailView
         v-if="view === 'detail' && selectedItem"
@@ -97,6 +97,7 @@
         :items="items"
         :loading="loading"
         :status="view === 'wishlist' ? 'wanted' : 'owned'"
+        :scroll-container="appContentRef"
         @add="openAdd"
         @import="importOpen = true"
         @detail="showDetail"
@@ -188,6 +189,7 @@ import {
 } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 import AddEditModal from './components/AddEditModal.vue'
 import AddToPlaylistModal from './components/AddToPlaylistModal.vue'
 import CollectionView from './components/CollectionView.vue'
@@ -202,10 +204,15 @@ import SharedView from './components/SharedView.vue'
 import { useEnrichQueue } from './composables/useEnrichQueue.js'
 import { useMarketValueQueue } from './composables/useMarketValueQueue.js'
 import { useSettings } from './composables/useSettings.js'
+import { useHashRouter } from './composables/useHashRouter.js'
 
 const enrich = useEnrichQueue()
 const market = useMarketValueQueue()
 const { autoEnrichOnClick } = useSettings()
+const {
+  view, previousView, setHash, hashForView,
+  parseHash, consumePendingHash, saveScroll, restoreScroll,
+} = useHashRouter()
 
 const activeQueue = computed(() => {
   if (enrich.running.value) return { queue: enrich, label: 'Enriching albums' }
@@ -213,42 +220,9 @@ const activeQueue = computed(() => {
   return null
 })
 
-// ── hash routing ──────────────────────────────────────────────────────────────
-// Counter-based suppression: each programmatic setHash increments this; the
-// corresponding hashchange event decrements it and returns early.  Using a
-// counter (not a boolean + setTimeout) avoids async timing races.
-let pendingHashSets = 0
-function setHash(hash) {
-  pendingHashSets++
-  window.location.hash = hash
-}
-
-function hashForView(v, id = null) {
-  if (v === 'detail' && id) return `#/detail/${id}`
-  if (v === 'playlist-detail' && id) return `#/playlists/${id}`
-  if (v === 'collection') return '#/collection'
-  if (v === 'wishlist') return '#/wishlist'
-  if (v === 'playlists') return '#/playlists'
-  if (v === 'shared') return '#/shared'
-  return '#/'
-}
-
-function parseHash() {
-  const parts = (window.location.hash || '#/').replace(/^#\//, '').split('/')
-  if (parts[0] === 'detail' && parts[1]) return { view: 'detail', itemId: parseInt(parts[1], 10), playlistId: null }
-  if (parts[0] === 'playlists' && parts[1]) return { view: 'playlist-detail', itemId: null, playlistId: parseInt(parts[1], 10) }
-  if (parts[0] === 'playlists') return { view: 'playlists', itemId: null, playlistId: null }
-  if (parts[0] === 'collection') return { view: 'collection', itemId: null, playlistId: null }
-  if (parts[0] === 'wishlist') return { view: 'wishlist', itemId: null, playlistId: null }
-  if (parts[0] === 'shared') return { view: 'shared', itemId: null, playlistId: null }
-  return { view: 'home', itemId: null, playlistId: null }
-}
-
 // ── state ─────────────────────────────────────────────────────────────────────
-const view = ref('home')
-const previousView = ref('home')
+const appContentRef = ref(null)
 const selectedItem = ref(null)
-const savedScrollTop = ref(0)
 const settingsOpen = ref(false)
 const items = ref([])
 const loading = ref(false)
@@ -325,10 +299,7 @@ async function restoreFromHash() {
 }
 
 function handleHashChange() {
-  if (pendingHashSets > 0) {
-    pendingHashSets--
-    return
-  }
+  if (consumePendingHash()) return
   // Only reached for genuine browser back/forward navigation
   const { view: v, itemId, playlistId } = parseHash()
   if (v === 'detail' && itemId) {
@@ -373,6 +344,7 @@ async function loadItems() {
       : all.filter(i => i.status === 'owned')
   } catch (e) {
     console.error('Failed to load media items', e)
+    showError('Failed to load your collection')
   } finally {
     loading.value = false
   }
@@ -395,7 +367,7 @@ function switchView(newView) {
 
 function showDetail(item) {
   // Save scroll position so Back can restore it
-  savedScrollTop.value = document.getElementById('app-content-vue')?.scrollTop ?? 0
+  saveScroll(appContentRef.value?.$el)
   previousView.value = view.value
   selectedItem.value = item
   view.value = 'detail'
@@ -431,14 +403,12 @@ async function goBack() {
   if (dest !== 'playlist-detail') selectedPlaylist.value = null
   setHash(hashForView(dest))
   // Restore scroll position after the list has re-rendered
-  const top = savedScrollTop.value
-  await nextTick()
-  document.getElementById('app-content-vue')?.scrollTo({ top, behavior: 'instant' })
+  await restoreScroll(appContentRef.value?.$el)
 }
 
 // ── playlist navigation ───────────────────────────────────────────────────────
 async function showPlaylistDetail(playlist) {
-  savedScrollTop.value = document.getElementById('app-content-vue')?.scrollTop ?? 0
+  saveScroll(appContentRef.value?.$el)
   previousView.value = view.value
   // If the playlist came from the grid list it only has itemCount/coverId.
   // Fetch the full object (with items[]) before showing the detail view.
@@ -458,6 +428,7 @@ async function handleDeletePlaylist(playlist) {
     await axios.delete(generateOcsUrl(`/apps/crate/api/v1/playlists/${playlist.id}`))
   } catch (e) {
     console.error('Failed to delete playlist', e)
+    showError('Failed to delete playlist')
   }
   view.value = 'playlists'
   selectedPlaylist.value = null
@@ -583,6 +554,7 @@ async function saveItem(payload) {
           }
         } catch (e) {
           console.error('Artwork upload failed', e)
+          showError('Artwork upload failed')
         }
       } else if (removeArtwork) {
         try {
@@ -598,6 +570,7 @@ async function saveItem(payload) {
           }
         } catch (e) {
           console.error('Artwork removal failed', e)
+          showError('Failed to remove artwork')
         }
       }
     }
@@ -630,6 +603,7 @@ async function saveItem(payload) {
     }
   } catch (e) {
     console.error('Failed to save item', e)
+    showError('Failed to save item')
   }
 }
 
@@ -652,6 +626,7 @@ async function deleteItem() {
     }
   } catch (e) {
     console.error('Failed to delete item', e)
+    showError('Failed to delete item')
   }
 }
 

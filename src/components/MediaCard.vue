@@ -29,6 +29,8 @@
 <script setup>
 import { computed } from 'vue'
 import { generateUrl } from '@nextcloud/router'
+import { formatMarketValue } from '../utils/formatMarketValue.js'
+import { artworkStyleFor } from '../composables/useArtworkStyle.js'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -36,40 +38,7 @@ const props = defineProps({
 
 defineEmits(['detail'])
 
-const FORMAT_COLOURS = {
-  Vinyl: ['#6b21a8', '#a855f7'],
-  CD: ['#1d4ed8', '#60a5fa'],
-  SACD: ['#0f766e', '#2dd4bf'],
-  Cassette: ['#b45309', '#fbbf24'],
-  MiniDisc: ['#0e7490', '#38bdf8'],
-}
-
-function formatMarketValue(item) {
-  if (!item.marketValue) return ''
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: item.marketValueCurrency ?? 'GBP',
-      minimumFractionDigits: 2,
-    }).format(item.marketValue)
-  } catch {
-    return `${item.marketValueCurrency ?? ''} ${item.marketValue}`
-  }
-}
-
-const artStyle = computed(() => {
-  if (props.item.artworkPath) {
-    const v = props.item.updatedAt ? '?v=' + encodeURIComponent(props.item.updatedAt) : ''
-    const url = generateUrl('/apps/crate/artwork/' + props.item.id) + v
-    return {
-      backgroundImage: `url(${url})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }
-  }
-  const colours = FORMAT_COLOURS[props.item.format] ?? ['#374151', '#6b7280']
-  return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
-})
+const artStyle = computed(() => artworkStyleFor(props.item))
 </script>
 
 <style scoped>

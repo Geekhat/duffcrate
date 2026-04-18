@@ -213,6 +213,7 @@ import { ref, onMounted } from 'vue'
 import { NcAppSettingsDialog, NcAppSettingsSection, NcButton, NcCheckboxRadioSwitch, NcDialog } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 import { useEnrichQueue } from '../composables/useEnrichQueue.js'
 import { useMarketValueQueue } from '../composables/useMarketValueQueue.js'
 import { useSettings } from '../composables/useSettings.js'
@@ -244,6 +245,7 @@ async function load() {
     hasToken.value = res.data.ocs?.data?.hasToken ?? false
   } catch (e) {
     console.error('Failed to load settings', e)
+    showError('Failed to load settings')
   }
 }
 
@@ -261,6 +263,7 @@ async function save() {
     setTimeout(() => { savedMessage.value = '' }, 3000)
   } catch (e) {
     console.error('Failed to save token', e)
+    showError('Failed to save Discogs token')
     savedMessage.value = 'Failed to save.'
   } finally {
     saving.value = false
@@ -277,6 +280,7 @@ async function clearToken() {
     setTimeout(() => { savedMessage.value = '' }, 3000)
   } catch (e) {
     console.error('Failed to clear token', e)
+    showError('Failed to clear Discogs token')
   } finally {
     saving.value = false
   }
@@ -292,6 +296,7 @@ async function wipeCollection() {
     setTimeout(() => { wipedMessage.value = '' }, 4000)
   } catch (e) {
     console.error('Failed to wipe collection', e)
+    showError('Failed to wipe collection')
     wipedMessage.value = 'Failed — check the console.'
   } finally {
     wiping.value = false

@@ -81,6 +81,7 @@ import { ref, watch } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 
 const props = defineProps({
   show: { type: Boolean, required: true },
@@ -115,6 +116,7 @@ watch(() => props.show, async (open) => {
     playlists.value = res.data.ocs?.data ?? []
   } catch (e) {
     console.error('Failed to load playlists', e)
+    showError('Failed to load playlists')
   } finally {
     loading.value = false
   }
@@ -132,6 +134,7 @@ async function addTo(pl) {
     if (idx !== -1) playlists.value[idx] = { ...playlists.value[idx], itemCount: (playlists.value[idx].itemCount ?? 0) + 1 }
   } catch (e) {
     console.error('Failed to add to playlist', e)
+    showError('Failed to add to playlist')
   }
 }
 
@@ -155,6 +158,7 @@ async function createAndAdd() {
     }
   } catch (e) {
     console.error('Failed to create playlist and add item', e)
+    showError('Failed to create playlist')
   } finally {
     creating.value = false
   }

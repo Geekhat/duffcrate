@@ -186,6 +186,7 @@ import { ref, watch, computed } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 import DiscogsSearch from './DiscogsSearch.vue'
 
 const props = defineProps({
@@ -271,6 +272,7 @@ function pickFromNextcloud() {
         removeArtworkFlag.value = false
       } catch (e) {
         console.error('Failed to fetch artwork from Nextcloud', e)
+        showError('Failed to fetch artwork')
       }
     },
     false, // not multiselect

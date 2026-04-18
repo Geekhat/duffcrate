@@ -130,6 +130,7 @@ import { ref, computed, onMounted } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 import MediaCard from './MediaCard.vue'
 
 defineEmits(['add', 'detail'])
@@ -147,6 +148,7 @@ async function load() {
     items.value = all.filter(i => i.status === 'owned')
   } catch (e) {
     console.error('Failed to load items', e)
+    showError('Failed to load recent items')
   } finally {
     loading.value = false
   }

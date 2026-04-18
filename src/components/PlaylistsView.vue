@@ -208,6 +208,7 @@ import { ref, onMounted } from 'vue'
 import { NcButton, NcDialog } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 
 defineEmits(['open'])
 
@@ -241,6 +242,7 @@ async function load() {
     playlists.value = res.data.ocs?.data ?? []
   } catch (e) {
     console.error('Failed to load playlists', e)
+    showError('Failed to load playlists')
   } finally {
     loading.value = false
   }
@@ -261,6 +263,7 @@ async function doCreate() {
     createDesc.value = ''
   } catch (e) {
     console.error('Failed to create playlist', e)
+    showError('Failed to create playlist')
   } finally {
     creating.value = false
   }
@@ -288,6 +291,7 @@ async function doRename() {
     renamingPlaylist.value = null
   } catch (e) {
     console.error('Failed to rename playlist', e)
+    showError('Failed to rename playlist')
   } finally {
     renaming.value = false
   }
@@ -305,6 +309,7 @@ async function doDelete() {
     deletingPlaylist.value = null
   } catch (e) {
     console.error('Failed to delete playlist', e)
+    showError('Failed to delete playlist')
   }
 }
 

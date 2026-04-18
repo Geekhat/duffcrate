@@ -108,6 +108,7 @@ import { ref, watch } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 
 const props = defineProps({
   show:  { type: Boolean, required: true },
@@ -158,6 +159,7 @@ async function doExport() {
     emit('close')
   } catch (e) {
     console.error('Export failed', e)
+    showError('Export failed')
     error.value = 'Export failed — please try again.'
   } finally {
     exporting.value = false

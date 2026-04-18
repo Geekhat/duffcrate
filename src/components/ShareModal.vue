@@ -89,6 +89,7 @@ import { ref, watch, computed } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
 
 const props = defineProps({
   show: { type: Boolean, required: true },
@@ -130,6 +131,7 @@ async function loadCurrentShares() {
     currentShares.value = res.data.ocs?.data ?? []
   } catch (e) {
     console.error('Failed to load shares', e)
+    showError('Failed to load shares')
   }
 }
 
@@ -149,6 +151,7 @@ async function doSearch() {
     searchResults.value = res.data.ocs?.data ?? []
   } catch (e) {
     console.error('User search failed', e)
+    showError('User search failed')
   } finally {
     searching.value = false
   }
@@ -181,6 +184,7 @@ async function unshare(share) {
     currentShares.value = currentShares.value.filter(s => s.id !== share.id)
   } catch (e) {
     console.error('Failed to unshare', e)
+    showError('Failed to unshare')
   }
 }
 </script>

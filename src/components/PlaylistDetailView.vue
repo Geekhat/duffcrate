@@ -175,6 +175,9 @@ import { ref, computed } from 'vue'
 import { NcButton, NcDialog } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
+import { showError } from '@nextcloud/dialogs'
+import { artworkStyleFor } from '../composables/useArtworkStyle.js'
+import { FORMAT_COLOURS } from '../utils/formatColours.js'
 
 const props = defineProps({
   playlist: { type: Object, required: true },
@@ -207,17 +210,10 @@ async function doEdit() {
     editOpen.value = false
   } catch (e) {
     console.error('Failed to update playlist', e)
+    showError('Failed to update playlist')
   } finally {
     saving.value = false
   }
-}
-
-const FORMAT_COLOURS = {
-  Vinyl: ['#6b21a8', '#a855f7'],
-  CD: ['#1d4ed8', '#60a5fa'],
-  SACD: ['#0f766e', '#2dd4bf'],
-  Cassette: ['#b45309', '#fbbf24'],
-  MiniDisc: ['#0e7490', '#38bdf8'],
 }
 
 const coverStyle = computed(() => {
@@ -230,12 +226,7 @@ const coverStyle = computed(() => {
 })
 
 function thumbStyle(item) {
-  if (item.artworkPath) {
-    const url = generateUrl('/apps/crate/artwork/' + item.id)
-    return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-  }
-  const colours = FORMAT_COLOURS[item.format] ?? ['#374151', '#6b7280']
-  return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
+  return artworkStyleFor(item)
 }
 
 async function removeItem(item) {
@@ -247,6 +238,7 @@ async function removeItem(item) {
     if (updated) emit('updated', updated)
   } catch (e) {
     console.error('Failed to remove item from playlist', e)
+    showError('Failed to remove item from playlist')
   }
 }
 </script>

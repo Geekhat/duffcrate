@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Crate\Controller;
 
 use OCA\Crate\Db\CrateShareMapper;
+use OCA\Crate\Dto\MediaItemData;
 use OCA\Crate\Service\DiscogsService;
 use OCA\Crate\Service\MarketValueService;
 use OCA\Crate\Service\MediaService;
@@ -14,14 +15,14 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
-use OCP\Files\AppData\IAppDataFactory;
-use OCP\Files\NotFoundException;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
 
 class MediaController extends OCSController
 {
+    use UsesAuthenticatedUser;
+
     public function __construct(
         string $appName,
         IRequest $request,
@@ -32,19 +33,9 @@ class MediaController extends OCSController
         private readonly PlaylistMapper $playlistMapper,
         private readonly PlaylistItemMapper $playlistItemMapper,
         private readonly CrateShareMapper $shareMapper,
-        private readonly IAppDataFactory $appDataFactory,
         private readonly IConfig $config,
     ) {
         parent::__construct($appName, $request);
-    }
-
-    private function userId(): string
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
-        }
-        return $user->getUID();
     }
 
     #[NoAdminRequired]
@@ -99,22 +90,8 @@ class MediaController extends OCSController
         if (!in_array($status, self::VALID_STATUSES, true)) {
             return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
         }
-        return new DataResponse(
-            $this->mediaService->create(
-                $this->userId(),
-                $title,
-                $artist,
-                $format,
-                $year,
-                $barcode,
-                $notes,
-                $status,
-                $discogsId,
-                $artworkPath,
-                $label,
-                $country,
-            )
-        );
+        $data = new MediaItemData($title, $artist, $format, $year, $barcode, $notes, $status, $discogsId, $artworkPath, $label, $country);
+        return new DataResponse($this->mediaService->create($this->userId(), $data));
     }
 
     #[NoAdminRequired]
@@ -135,23 +112,8 @@ class MediaController extends OCSController
         if (!in_array($status, self::VALID_STATUSES, true)) {
             return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
         }
-        return new DataResponse(
-            $this->mediaService->update(
-                $id,
-                $this->userId(),
-                $title,
-                $artist,
-                $format,
-                $year,
-                $barcode,
-                $notes,
-                $status,
-                $discogsId,
-                $artworkPath,
-                $label,
-                $country,
-            )
-        );
+        $data = new MediaItemData($title, $artist, $format, $year, $barcode, $notes, $status, $discogsId, $artworkPath, $label, $country);
+        return new DataResponse($this->mediaService->update($id, $this->userId(), $data));
     }
 
     #[NoAdminRequired]
@@ -166,39 +128,16 @@ class MediaController extends OCSController
     {
         $userId = $this->userId();
 
-        // Collect item IDs before deletion so we can purge artwork files
-        $items = $this->mediaService->findAll($userId);
-        $itemIds = array_map(fn($i) => $i->getId(), $items);
-
-        // Delete shares this user has created (their own data)
-        // Shares received from others are not touched — they belong to the sharer
-        $this->shareMapper->deleteAllByOwner($userId);
-
-        // Playlist items (delete per-playlist to avoid subquery issues), then playlists
+        // Delete playlist shares, playlist items, then playlists
         $playlists = $this->playlistMapper->findAll($userId);
         foreach ($playlists as $playlist) {
+            $this->shareMapper->deleteByShareable('playlist', $playlist->getId());
             $this->playlistItemMapper->deleteByPlaylist($playlist->getId());
         }
         $this->playlistMapper->deleteAllByUser($userId);
 
-        // Media items
-        $this->mediaService->deleteAll($userId);
-
-        // Artwork files stored in appdata (only for this user's items)
-        if (!empty($itemIds)) {
-            try {
-                $folder = $this->appDataFactory->get('crate')->getFolder('artwork');
-                foreach ($itemIds as $id) {
-                    foreach (['.jpg', '.png', '.webp', '.gif'] as $ext) {
-                        try {
-                            $folder->getFile('artwork_' . $id . $ext)->delete();
-                        } catch (NotFoundException) {
-                        }
-                    }
-                }
-            } catch (NotFoundException) {
-            }
-        }
+        // Delete all media items with full cleanup (artwork, shares, playlist refs)
+        $this->mediaService->deleteAllForUser($userId);
 
         return new DataResponse([]);
     }
