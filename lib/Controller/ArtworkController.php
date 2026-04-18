@@ -151,7 +151,12 @@ class ArtworkController extends Controller
                     $out = ob_get_clean();
                     imagedestroy($dst);
                     if ($out !== false && $out !== '') {
-                        $response = new \OCP\AppFramework\Http\DataDisplayResponse($out, Http::STATUS_OK, ['Content-Type' => 'image/jpeg']);
+                        $headers = ['Content-Type' => 'image/jpeg'];
+                        $response = new \OCP\AppFramework\Http\DataDisplayResponse(
+                            $out,
+                            Http::STATUS_OK,
+                            $headers,
+                        );
                         $response->cacheFor(86400);
                         return $response;
                     }

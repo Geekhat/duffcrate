@@ -85,5 +85,4 @@ class PlaylistItemMapper extends QBMapper
             ->where($qb->expr()->eq('media_item_id', $mediaItemIdParam));
         $qb->executeStatement();
     }
-
 }
