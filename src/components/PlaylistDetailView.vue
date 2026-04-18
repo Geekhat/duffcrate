@@ -35,8 +35,20 @@
     <div class="pd-header">
       <div
         class="pd-cover"
-        :style="coverStyle"
-      />
+        :style="coverArtIds.length <= 1 ? coverStyle : {}"
+      >
+        <div
+          v-if="coverArtIds.length > 1"
+          class="pd-art-grid"
+        >
+          <div
+            v-for="cid in coverArtIds"
+            :key="cid"
+            class="pd-art-cell"
+            :style="artCellStyle(cid)"
+          />
+        </div>
+      </div>
       <div class="pd-header-info">
         <h2 class="pd-title">
           {{ playlist.name }}
@@ -224,6 +236,24 @@ const coverStyle = computed(() => {
   return { background: 'linear-gradient(135deg, #374151, #6b7280)' }
 })
 
+const coverArtIds = computed(() => {
+  const items = props.playlist.items ?? []
+  const ids = []
+  const seen = new Set()
+  for (const item of items) {
+    if (!item.artworkPath || seen.has(item.id)) continue
+    seen.add(item.id)
+    ids.push(item.id)
+    if (ids.length >= 4) break
+  }
+  return ids
+})
+
+function artCellStyle(mediaItemId) {
+  const url = generateUrl('/apps/crate/artwork/' + mediaItemId)
+  return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+}
+
 function thumbStyle(item) {
   return artworkStyleFor(item)
 }
@@ -244,8 +274,7 @@ async function removeItem(item) {
 
 <style scoped>
 .playlist-detail {
-  padding: 0 20px 40px;
-  max-width: 860px;
+  padding: 0 36px 40px 20px;
 }
 
 /* Top bar */
@@ -271,6 +300,11 @@ async function removeItem(item) {
   grid-template-columns: 180px 1fr;
   gap: 24px;
   margin-bottom: 32px;
+  position: sticky;
+  top: calc(var(--default-clickable-area, 44px) + 40px);
+  background: var(--color-main-background);
+  z-index: 9;
+  padding-bottom: 16px;
 }
 
 @media (max-width: 640px) {
@@ -281,6 +315,21 @@ async function removeItem(item) {
   width: 100%;
   aspect-ratio: 1;
   border-radius: var(--border-radius-large);
+  background: var(--color-background-dark);
+  overflow: hidden;
+  position: relative;
+}
+
+.pd-art-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+}
+
+.pd-art-cell {
   background: var(--color-background-dark);
 }
 

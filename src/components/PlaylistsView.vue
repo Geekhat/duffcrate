@@ -48,8 +48,19 @@
       >
         <div
           class="pv-card-art"
-          :style="coverStyle(pl)"
+          :style="(pl.coverIds?.length ?? 0) <= 1 ? coverStyle(pl) : {}"
         >
+          <div
+            v-if="(pl.coverIds?.length ?? 0) > 1"
+            class="pv-art-grid"
+          >
+            <div
+              v-for="cid in pl.coverIds.slice(0, 4)"
+              :key="cid"
+              class="pv-art-cell"
+              :style="artCellStyle(cid)"
+            />
+          </div>
           <span class="pv-card-count">{{ pl.itemCount }} {{ pl.itemCount === 1 ? 'album' : 'albums' }}</span>
         </div>
         <div class="pv-card-info">
@@ -235,6 +246,11 @@ function coverStyle(pl) {
   return { background: 'linear-gradient(135deg, #374151, #6b7280)' }
 }
 
+function artCellStyle(mediaItemId) {
+  const url = generateUrl('/apps/crate/artwork/' + mediaItemId)
+  return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+}
+
 async function load() {
   loading.value = true
   try {
@@ -319,8 +335,7 @@ defineExpose({ load })
 
 <style scoped>
 .playlists-view {
-  padding: 0 20px 40px;
-  max-width: 1100px;
+  padding: 0 36px 40px 20px;
 }
 
 .pv-toolbar {
@@ -328,6 +343,10 @@ defineExpose({ load })
   align-items: center;
   justify-content: space-between;
   padding: calc(var(--default-clickable-area, 44px) + 8px) 0 24px;
+  position: sticky;
+  top: 0;
+  background: var(--color-main-background);
+  z-index: 10;
 }
 
 .pv-heading {
@@ -382,6 +401,19 @@ defineExpose({ load })
   align-items: flex-end;
   padding: 10px;
   position: relative;
+}
+
+.pv-art-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+}
+
+.pv-art-cell {
+  background: var(--color-background-dark);
 }
 
 .pv-card-count {

@@ -365,7 +365,6 @@ async function stripEnrich() {
 
 .detail-body {
   padding: 0 20px;
-  max-width: 860px;
 }
 
 /* Top bar */
@@ -409,6 +408,11 @@ async function stripEnrich() {
   grid-template-columns: 260px 1fr;
   gap: 32px;
   margin-bottom: 36px;
+  position: sticky;
+  top: calc(var(--default-clickable-area, 44px) + 40px);
+  background: var(--color-main-background);
+  z-index: 9;
+  padding-bottom: 16px;
 }
 
 @media (max-width: 640px) {

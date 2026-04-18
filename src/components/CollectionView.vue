@@ -487,6 +487,10 @@ function thumbStyle(item) {
   gap: 12px;
   flex-wrap: wrap;
   padding: calc(var(--default-clickable-area, 44px) + 8px) 0 16px;
+  position: sticky;
+  top: 0;
+  background: var(--color-main-background);
+  z-index: 10;
 }
 
 .cv-toolbar-left {
@@ -549,6 +553,11 @@ function thumbStyle(item) {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 20px;
+  position: sticky;
+  top: calc(var(--default-clickable-area, 44px) + 40px);
+  background: var(--color-main-background);
+  z-index: 9;
+  padding-bottom: 8px;
 }
 
 .cv-chip {

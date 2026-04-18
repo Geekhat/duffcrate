@@ -24,7 +24,7 @@ class PlaylistService
 
     // ── Playlists ──────────────────────────────────────────────────────────────
 
-    /** @return array<int, mixed> List of playlists with itemCount and coverId */
+    /** @return array<int, mixed> List of playlists with itemCount, coverId, and coverIds */
     public function findAll(string $userId): array
     {
         $playlists = $this->playlistMapper->findAll($userId);
@@ -34,6 +34,21 @@ class PlaylistService
             $data = $playlist->jsonSerialize();
             $data['itemCount'] = count($items);
             $data['coverId']   = count($items) > 0 ? $items[0]->getMediaItemId() : null;
+            // Return up to 4 unique media-item IDs that have artwork, for grid cover
+            $coverIds = [];
+            $seen = [];
+            foreach ($items as $item) {
+                $mid = $item->getMediaItemId();
+                if (isset($seen[$mid])) {
+                    continue;
+                }
+                $seen[$mid] = true;
+                $coverIds[] = $mid;
+                if (count($coverIds) >= 4) {
+                    break;
+                }
+            }
+            $data['coverIds'] = $coverIds;
             $result[] = $data;
         }
         return $result;
