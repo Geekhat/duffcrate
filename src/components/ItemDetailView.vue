@@ -15,7 +15,7 @@
           <NcButton
             v-if="!enriching && !stripping"
             variant="tertiary"
-            :disabled="!hasToken"
+            :disabled="!hasToken || queueBusy"
             @click="enrich"
           >
             {{ isEnriched ? 'Re-enrich' : 'Enrich from Discogs' }}
@@ -30,7 +30,7 @@
           <NcButton
             v-if="!fetchingMarket"
             variant="tertiary"
-            :disabled="!hasToken"
+            :disabled="!hasToken || queueBusy"
             @click="fetchMarketValue"
           >
             {{ item.marketValue ? 'Refresh market rate' : 'Fetch market rate' }}
@@ -215,6 +215,7 @@ import { useArtworkStyle } from '../composables/useArtworkStyle.js'
 const props = defineProps({
   item: { type: Object, required: true },
   hasToken: { type: Boolean, default: false },
+  queueBusy: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['back', 'edit', 'delete', 'enriched', 'addToPlaylist', 'share'])
@@ -253,7 +254,7 @@ async function enrich() {
     const updated = res.data.ocs?.data ?? null
     if (updated) {
       emit('enriched', updated)
-      if (autoFetchMarketRates.value && updated.discogsId) {
+      if (autoFetchMarketRates.value && updated.discogsId && !props.queueBusy) {
         await fetchMarketValue()
       }
     }

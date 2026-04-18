@@ -53,6 +53,7 @@
         v-if="view === 'detail' && selectedItem"
         :item="selectedItem"
         :has-token="hasDiscogsToken"
+        :queue-busy="enrich.running.value || market.running.value"
         @back="goBack"
         @edit="openEdit"
         @delete="confirmDelete"
@@ -394,7 +395,7 @@ function showDetail(item) {
   setHash(hashForView('detail', item.id))
   // Auto-enrich items that haven't been enriched yet (search-then-enrich handles missing discogsId)
   const notEnriched = !item.genres && !item.artistBio && !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
-  if (notEnriched && autoEnrichOnClick.value) {
+  if (notEnriched && autoEnrichOnClick.value && !enrich.running.value && !market.running.value) {
     triggerEnrich(item.id)
   }
 }
