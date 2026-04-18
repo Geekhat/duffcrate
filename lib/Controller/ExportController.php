@@ -40,7 +40,11 @@ class ExportController extends Controller
         int $includeEnriched = 0,
         int $includeMarket = 0,
     ): DataDownloadResponse {
-        $userId = $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new DataDownloadResponse('', 'error.txt', 'text/plain');
+        }
+        $userId = $user->getUID();
 
         [$content, $mimeType, $filename] = $this->exportService->generate(
             $userId,

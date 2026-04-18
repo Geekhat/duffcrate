@@ -35,7 +35,11 @@ class ArtworkController extends Controller
     #[NoCSRFRequired]
     public function get(int $itemId, string $size = 'full'): Response
     {
-        $userId = $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new Response(Http::STATUS_FORBIDDEN);
+        }
+        $userId = $user->getUID();
 
         try {
             $item = $this->mapper->findByUser($itemId, $userId);
@@ -81,6 +85,13 @@ class ArtworkController extends Controller
         // ── Discogs / remote URL ──────────────────────────────────────────────
         if (!str_starts_with($artworkPath, 'http')) {
             return new Response(Http::STATUS_NOT_FOUND);
+        }
+
+        // SSRF mitigation: only allow Discogs image CDN URLs
+        $host = parse_url($artworkPath, PHP_URL_HOST) ?? '';
+        $allowed = ['i.discogs.com', 'img.discogs.com', 'st.discogs.com'];
+        if (!in_array($host, $allowed, true)) {
+            return new Response(Http::STATUS_FORBIDDEN);
         }
 
         $cacheFile = 'artwork_' . $itemId . $this->extension($artworkPath);
@@ -158,10 +169,13 @@ class ArtworkController extends Controller
      * POST /artwork/{itemId}
      */
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function upload(int $itemId): Response
     {
-        $userId = $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new DataResponse(['error' => 'Not authenticated'], Http::STATUS_FORBIDDEN);
+        }
+        $userId = $user->getUID();
 
         try {
             $item = $this->mapper->findByUser($itemId, $userId);
@@ -219,10 +233,13 @@ class ArtworkController extends Controller
      * DELETE /artwork/{itemId}
      */
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function delete(int $itemId): Response
     {
-        $userId = $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new DataResponse(['error' => 'Not authenticated'], Http::STATUS_FORBIDDEN);
+        }
+        $userId = $user->getUID();
 
         try {
             $item = $this->mapper->findByUser($itemId, $userId);

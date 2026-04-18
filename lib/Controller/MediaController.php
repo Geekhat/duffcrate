@@ -40,7 +40,11 @@ class MediaController extends OCSController
 
     private function userId(): string
     {
-        return $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
+        }
+        return $user->getUID();
     }
 
     #[NoAdminRequired]
@@ -76,6 +80,8 @@ class MediaController extends OCSController
         return new DataResponse($this->mediaService->find($id, $this->userId()));
     }
 
+    private const VALID_STATUSES = ['owned', 'wanted'];
+
     #[NoAdminRequired]
     public function create(
         string $title,
@@ -90,6 +96,9 @@ class MediaController extends OCSController
         ?string $label = null,
         ?string $country = null,
     ): DataResponse {
+        if (!in_array($status, self::VALID_STATUSES, true)) {
+            return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
+        }
         return new DataResponse(
             $this->mediaService->create(
                 $this->userId(),
@@ -123,6 +132,9 @@ class MediaController extends OCSController
         ?string $label = null,
         ?string $country = null,
     ): DataResponse {
+        if (!in_array($status, self::VALID_STATUSES, true)) {
+            return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
+        }
         return new DataResponse(
             $this->mediaService->update(
                 $id,
@@ -261,11 +273,6 @@ class MediaController extends OCSController
         }
     }
 
-    /**
-     * Fetch the current Discogs marketplace lowest price for an item.
-     *
-     * POST /api/v1/media/{id}/market-value
-     */
     /**
      * Return the IDs of items that have a discogsId and can have market values fetched.
      * The Android app uses this to queue individual fetchMarketValue calls.

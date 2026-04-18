@@ -32,7 +32,11 @@ class HomeController extends OCSController
 
     private function userId(): string
     {
-        return $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
+        }
+        return $user->getUID();
     }
 
     #[NoAdminRequired]
@@ -133,13 +137,22 @@ class HomeController extends OCSController
         return $h;
     }
 
-    /** 32-bit signed multiply (mirrors JS Math.imul). */
+    /**
+     * 32-bit signed multiply (mirrors JS Math.imul).
+     *
+     * On 64-bit PHP a naive ($a32 * $b32) can exceed PHP_INT_MAX and
+     * silently convert to float, losing precision.  We split into 16-bit
+     * halves and combine, exactly like the standard Math.imul polyfill.
+     */
     private function imul32(int $a, int $b): int
     {
-        // Work with lower 32 bits only
-        $a32 = $a & 0xFFFFFFFF;
-        $b32 = $b & 0xFFFFFFFF;
-        return ($a32 * $b32) & 0xFFFFFFFF;
+        $aHi = ($a >> 16) & 0xFFFF;
+        $aLo = $a & 0xFFFF;
+        $bHi = ($b >> 16) & 0xFFFF;
+        $bLo = $b & 0xFFFF;
+        // Only the lower 32 bits matter; cross-products shifted left 16
+        // are masked anyway, so overflow beyond 32 bits is discarded.
+        return (($aHi * $bLo + $aLo * $bHi) << 16) + ($aLo * $bLo) & 0xFFFFFFFF;
     }
 
     /** Interpret a 32-bit unsigned int as signed. */

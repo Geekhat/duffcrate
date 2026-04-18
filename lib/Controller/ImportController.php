@@ -25,7 +25,11 @@ class ImportController extends OCSController
 
     private function userId(): string
     {
-        return $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
+        }
+        return $user->getUID();
     }
 
     /**

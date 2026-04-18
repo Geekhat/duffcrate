@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
+use OCA\Crate\Db\CrateShareMapper;
 use OCA\Crate\Db\MediaItemMapper;
 use OCA\Crate\Db\Playlist;
 use OCA\Crate\Db\PlaylistItem;
@@ -17,6 +18,7 @@ class PlaylistService
         private readonly PlaylistMapper $playlistMapper,
         private readonly PlaylistItemMapper $playlistItemMapper,
         private readonly MediaItemMapper $mediaItemMapper,
+        private readonly CrateShareMapper $shareMapper,
     ) {
     }
 
@@ -82,6 +84,7 @@ class PlaylistService
     {
         $playlist = $this->playlistMapper->findByUser($id, $userId);
         $this->playlistItemMapper->deleteByPlaylist($id);
+        $this->shareMapper->deleteByShareable('playlist', $id);
         $this->playlistMapper->delete($playlist);
     }
 

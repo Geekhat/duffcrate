@@ -10,6 +10,7 @@ use OCP\AppFramework\OCSController;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
+use OCP\Security\ICredentialsManager;
 
 class SettingsController extends OCSController
 {
@@ -18,26 +19,37 @@ class SettingsController extends OCSController
         IRequest $request,
         private readonly IConfig $config,
         private readonly IUserSession $userSession,
+        private readonly ICredentialsManager $credentialsManager,
     ) {
         parent::__construct($appName, $request);
     }
 
     private function userId(): string
     {
-        return $this->userSession->getUser()->getUID();
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            throw new \OCP\AppFramework\OCS\OCSForbiddenException('Not authenticated');
+        }
+        return $user->getUID();
     }
 
     #[NoAdminRequired]
     public function getDiscogsToken(): DataResponse
     {
-        $token = $this->config->getUserValue($this->userId(), 'crate', 'discogs_token', '');
+        $token = (string) ($this->credentialsManager->retrieve($this->userId(), 'crate/discogs_token') ?? '');
         return new DataResponse(['hasToken' => $token !== '']);
     }
 
     #[NoAdminRequired]
     public function setDiscogsToken(string $token = ''): DataResponse
     {
-        $this->config->setUserValue($this->userId(), 'crate', 'discogs_token', trim($token));
+        $uid = $this->userId();
+        $trimmed = trim($token);
+        if ($trimmed === '') {
+            $this->credentialsManager->delete($uid, 'crate/discogs_token');
+        } else {
+            $this->credentialsManager->store($uid, 'crate/discogs_token', $trimmed);
+        }
         return new DataResponse([]);
     }
 
@@ -79,10 +91,11 @@ class SettingsController extends OCSController
     #[NoAdminRequired]
     public function me(): DataResponse
     {
+        // userId() already handles the null check
+        $uid      = $this->userId();
         $user     = $this->userSession->getUser();
-        $uid      = $user->getUID();
         $currency = $this->config->getUserValue($uid, 'crate', 'market_currency', 'GBP');
-        $hasToken = $this->config->getUserValue($uid, 'crate', 'discogs_token', '') !== '';
+        $hasToken = (string) ($this->credentialsManager->retrieve($uid, 'crate/discogs_token') ?? '') !== '';
         $autoFetch = $this->config->getUserValue($uid, 'crate', 'auto_fetch_market_rates', '0') === '1';
 
         return new DataResponse([

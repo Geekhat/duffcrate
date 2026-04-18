@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Crate\Service;
 
 use OCP\Http\Client\IClientService;
-use OCP\IConfig;
+use OCP\Security\ICredentialsManager;
 
 class DiscogsService
 {
@@ -14,7 +14,7 @@ class DiscogsService
 
     public function __construct(
         private readonly IClientService $clientService,
-        private readonly IConfig $config,
+        private readonly ICredentialsManager $credentialsManager,
     ) {
     }
 
@@ -95,7 +95,7 @@ class DiscogsService
 
     private function getToken(string $userId): string
     {
-        return $this->config->getUserValue($userId, 'crate', 'discogs_token', '');
+        return (string) ($this->credentialsManager->retrieve($userId, 'crate/discogs_token') ?? '');
     }
 
     /**
@@ -111,7 +111,6 @@ class DiscogsService
             return [];
         }
 
-        $params['token']    = $token;
         $params['per_page'] = '10';
 
         $client = $this->clientService->newClient();
@@ -119,8 +118,9 @@ class DiscogsService
             $response = $client->get(self::API_BASE . '/database/search', [
                 'query'   => $params,
                 'headers' => [
-                    'User-Agent' => self::USER_AGENT,
-                    'Accept'     => 'application/json',
+                    'User-Agent'    => self::USER_AGENT,
+                    'Accept'        => 'application/json',
+                    'Authorization' => 'Discogs token=' . $token,
                 ],
                 'timeout' => 10,
             ]);
@@ -154,10 +154,10 @@ class DiscogsService
         $client = $this->clientService->newClient();
         try {
             $response = $client->get($url, [
-                'query'   => ['token' => $token],
                 'headers' => [
-                    'User-Agent' => self::USER_AGENT,
-                    'Accept'     => 'application/json',
+                    'User-Agent'    => self::USER_AGENT,
+                    'Accept'        => 'application/json',
+                    'Authorization' => 'Discogs token=' . $token,
                 ],
                 'timeout' => 10,
             ]);

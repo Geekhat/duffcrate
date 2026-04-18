@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
+use OCA\Crate\Db\CrateShareMapper;
 use OCA\Crate\Db\MediaItem;
 use OCA\Crate\Db\MediaItemMapper;
+use OCA\Crate\Db\PlaylistItemMapper;
+use OCP\Files\AppData\IAppDataFactory;
+use OCP\Files\NotFoundException;
 
 class MediaService
 {
-    public function __construct(private readonly MediaItemMapper $mapper)
-    {
+    public function __construct(
+        private readonly MediaItemMapper $mapper,
+        private readonly PlaylistItemMapper $playlistItemMapper,
+        private readonly CrateShareMapper $shareMapper,
+        private readonly IAppDataFactory $appDataFactory,
+    ) {
     }
 
     /** @return MediaItem[] */
@@ -117,7 +125,28 @@ class MediaService
     public function delete(int $id, string $userId): void
     {
         $item = $this->mapper->findByUser($id, $userId);
+
+        // Clean up related data before deleting the item
+        $this->playlistItemMapper->deleteByMediaItem($id);
+        $this->shareMapper->deleteByShareable('album', $id);
+        $this->deleteArtworkFiles($id);
+
         $this->mapper->delete($item);
+    }
+
+    /** Remove cached/uploaded artwork files for a single item. */
+    private function deleteArtworkFiles(int $itemId): void
+    {
+        try {
+            $folder = $this->appDataFactory->get('crate')->getFolder('artwork');
+            foreach (['.jpg', '.png', '.webp', '.gif'] as $ext) {
+                try {
+                    $folder->getFile('artwork_' . $itemId . $ext)->delete();
+                } catch (NotFoundException) {
+                }
+            }
+        } catch (NotFoundException) {
+        }
     }
 
     public function deleteAll(string $userId): void
