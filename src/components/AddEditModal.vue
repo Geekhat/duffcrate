@@ -263,7 +263,8 @@ const fileInput = ref(null)
 const artworkFile = ref(null)
 const artworkPreviewUrl = ref(null)
 const discogsThumbnailUrl = ref(null)
-const removeArtworkFlag = ref(false)
+const removeArtworkFlag = ref(false)  // user clicked "Remove" — wipe artwork entirely
+const replaceArtworkFlag = ref(false) // Discogs switch — delete stale cache then PUT new URL
 
 const hasArtwork = computed(() => {
   if (artworkPreviewUrl.value || discogsThumbnailUrl.value) return true
@@ -344,6 +345,7 @@ function doRemoveArtwork() {
 function resetArtworkState() {
   artworkFile.value = null
   removeArtworkFlag.value = false
+  replaceArtworkFlag.value = false
   discogsThumbnailUrl.value = null
   if (artworkPreviewUrl.value) {
     URL.revokeObjectURL(artworkPreviewUrl.value)
@@ -437,9 +439,11 @@ function applyDiscogs(result) {
   form.value.discogsId = result.discogsId || null
   form.value.artworkPath = result.thumb || null
   discogsThumbnailUrl.value = result.thumb || null
-  if (result.thumb && props.item?.artworkPath === 'local') {
+  // If the item already has artwork (local file or cached Discogs URL), flag for
+  // pre-save deletion so stale cache is cleared before the PUT sets the new artworkPath.
+  if (result.thumb && props.item?.artworkPath) {
     artworkFile.value = null
-    removeArtworkFlag.value = true
+    replaceArtworkFlag.value = true
   }
 }
 
@@ -449,12 +453,13 @@ async function submit() {
   try {
     const payload = {
       ...form.value,
-      year:           form.value.year || null,
-      notes:          form.value.notes || null,
-      label:          form.value.label || null,
-      barcode:        form.value.barcode || null,
-      _artworkFile:   artworkFile.value,
-      _removeArtwork: removeArtworkFlag.value,
+      year:            form.value.year || null,
+      notes:           form.value.notes || null,
+      label:           form.value.label || null,
+      barcode:         form.value.barcode || null,
+      _artworkFile:    artworkFile.value,
+      _removeArtwork:  removeArtworkFlag.value,
+      _replaceArtwork: replaceArtworkFlag.value,
     }
     emit('save', payload)
   } finally {

@@ -506,12 +506,23 @@ async function saveItem(payload) {
     // Pull out artwork side-effects before sending to the API
     const artworkFile = payload._artworkFile ?? null
     const removeArtwork = payload._removeArtwork ?? false
+    const replaceArtwork = payload._replaceArtwork ?? false
     // Save for fallback ID lookup (new item OCS quirk)
     const payloadTitle = payload.title
     const payloadArtist = payload.artist
     delete payload._artworkFile
     delete payload._removeArtwork
+    delete payload._replaceArtwork
     // category is always set by the modal's form — no injection needed
+
+    // Discogs-switch: delete the stale cached file BEFORE the PUT so the
+    // PUT's new artworkPath survives (DELETE sets artworkPath=null in DB,
+    // so it must run first; the subsequent PUT then writes the new URL).
+    if (replaceArtwork && wasEditing && editId) {
+      try {
+        await axios.delete(generateUrl(`/apps/crate/artwork/${editId}`))
+      } catch { /* no cached file — fine */ }
+    }
 
     if (wasEditing) {
       const res = await axios.put(
@@ -580,6 +591,18 @@ async function saveItem(payload) {
           console.error('Artwork removal failed', e)
           showError('Failed to remove artwork')
         }
+      } else if (replaceArtwork) {
+        // Stale cache already deleted before the PUT; re-fetch so detail view
+        // picks up the new artworkPath from the PUT response.
+        try {
+          const r = await axios.get(generateOcsUrl(`/apps/crate/api/v1/media/${targetId}`))
+          const fresh = r.data.ocs?.data
+          if (fresh) {
+            // eslint-disable-next-line eqeqeq
+            if (selectedItem.value?.id == fresh.id) selectedItem.value = fresh
+            saved = fresh
+          }
+        } catch { /* ignore — view will show PUT result already in selectedItem */ }
       }
     }
 
