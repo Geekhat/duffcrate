@@ -9,10 +9,10 @@
           @click="switchView('home')"
         />
         <NcAppNavigationItem
-          name="Music"
-          :active="view === 'music'"
-          href="#/music"
-          @click="switchView('music')"
+          name="Books"
+          :active="view === 'books'"
+          href="#/books"
+          @click="switchView('books')"
         />
         <NcAppNavigationItem
           name="Films"
@@ -21,16 +21,16 @@
           @click="switchView('films')"
         />
         <NcAppNavigationItem
-          name="Books"
-          :active="view === 'books'"
-          href="#/books"
-          @click="switchView('books')"
-        />
-        <NcAppNavigationItem
           name="Games"
           :active="view === 'games'"
           href="#/games"
           @click="switchView('games')"
+        />
+        <NcAppNavigationItem
+          name="Music"
+          :active="view === 'music'"
+          href="#/music"
+          @click="switchView('music')"
         />
         <NcAppNavigationItem
           name="Playlists"
