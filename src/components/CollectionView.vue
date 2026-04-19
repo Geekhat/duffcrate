@@ -24,16 +24,16 @@
               Date Added ↑
             </option>
             <option value="artist-asc">
-              Artist A–Z
+              {{ sortLabels.artist }} A–Z
             </option>
             <option value="artist-desc">
-              Artist Z–A
+              {{ sortLabels.artist }} Z–A
             </option>
             <option value="title-asc">
-              Album A–Z
+              {{ sortLabels.title }} A–Z
             </option>
             <option value="title-desc">
-              Album Z–A
+              {{ sortLabels.title }} Z–A
             </option>
             <option value="year-asc">
               Year ↑
@@ -73,6 +73,26 @@
             </button>
           </div>
 
+          <!-- Status tabs (inline with toolbar) -->
+          <div
+            class="cv-status-tabs"
+            role="group"
+            aria-label="Collection or Wishlist"
+          >
+            <button
+              :class="['cv-status-tab', { active: statusFilter === 'owned' }]"
+              @click="statusFilter = 'owned'; filterFormat = ''"
+            >
+              Collection
+            </button>
+            <button
+              :class="['cv-status-tab', { active: statusFilter === 'wanted' }]"
+              @click="statusFilter = 'wanted'; filterFormat = ''"
+            >
+              Wishlist
+            </button>
+          </div>
+
           <NcButton
             variant="secondary"
             @click="exportOpen = true"
@@ -95,26 +115,6 @@
             Add item
           </NcButton>
         </div>
-      </div>
-
-      <!-- Status tabs -->
-      <div
-        class="cv-status-tabs"
-        role="group"
-        aria-label="Collection or Wishlist"
-      >
-        <button
-          :class="['cv-status-tab', { active: statusFilter === 'owned' }]"
-          @click="statusFilter = 'owned'; filterFormat = ''"
-        >
-          Collection
-        </button>
-        <button
-          :class="['cv-status-tab', { active: statusFilter === 'wanted' }]"
-          @click="statusFilter = 'wanted'; filterFormat = ''"
-        >
-          Wishlist
-        </button>
       </div>
 
       <!-- Format filter chips -->
@@ -297,6 +297,13 @@ const CATEGORY_LABELS = {
   game:  'Games',
 }
 
+const CATEGORY_SORT_LABELS = {
+  music: { artist: 'Artist', title: 'Album' },
+  film:  { artist: 'Director', title: 'Film' },
+  book:  { artist: 'Author', title: 'Title' },
+  game:  { artist: 'Developer', title: 'Game' },
+}
+
 const props = defineProps({
   category: { type: String, default: 'music' }, // 'music' | 'film' | 'book' | 'game'
   scrollContainer: { type: Object, default: null },
@@ -308,9 +315,11 @@ const items = ref([])
 const loading = ref(false)
 const statusFilter = ref('owned') // 'owned' | 'wanted'
 const exportOpen = ref(false)
-const viewMode = ref('card')
+const viewMode = ref(localStorage.getItem('crate_viewMode') ?? 'card')
 const sortKey = ref('artist-asc')
 const filterFormat = ref('')
+
+watch(viewMode, v => localStorage.setItem('crate_viewMode', v))
 
 async function load() {
   loading.value = true
@@ -337,6 +346,7 @@ const filteredByStatus = computed(() =>
 )
 
 const heading = computed(() => CATEGORY_LABELS[props.category] ?? 'Collection')
+const sortLabels = computed(() => CATEGORY_SORT_LABELS[props.category] ?? CATEGORY_SORT_LABELS.music)
 
 const presentFormats = computed(() => {
   const seen = new Set()
@@ -612,15 +622,14 @@ function thumbStyle(item) {
   font-size: 1.1em;
 }
 
-/* Status tabs */
+/* Status tabs (inline in toolbar) */
 .cv-status-tabs {
   display: flex;
   gap: 0;
   border: 2px solid var(--color-border-dark);
   border-radius: var(--border-radius);
   overflow: hidden;
-  margin-bottom: 8px;
-  width: fit-content;
+  flex-shrink: 0;
 }
 
 .cv-status-tab {

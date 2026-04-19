@@ -220,10 +220,11 @@ const saving = ref(false)
 const fileInput = ref(null)
 const artworkFile = ref(null) // File object awaiting upload
 const artworkPreviewUrl = ref(null) // blob URL for local preview
+const discogsThumbnailUrl = ref(null) // thumbnail URL set when user picks from Discogs search
 const removeArtworkFlag = ref(false)
 
 const hasArtwork = computed(() => {
-  if (artworkPreviewUrl.value) return true
+  if (artworkPreviewUrl.value || discogsThumbnailUrl.value) return true
   if (removeArtworkFlag.value) return false
   return !!(props.item?.artworkPath)
 })
@@ -231,6 +232,9 @@ const hasArtwork = computed(() => {
 const previewStyle = computed(() => {
   if (artworkPreviewUrl.value) {
     return { backgroundImage: `url(${artworkPreviewUrl.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+  }
+  if (discogsThumbnailUrl.value) {
+    return { backgroundImage: `url(${discogsThumbnailUrl.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
   }
   if (props.item?.id && props.item?.artworkPath && !removeArtworkFlag.value) {
     const url = generateUrl('/apps/crate/artwork/' + props.item.id)
@@ -294,6 +298,7 @@ function doRemoveArtwork() {
 function resetArtworkState() {
   artworkFile.value = null
   removeArtworkFlag.value = false
+  discogsThumbnailUrl.value = null
   if (artworkPreviewUrl.value) {
     URL.revokeObjectURL(artworkPreviewUrl.value)
     artworkPreviewUrl.value = null
@@ -343,6 +348,14 @@ function applyDiscogs(result) {
   form.value.year = result.year || form.value.year
   form.value.discogsId = result.discogsId || null
   form.value.artworkPath = result.thumb || null
+  // Show new artwork in preview immediately
+  discogsThumbnailUrl.value = result.thumb || null
+  // If the item had a locally-uploaded file, schedule its removal so the
+  // new Discogs artworkPath takes effect on the backend after save.
+  if (result.thumb && props.item?.artworkPath === 'local') {
+    artworkFile.value = null
+    removeArtworkFlag.value = true
+  }
 }
 
 async function submit() {
