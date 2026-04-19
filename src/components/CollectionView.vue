@@ -274,6 +274,7 @@
     <ExportModal
       :show="exportOpen"
       :scope="statusFilter"
+      :category="props.category"
       @close="exportOpen = false"
     />
   </div>
@@ -289,13 +290,7 @@ import MediaCard from './MediaCard.vue'
 import ExportModal from './ExportModal.vue'
 import { formatMarketValue } from '../utils/formatMarketValue.js'
 import { artworkStyleFor } from '../composables/useArtworkStyle.js'
-
-const CATEGORY_LABELS = {
-  music: 'Music',
-  film:  'Films',
-  book:  'Books',
-  game:  'Games',
-}
+import { CATEGORY_LABELS, FORMAT_LIST } from '../utils/categoryFormats.js'
 
 const CATEGORY_SORT_LABELS = {
   music: { artist: 'Artist', title: 'Album' },
@@ -353,7 +348,10 @@ const presentFormats = computed(() => {
   for (const item of filteredByStatus.value) {
     if (item.format) seen.add(item.format)
   }
-  return [...seen].sort()
+  const canonical = FORMAT_LIST[props.category] ?? []
+  const ordered = canonical.filter(f => seen.has(f))
+  const unknown = [...seen].filter(f => !canonical.includes(f)).sort()
+  return [...ordered, ...unknown]
 })
 
 function formatCount(fmt) {

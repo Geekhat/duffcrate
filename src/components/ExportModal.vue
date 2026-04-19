@@ -111,8 +111,9 @@ import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 
 const props = defineProps({
-  show:  { type: Boolean, required: true },
-  scope: { type: String,  default: 'owned' },
+  show:     { type: Boolean, required: true },
+  scope:    { type: String,  default: 'owned' },
+  category: { type: String,  default: 'music' },
 })
 
 const emit = defineEmits(['close'])
@@ -150,6 +151,7 @@ async function doExport() {
     const params = new URLSearchParams({
       format:          format.value,
       scope:           selectedScope.value,
+      category:        props.category,
       includeEnriched: includeEnriched.value ? '1' : '0',
       includeMarket:   includeMarket.value   ? '1' : '0',
     })

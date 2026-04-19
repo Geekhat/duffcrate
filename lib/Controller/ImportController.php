@@ -95,7 +95,11 @@ class ImportController extends OCSController
         }
 
         $mappedRows = $this->importService->applyMapping($parsed['rows'], $mapping);
-        $result     = $this->importService->import($mappedRows, $this->userId());
+        $rawCategory = $this->request->getParam('category', 'music');
+        $category    = in_array($rawCategory, ['music', 'film', 'book', 'game'], true)
+            ? $rawCategory
+            : 'music';
+        $result = $this->importService->import($mappedRows, $this->userId(), $category);
 
         return new DataResponse($result);
     }

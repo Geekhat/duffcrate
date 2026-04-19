@@ -8,14 +8,35 @@ use OCA\Crate\Db\MediaItemMapper;
 
 class ImportService
 {
-    /** Recognised physical formats (lowercase for matching) */
+    /** Recognised physical formats across all categories (lowercase for matching) */
     private const VALID_FORMATS = [
+        // Music — Vinyl
         'vinyl', '7" single', '10"', '12" single', 'picture disc',
         'flexi-disc', 'shellac', 'lathe cut',
+        // Music — Tape
         'cassette', '8-track', 'reel-to-reel', 'dat', 'dcc',
         '4-track cartridge', 'microcassette',
+        // Music — Disc
         'cd', 'sacd', 'cd-r', 'shm-cd', 'hdcd', 'cdv',
         'blu-ray audio', 'dvd-audio', 'laserdisc', 'minidisc',
+        // Films
+        'blu-ray', '4k uhd', '3d blu-ray', 'dvd', 'hd dvd', 'vhs', 'vcd', 'betamax',
+        // Books
+        'hardcover', 'paperback', 'mass market paperback', 'trade paperback',
+        'graphic novel', 'comic', 'audiobook cd', 'audiobook cassette',
+        // Games — Current Gen
+        'ps5', 'xbox series x|s', 'switch 2', 'switch', 'pc',
+        // Games — PlayStation
+        'ps4', 'ps3', 'ps2', 'ps1', 'psp', 'ps vita',
+        // Games — Xbox
+        'xbox one', 'xbox 360', 'xbox',
+        // Games — Nintendo
+        '3ds', 'ds', 'game boy advance', 'game boy', 'wii u', 'wii',
+        'gamecube', 'n64', 'snes', 'nes',
+        // Games — Sega
+        'mega drive', 'saturn', 'dreamcast',
+        // Games — Retro
+        'atari 2600', 'commodore 64', 'amiga', 'neo geo', 'tiger',
     ];
 
     /** Column name aliases → canonical field name */
@@ -248,7 +269,7 @@ class ImportService
      * @param  string                            $userId
      * @return array{created: int, duplicates: int, skipped: int, errors: string[], itemIds: int[]}
      */
-    public function import(array $mappedRows, string $userId): array
+    public function import(array $mappedRows, string $userId, string $category = 'music'): array
     {
         $created    = 0;
         $duplicates = 0;
@@ -321,6 +342,7 @@ class ImportService
             $item->setDiscogsId($discogsId ?: null);
             $item->setBarcode($barcode ?: null);
             $item->setLabel($label ?: null);
+            $item->setCategory($category);
             $now = (new \DateTime())->format('Y-m-d H:i:s');
             $item->setCreatedAt($now);
             $item->setUpdatedAt($now);

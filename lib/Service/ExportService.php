@@ -25,8 +25,9 @@ class ExportService
         string $scope,
         bool $includeEnriched,
         bool $includeMarket,
+        ?string $category = null,
     ): array {
-        $items = $this->mapper->findAll($userId);
+        $items = $this->mapper->findAll($userId, $category);
 
         if ($scope === 'owned') {
             $items = array_values(array_filter($items, fn($i) => $i->getStatus() === 'owned'));

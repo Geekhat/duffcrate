@@ -21,6 +21,23 @@
           <strong>Optional:</strong> Year, Notes, Status, DiscogsId, Barcode, Label
         </p>
 
+        <div class="import-field">
+          <label
+            class="import-label"
+            for="import-category"
+          >Category</label>
+          <select
+            id="import-category"
+            v-model="selectedCategory"
+            class="import-select"
+          >
+            <option value="music">Music</option>
+            <option value="film">Films</option>
+            <option value="book">Books</option>
+            <option value="game">Games</option>
+          </select>
+        </div>
+
         <div
           class="import-dropzone"
           :class="{ 'import-dropzone--over': dragging }"
@@ -310,8 +327,9 @@ import { useMarketValueQueue } from '../composables/useMarketValueQueue.js'
 import { useSettings } from '../composables/useSettings.js'
 
 const props = defineProps({
-  show: { type: Boolean, required: true },
+  show:     { type: Boolean, required: true },
   hasToken: { type: Boolean, default: false },
+  category: { type: String,  default: 'music' },
 })
 
 const emit = defineEmits(['close', 'imported'])
@@ -323,6 +341,7 @@ const { autoEnrichOnImport, autoFetchMarketRates, marketCurrency } = useSettings
 
 // ── state ────────────────────────────────────────────────────────────────────
 const step = ref('pick')
+const selectedCategory = ref(props.category)
 const selectedFile = ref(null)
 const parsing = ref(false)
 const parseError = ref('')
@@ -360,6 +379,7 @@ watch(() => props.show, (open) => {
 
 function reset() {
   step.value = 'pick'
+  selectedCategory.value = props.category
   selectedFile.value = null
   parsing.value = false
   pickingFromNc.value = false
@@ -454,6 +474,7 @@ async function doImport() {
     const mappingObj = {}
     Object.keys(mapping.value).forEach(k => { mappingObj[k] = mapping.value[k] || '' })
     fd.append('mapping', JSON.stringify(mappingObj))
+    fd.append('category', selectedCategory.value)
 
     const res = await axios.post(generateOcsUrl('/apps/crate/api/v1/import/commit'), fd)
     result.value = res.data.ocs?.data
@@ -513,6 +534,33 @@ function handleClose() {
   font-size: 0.875em;
   color: var(--color-error);
   margin: 8px 0;
+}
+
+/* Category selector */
+.import-field {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.import-label {
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-maxcontrast);
+}
+
+.import-select {
+  border: 2px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-background-dark);
+  color: var(--color-main-text);
+  padding: 8px 10px;
+  font-size: 0.9em;
+  font-family: inherit;
+  width: 200px;
 }
 
 /* Picker divider */

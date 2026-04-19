@@ -125,6 +125,7 @@
     <ImportModal
       :show="importOpen"
       :has-token="hasDiscogsToken"
+      :category="VIEW_TO_CATEGORY[view.value] ?? 'music'"
       @close="importOpen = false"
       @imported="handleImported"
     />
@@ -134,6 +135,7 @@
       :item="editingItem"
       :default-status="'owned'"
       :has-token="hasDiscogsToken"
+      :category="modalCategory"
       @close="closeModal"
       @save="saveItem"
     />
@@ -233,6 +235,13 @@ const {
   view, previousView, setHash, hashForView,
   parseHash, consumePendingHash, saveScroll, restoreScroll,
 } = useHashRouter()
+
+// Category to seed the AddEditModal with — uses the editing item's category for edits,
+// or the current/previous nav view's category for new items.
+const modalCategory = computed(() => {
+  if (editingItem.value) return editingItem.value.category ?? 'music'
+  return VIEW_TO_CATEGORY[view.value] ?? VIEW_TO_CATEGORY[previousView.value] ?? 'music'
+})
 
 const activeQueue = computed(() => {
   if (enrich.running.value) return { queue: enrich, label: 'Enriching albums' }
@@ -493,7 +502,6 @@ async function saveItem(payload) {
     // Capture before closeModal clears it
     const wasEditing = !!editingItem.value
     const editId = editingItem.value?.id
-    const editCategory = editingItem.value?.category ?? 'music'
 
     // Pull out artwork side-effects before sending to the API
     const artworkFile = payload._artworkFile ?? null
@@ -503,13 +511,7 @@ async function saveItem(payload) {
     const payloadArtist = payload.artist
     delete payload._artworkFile
     delete payload._removeArtwork
-
-    // Inject category: preserve existing on edit, derive from current view on create
-    if (!payload.category) {
-      payload.category = wasEditing
-        ? editCategory
-        : (VIEW_TO_CATEGORY[view.value] ?? VIEW_TO_CATEGORY[previousView.value] ?? 'music')
-    }
+    // category is always set by the modal's form — no injection needed
 
     if (wasEditing) {
       const res = await axios.put(

@@ -32,11 +32,14 @@ class ExportController extends Controller
      *   &includeEnriched=0|1
      *   &includeMarket=0|1
      */
+    private const VALID_CATEGORIES = ['music', 'film', 'book', 'game'];
+
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function export(
         string $format = 'csv',
         string $scope = 'owned',
+        string $category = 'all',
         int $includeEnriched = 0,
         int $includeMarket = 0,
     ): DataDownloadResponse {
@@ -46,12 +49,15 @@ class ExportController extends Controller
         }
         $userId = $user->getUID();
 
+        $cat = in_array($category, self::VALID_CATEGORIES, true) ? $category : null;
+
         [$content, $mimeType, $filename] = $this->exportService->generate(
             $userId,
             in_array($format, ['csv', 'xlsx'], true) ? $format : 'csv',
             in_array($scope, ['owned', 'wanted', 'all'], true) ? $scope : 'owned',
             $includeEnriched === 1,
             $includeMarket === 1,
+            $cat,
         );
 
         return new DataDownloadResponse($content, $filename, $mimeType);

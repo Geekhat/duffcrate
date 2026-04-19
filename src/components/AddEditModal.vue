@@ -7,23 +7,66 @@
   >
     <div class="crate-modal">
       <h2 id="crate-modal-title">
-        {{ title }}
+        {{ modalTitle }}
       </h2>
 
-      <!-- Discogs search -->
-      <DiscogsSearch :has-token="hasToken" @select="applyDiscogs" />
+      <!-- Discogs search (music only for now — other enrichment services come later) -->
+      <DiscogsSearch
+        v-if="form.category === 'music'"
+        :has-token="hasToken"
+        @select="applyDiscogs"
+      />
 
       <form @submit.prevent="submit">
-        <!-- Two-column row: Artist + Format -->
+        <!-- Category picker -->
         <div class="crate-row">
           <div class="crate-field crate-field--grow">
-            <label for="field-artist">Artist <span class="required">*</span></label>
+            <label for="field-category">Category</label>
+            <select
+              id="field-category"
+              v-model="form.category"
+            >
+              <option value="music">
+                Music
+              </option>
+              <option value="film">
+                Films
+              </option>
+              <option value="book">
+                Books
+              </option>
+              <option value="game">
+                Games
+              </option>
+            </select>
+          </div>
+
+          <div class="crate-field crate-field--grow">
+            <label for="field-status">Status</label>
+            <select
+              id="field-status"
+              v-model="form.status"
+            >
+              <option value="owned">
+                Owned
+              </option>
+              <option value="wanted">
+                Wishlist
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Artist / Director / Author / Developer + Format -->
+        <div class="crate-row">
+          <div class="crate-field crate-field--grow">
+            <label for="field-artist">{{ fieldConfig.artist }} <span class="required">*</span></label>
             <input
               id="field-artist"
               v-model="form.artist"
               type="text"
               required
-              placeholder="e.g. Pink Floyd"
+              :placeholder="artistPlaceholder"
               autocomplete="off"
             >
           </div>
@@ -58,19 +101,20 @@
           </div>
         </div>
 
+        <!-- Title -->
         <div class="crate-field">
-          <label for="field-title">Album / Title <span class="required">*</span></label>
+          <label for="field-title">{{ fieldConfig.title }} <span class="required">*</span></label>
           <input
             id="field-title"
             v-model="form.title"
             type="text"
             required
-            placeholder="e.g. The Dark Side of the Moon"
+            :placeholder="titlePlaceholder"
             autocomplete="off"
           >
         </div>
 
-        <!-- Two-column row: Year + Status -->
+        <!-- Year + Label -->
         <div class="crate-row">
           <div class="crate-field crate-field--year">
             <label for="field-year">Year</label>
@@ -78,26 +122,37 @@
               id="field-year"
               v-model.number="form.year"
               type="number"
-              min="1857"
+              min="1800"
               :max="currentYear"
               placeholder="e.g. 1973"
             >
           </div>
 
           <div class="crate-field crate-field--grow">
-            <label for="field-status">Status</label>
-            <select
-              id="field-status"
-              v-model="form.status"
+            <label for="field-label">{{ fieldConfig.label }}</label>
+            <input
+              id="field-label"
+              v-model="form.label"
+              type="text"
+              :placeholder="labelPlaceholder"
+              autocomplete="off"
             >
-              <option value="owned">
-                Owned
-              </option>
-              <option value="wanted">
-                Wishlist
-              </option>
-            </select>
           </div>
+        </div>
+
+        <!-- Barcode / ISBN (music + books only) -->
+        <div
+          v-if="fieldConfig.showBarcode"
+          class="crate-field"
+        >
+          <label for="field-barcode">{{ fieldConfig.barcode }}</label>
+          <input
+            id="field-barcode"
+            v-model="form.barcode"
+            type="text"
+            :placeholder="barcodePlaceholder"
+            autocomplete="off"
+          >
         </div>
 
         <div class="crate-field">
@@ -106,13 +161,13 @@
             id="field-notes"
             v-model="form.notes"
             rows="3"
-            placeholder="Condition, pressing info, purchase details…"
+            placeholder="Condition, purchase details, thoughts…"
           />
         </div>
 
-        <!-- Album Art -->
+        <!-- Artwork -->
         <div class="crate-field">
-          <label>Album Art</label>
+          <label>Artwork</label>
           <div class="crate-artwork-row">
             <div
               class="crate-artwork-thumb"
@@ -121,7 +176,7 @@
               <span
                 v-if="!hasArtwork"
                 class="crate-artwork-placeholder"
-              >♪</span>
+              >{{ artworkPlaceholder }}</span>
             </div>
             <div class="crate-artwork-controls">
               <input
@@ -188,39 +243,26 @@ import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import DiscogsSearch from './DiscogsSearch.vue'
+import { FORMAT_GROUPS, FIELD_CONFIG, CATEGORY_LABELS } from '../utils/categoryFormats.js'
 
 const props = defineProps({
-  show: { type: Boolean, required: true },
-  item: { type: Object, default: null },
-  defaultStatus: { type: String, default: 'owned' },
-  hasToken: { type: Boolean, default: false },
+  show:          { type: Boolean, required: true },
+  item:          { type: Object,  default: null },
+  defaultStatus: { type: String,  default: 'owned' },
+  hasToken:      { type: Boolean, default: false },
+  category:      { type: String,  default: 'music' },
 })
 
 const emit = defineEmits(['close', 'save'])
 
-const formatGroups = [
-  {
-    label: 'Vinyl',
-    formats: ['Vinyl', '7" Single', '10"', '12" Single', 'Picture Disc', 'Flexi-disc', 'Shellac', 'Lathe Cut'],
-  },
-  {
-    label: 'Tape',
-    formats: ['Cassette', '8-Track', 'Reel-to-Reel', 'DAT', 'DCC', '4-Track Cartridge', 'Microcassette'],
-  },
-  {
-    label: 'Disc',
-    formats: ['CD', 'SACD', 'CD-R', 'SHM-CD', 'HDCD', 'CDV', 'Blu-ray Audio', 'DVD-Audio', 'LaserDisc', 'MiniDisc'],
-  },
-]
-
 const currentYear = new Date().getFullYear()
 const saving = ref(false)
 
-// ── Artwork ────────────────────────────────────────────────────────────────
+// ── Artwork ────────────────────────────────────────────────────────────────────
 const fileInput = ref(null)
-const artworkFile = ref(null) // File object awaiting upload
-const artworkPreviewUrl = ref(null) // blob URL for local preview
-const discogsThumbnailUrl = ref(null) // thumbnail URL set when user picks from Discogs search
+const artworkFile = ref(null)
+const artworkPreviewUrl = ref(null)
+const discogsThumbnailUrl = ref(null)
 const removeArtworkFlag = ref(false)
 
 const hasArtwork = computed(() => {
@@ -243,6 +285,11 @@ const previewStyle = computed(() => {
   return {}
 })
 
+const artworkPlaceholder = computed(() => {
+  const icons = { music: '♪', film: '🎬', book: '📖', game: '🎮' }
+  return icons[form.value.category] ?? '♪'
+})
+
 function onFileSelected(e) {
   const file = e.target.files[0]
   if (!file) return
@@ -250,19 +297,17 @@ function onFileSelected(e) {
   artworkFile.value = file
   artworkPreviewUrl.value = URL.createObjectURL(file)
   removeArtworkFlag.value = false
-  // Reset the input so picking the same file again fires the event
   e.target.value = ''
 }
 
 function pickFromNextcloud() {
-  // Use the Nextcloud built-in file picker (always available, no extra chunks)
   const oc = window.OC
   if (!oc?.dialogs?.filepicker) {
     alert('File picker not available.')
     return
   }
   oc.dialogs.filepicker(
-    'Select album artwork',
+    'Select artwork',
     async (path) => {
       try {
         const uid = oc.currentUser ?? ''
@@ -280,15 +325,16 @@ function pickFromNextcloud() {
         showError('Failed to fetch artwork')
       }
     },
-    false, // not multiselect
-    ['image/jpeg', 'image/png', 'image/webp'], // MIME filter
-    true, // modal
+    false,
+    ['image/jpeg', 'image/png', 'image/webp'],
+    true,
   )
 }
 
 function doRemoveArtwork() {
   artworkFile.value = null
   removeArtworkFlag.value = true
+  discogsThumbnailUrl.value = null
   if (artworkPreviewUrl.value) {
     URL.revokeObjectURL(artworkPreviewUrl.value)
     artworkPreviewUrl.value = null
@@ -305,15 +351,19 @@ function resetArtworkState() {
   }
 }
 
+// ── Form ───────────────────────────────────────────────────────────────────────
 const blankForm = () => ({
-  title: '',
-  artist: '',
-  format: '',
-  year: null,
-  notes: '',
-  status: props.defaultStatus,
-  discogsId: null,
+  title:      '',
+  artist:     '',
+  format:     '',
+  year:       null,
+  notes:      '',
+  status:     props.defaultStatus,
+  discogsId:  null,
   artworkPath: null,
+  label:      null,
+  barcode:    null,
+  category:   props.category,
 })
 
 const form = ref(blankForm())
@@ -325,22 +375,60 @@ watch(
       resetArtworkState()
       form.value = props.item
         ? {
-            title: props.item.title,
-            artist: props.item.artist,
-            format: props.item.format,
-            year: props.item.year ?? null,
-            notes: props.item.notes ?? '',
-            status: props.item.status ?? props.defaultStatus,
-            discogsId: props.item.discogsId ?? null,
+            title:      props.item.title,
+            artist:     props.item.artist,
+            format:     props.item.format,
+            year:       props.item.year ?? null,
+            notes:      props.item.notes ?? '',
+            status:     props.item.status ?? props.defaultStatus,
+            discogsId:  props.item.discogsId ?? null,
             artworkPath: props.item.artworkPath ?? null,
+            label:      props.item.label ?? null,
+            barcode:    props.item.barcode ?? null,
+            category:   props.item.category ?? props.category,
           }
         : blankForm()
     }
   },
 )
 
-const title = computed(() => props.item ? 'Edit item' : 'Add item')
+// Reset format when category changes (format lists are incompatible across categories)
+watch(() => form.value.category, (newCat, oldCat) => {
+  if (newCat !== oldCat) {
+    form.value.format = ''
+    discogsThumbnailUrl.value = null
+  }
+})
 
+// ── Per-category computed ──────────────────────────────────────────────────────
+const fieldConfig = computed(() => FIELD_CONFIG[form.value.category] ?? FIELD_CONFIG.music)
+const formatGroups = computed(() => FORMAT_GROUPS[form.value.category] ?? FORMAT_GROUPS.music)
+
+const modalTitle = computed(() => {
+  const cat = CATEGORY_LABELS[form.value.category] ?? 'item'
+  return props.item ? `Edit ${cat.slice(0, -1)}` : `Add ${cat.slice(0, -1)}`
+})
+
+const artistPlaceholder = computed(() => {
+  const examples = { music: 'e.g. Pink Floyd', film: 'e.g. Christopher Nolan', book: 'e.g. George Orwell', game: 'e.g. Nintendo' }
+  return examples[form.value.category] ?? ''
+})
+
+const titlePlaceholder = computed(() => {
+  const examples = { music: 'e.g. The Dark Side of the Moon', film: 'e.g. Inception', book: 'e.g. 1984', game: 'e.g. Super Mario Bros.' }
+  return examples[form.value.category] ?? ''
+})
+
+const labelPlaceholder = computed(() => {
+  const examples = { music: 'e.g. EMI', film: 'e.g. Warner Bros.', book: 'e.g. Penguin', game: 'e.g. Nintendo' }
+  return examples[form.value.category] ?? ''
+})
+
+const barcodePlaceholder = computed(() => {
+  return form.value.category === 'book' ? 'e.g. 978-0451524935' : 'e.g. 5099902987521'
+})
+
+// ── Discogs apply ──────────────────────────────────────────────────────────────
 function applyDiscogs(result) {
   form.value.artist = result.artist || form.value.artist
   form.value.title = result.title || form.value.title
@@ -348,24 +436,24 @@ function applyDiscogs(result) {
   form.value.year = result.year || form.value.year
   form.value.discogsId = result.discogsId || null
   form.value.artworkPath = result.thumb || null
-  // Show new artwork in preview immediately
   discogsThumbnailUrl.value = result.thumb || null
-  // If the item had a locally-uploaded file, schedule its removal so the
-  // new Discogs artworkPath takes effect on the backend after save.
   if (result.thumb && props.item?.artworkPath === 'local') {
     artworkFile.value = null
     removeArtworkFlag.value = true
   }
 }
 
+// ── Submit ─────────────────────────────────────────────────────────────────────
 async function submit() {
   saving.value = true
   try {
     const payload = {
       ...form.value,
-      year: form.value.year || null,
-      notes: form.value.notes || null,
-      _artworkFile: artworkFile.value,
+      year:           form.value.year || null,
+      notes:          form.value.notes || null,
+      label:          form.value.label || null,
+      barcode:        form.value.barcode || null,
+      _artworkFile:   artworkFile.value,
       _removeArtwork: removeArtworkFlag.value,
     }
     emit('save', payload)
