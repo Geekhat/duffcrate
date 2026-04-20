@@ -133,8 +133,12 @@ class OpenLibraryService
         $thumb      = $data['cover']['medium'] ?? null;
 
         $subjects = array_slice(
-            array_map(fn($s) => isset($s['name']) ? (string)$s['name'] : null, (array)($data['subjects'] ?? [])),
-            0, 10,
+            array_map(
+                fn($s) => isset($s['name']) ? (string)$s['name'] : null,
+                (array)($data['subjects'] ?? []),
+            ),
+            0,
+            10,
         );
         $subjects = array_values(array_filter($subjects));
         $genres   = $subjects ? implode(', ', $subjects) : null;

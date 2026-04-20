@@ -69,7 +69,10 @@ class ExportService
             default         => 'Label',
         };
 
-        $h = ['Category', $artistLabel, 'Title', 'Format', 'Year', 'Status', 'EnrichmentId', $barcodeLabel, $labelLabel, 'Notes'];
+        $h = [
+            'Category', $artistLabel, 'Title', 'Format', 'Year',
+            'Status', 'EnrichmentId', $barcodeLabel, $labelLabel, 'Notes',
+        ];
         if ($includeEnriched) {
             array_push($h, 'Genres', 'Country', 'PressingNotes', 'Tracklist', 'ArtistBio');
         }
