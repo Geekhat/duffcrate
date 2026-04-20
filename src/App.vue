@@ -66,7 +66,7 @@
       <ItemDetailView
         v-if="view === 'detail' && selectedItem"
         :item="selectedItem"
-        :has-token="hasDiscogsToken"
+        :has-token="detailEnrichAvailable"
         :queue-busy="enrich.running.value || market.running.value"
         @back="goBack"
         @edit="openEdit"
@@ -253,6 +253,14 @@ const activeQueue = computed(() => {
   return null
 })
 
+const detailEnrichAvailable = computed(() => {
+  const cat = selectedItem.value?.category ?? 'music'
+  if (cat === 'film') return hasTmdbToken.value
+  if (cat === 'book') return true
+  if (cat === 'game') return hasRawgKey.value
+  return hasDiscogsToken.value
+})
+
 // ── state ─────────────────────────────────────────────────────────────────────
 const appContentRef = ref(null)
 const selectedItem = ref(null)
@@ -401,8 +409,15 @@ function showDetail(item) {
   view.value = 'detail'
   setHash(hashForView('detail', item.id))
   // Auto-enrich items that haven't been enriched yet (search-then-enrich handles missing discogsId)
-  const notEnriched = !item.genres && !item.artistBio && !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
-  if (notEnriched && autoEnrichOnClick.value && !enrich.running.value && !market.running.value) {
+  const notEnriched = !item.genres && !item.artistBio && !item.pressingNotes && !item.discogsId &&
+    !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
+  const cat = item.category ?? 'music'
+  const canAutoEnrich =
+    (cat === 'music' && hasDiscogsToken.value) ||
+    (cat === 'film' && hasTmdbToken.value) ||
+    cat === 'book' ||
+    (cat === 'game' && hasRawgKey.value)
+  if (notEnriched && autoEnrichOnClick.value && canAutoEnrich && !enrich.running.value && !market.running.value) {
     triggerEnrich(item.id)
   }
 }

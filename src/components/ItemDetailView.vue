@@ -18,7 +18,7 @@
             :disabled="!hasToken || queueBusy"
             @click="enrich"
           >
-            {{ isEnriched ? 'Re-enrich' : 'Enrich from Discogs' }}
+            {{ isEnriched ? 'Re-enrich' : `Enrich from ${enrichSourceLabel}` }}
           </NcButton>
           <NcButton
             v-if="isEnriched && !enriching && !stripping"
@@ -28,7 +28,7 @@
             Remove data
           </NcButton>
           <NcButton
-            v-if="!fetchingMarket"
+            v-if="isMusic && !fetchingMarket"
             variant="tertiary"
             :disabled="!hasToken || queueBusy"
             @click="fetchMarketValue"
@@ -38,7 +38,7 @@
           <span
             v-if="enriching"
             class="detail-enriching"
-          >Fetching from Discogs…</span>
+          >Fetching from {{ enrichSourceLabel }}…</span>
           <span
             v-if="stripping"
             class="detail-enriching"
@@ -119,15 +119,15 @@
           <!-- Metadata grid -->
           <dl class="detail-meta">
             <template v-if="item.label">
-              <dt>Label</dt>
+              <dt>{{ labelFieldLabel }}</dt>
               <dd>{{ item.label }}</dd>
             </template>
             <template v-if="item.genres">
               <dt>Genres</dt>
               <dd>{{ item.genres }}</dd>
             </template>
-            <template v-if="item.barcode">
-              <dt>Barcode</dt>
+            <template v-if="item.barcode && showBarcode">
+              <dt>{{ barcodeFieldLabel }}</dt>
               <dd>{{ item.barcode }}</dd>
             </template>
             <template v-if="item.notes">
@@ -141,9 +141,9 @@
 
     <!-- Scrollable content -->
     <div class="detail-body">
-      <!-- Tracklist -->
+      <!-- Tracklist (music only) -->
       <section
-        v-if="tracklist.length > 0"
+        v-if="isMusic && tracklist.length > 0"
         class="detail-section"
       >
         <h3>Tracklist</h3>
@@ -167,23 +167,23 @@
         </table>
       </section>
 
-      <!-- Pressing notes -->
+      <!-- Overview / Description / Pressing notes -->
       <section
         v-if="item.pressingNotes"
         class="detail-section"
       >
-        <h3>Notes</h3>
+        <h3>{{ notesSectionTitle }}</h3>
         <p class="detail-notes-text">
           {{ item.pressingNotes }}
         </p>
       </section>
 
-      <!-- Artist info -->
+      <!-- Artist / Director / Author info (not shown for games) -->
       <section
-        v-if="item.artistBio || (members.length > 0)"
+        v-if="showAboutSection && (item.artistBio || members.length > 0)"
         class="detail-section"
       >
-        <h3>About {{ item.artist }}</h3>
+        <h3>{{ aboutSectionTitle }}</h3>
         <p
           v-if="item.artistBio"
           class="detail-bio"
@@ -191,7 +191,7 @@
           {{ item.artistBio }}
         </p>
         <div
-          v-if="members.length > 0"
+          v-if="isMusic && members.length > 0"
           class="detail-members"
         >
           <strong>Members:</strong>
@@ -226,10 +226,41 @@ const enriching = ref(false)
 const stripping = ref(false)
 const fetchingMarket = ref(false)
 
-// True once full release data has been fetched from Discogs
-const isEnriched = computed(() =>
-  !!(props.item.genres || props.item.artistBio || (Array.isArray(props.item.tracklist) && props.item.tracklist.length > 0)),
-)
+const isMusic = computed(() => !props.item.category || props.item.category === 'music')
+
+const enrichSourceLabel = computed(() => {
+  const map = { music: 'Discogs', film: 'TMDB', book: 'Open Library', game: 'RAWG' }
+  return map[props.item.category] ?? 'Discogs'
+})
+
+const notesSectionTitle = computed(() => {
+  if (props.item.category === 'film') return 'Overview'
+  if (props.item.category === 'book' || props.item.category === 'game') return 'Description'
+  return 'Notes'
+})
+
+const showAboutSection = computed(() => props.item.category !== 'game')
+
+const aboutSectionTitle = computed(() => {
+  if (props.item.category === 'film') return 'About the Director'
+  if (props.item.category === 'book') return 'About the Author'
+  return `About ${props.item.artist}`
+})
+
+const labelFieldLabel = computed(() => {
+  if (props.item.category === 'film') return 'Studio'
+  if (props.item.category === 'book' || props.item.category === 'game') return 'Publisher'
+  return 'Label'
+})
+
+const showBarcode = computed(() => isMusic.value || props.item.category === 'book')
+const barcodeFieldLabel = computed(() => props.item.category === 'book' ? 'ISBN' : 'Barcode')
+
+const isEnriched = computed(() => {
+  const i = props.item
+  return !!(i.genres || i.artistBio || i.pressingNotes || i.discogsId ||
+    (Array.isArray(i.tracklist) && i.tracklist.length > 0))
+})
 
 const artStyle = useArtworkStyle(computed(() => props.item))
 
@@ -291,7 +322,7 @@ function formatFetchedAt(dateStr) {
 }
 
 function shouldAutoFetchMarket() {
-  return autoFetchMarketRates.value && props.item.discogsId && !props.item.marketValue
+  return isMusic.value && autoFetchMarketRates.value && props.item.discogsId && !props.item.marketValue
 }
 
 onMounted(() => {
