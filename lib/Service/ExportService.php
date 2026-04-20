@@ -170,27 +170,33 @@ class ExportService
             throw new \RuntimeException('Failed to create temporary file for XLSX export');
         }
 
-        $zip = new \ZipArchive();
-        if ($zip->open($tmp, \ZipArchive::OVERWRITE) !== true) {
-            unlink($tmp);
-            throw new \RuntimeException('Failed to open temporary ZIP archive');
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($tmp, \ZipArchive::OVERWRITE) !== true) {
+                throw new \RuntimeException('Failed to open temporary ZIP archive');
+            }
+
+            $zip->addFromString('[Content_Types].xml', $this->xlContentTypes());
+            $zip->addFromString('_rels/.rels', $this->xlRels());
+            $zip->addFromString('xl/workbook.xml', $this->xlWorkbook());
+            $zip->addFromString('xl/_rels/workbook.xml.rels', $this->xlWorkbookRels());
+            $zip->addFromString('xl/styles.xml', $this->xlStyles());
+            $zip->addFromString('xl/worksheets/sheet1.xml', $this->xlSheet($headers, $rows));
+
+            if ($zip->close() !== true) {
+                throw new \RuntimeException('Failed to finalise XLSX archive');
+            }
+
+            $content = file_get_contents($tmp);
+            if ($content === false) {
+                throw new \RuntimeException('Failed to read generated XLSX file');
+            }
+            return $content;
+        } finally {
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
         }
-
-        $zip->addFromString('[Content_Types].xml', $this->xlContentTypes());
-        $zip->addFromString('_rels/.rels', $this->xlRels());
-        $zip->addFromString('xl/workbook.xml', $this->xlWorkbook());
-        $zip->addFromString('xl/_rels/workbook.xml.rels', $this->xlWorkbookRels());
-        $zip->addFromString('xl/styles.xml', $this->xlStyles());
-        $zip->addFromString('xl/worksheets/sheet1.xml', $this->xlSheet($headers, $rows));
-
-        $zip->close();
-
-        $content = file_get_contents($tmp);
-        unlink($tmp);
-        if ($content === false) {
-            throw new \RuntimeException('Failed to read generated XLSX file');
-        }
-        return $content;
     }
 
     private function xlContentTypes(): string

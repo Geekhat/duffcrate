@@ -11,6 +11,7 @@ use OCA\Crate\Db\PlaylistItem;
 use OCA\Crate\Db\PlaylistItemMapper;
 use OCA\Crate\Db\PlaylistMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IDBConnection;
 
 class PlaylistService
 {
@@ -19,6 +20,7 @@ class PlaylistService
         private readonly PlaylistItemMapper $playlistItemMapper,
         private readonly MediaItemMapper $mediaItemMapper,
         private readonly CrateShareMapper $shareMapper,
+        private readonly IDBConnection $db,
     ) {
     }
 
@@ -104,9 +106,16 @@ class PlaylistService
     public function delete(int $id, string $userId): void
     {
         $playlist = $this->playlistMapper->findByUser($id, $userId);
-        $this->playlistItemMapper->deleteByPlaylist($id);
-        $this->shareMapper->deleteByShareable('playlist', $id);
-        $this->playlistMapper->delete($playlist);
+        $this->db->beginTransaction();
+        try {
+            $this->playlistItemMapper->deleteByPlaylist($id);
+            $this->shareMapper->deleteByShareable('playlist', $id);
+            $this->playlistMapper->delete($playlist);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 
     // ── Playlist items ─────────────────────────────────────────────────────────
@@ -118,17 +127,24 @@ class PlaylistService
         $this->mediaItemMapper->findByUser($mediaItemId, $userId);
 
         if (!$this->playlistItemMapper->existsInPlaylist($playlistId, $mediaItemId)) {
-            $now = (new \DateTime())->format('Y-m-d H:i:s');
+            $now    = (new \DateTime())->format('Y-m-d H:i:s');
             $maxPos = $this->playlistItemMapper->maxPosition($playlistId);
             $item = new PlaylistItem();
             $item->setPlaylistId($playlistId);
             $item->setMediaItemId($mediaItemId);
             $item->setPosition($maxPos + 1);
             $item->setAddedAt($now);
-            $this->playlistItemMapper->insert($item);
 
-            $playlist->setUpdatedAt($now);
-            $this->playlistMapper->update($playlist);
+            $this->db->beginTransaction();
+            try {
+                $this->playlistItemMapper->insert($item);
+                $playlist->setUpdatedAt($now);
+                $this->playlistMapper->update($playlist);
+                $this->db->commit();
+            } catch (\Throwable $e) {
+                $this->db->rollBack();
+                throw $e;
+            }
         }
 
         return $this->hydrateWithItems($playlist);
@@ -137,9 +153,18 @@ class PlaylistService
     public function removeItem(int $playlistId, string $userId, int $mediaItemId): array
     {
         $playlist = $this->playlistMapper->findByUser($playlistId, $userId);
-        $this->playlistItemMapper->deleteByPlaylistAndItem($playlistId, $mediaItemId);
-        $playlist->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-        $this->playlistMapper->update($playlist);
+
+        $this->db->beginTransaction();
+        try {
+            $this->playlistItemMapper->deleteByPlaylistAndItem($playlistId, $mediaItemId);
+            $playlist->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+            $this->playlistMapper->update($playlist);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
         return $this->hydrateWithItems($playlist);
     }
 

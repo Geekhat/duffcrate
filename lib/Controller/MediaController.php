@@ -186,19 +186,7 @@ class MediaController extends OCSController
     #[NoAdminRequired]
     public function destroyAll(): DataResponse
     {
-        $userId = $this->userId();
-
-        // Delete playlist shares, playlist items, then playlists
-        $playlists = $this->playlistMapper->findAll($userId);
-        foreach ($playlists as $playlist) {
-            $this->shareMapper->deleteByShareable('playlist', $playlist->getId());
-            $this->playlistItemMapper->deleteByPlaylist($playlist->getId());
-        }
-        $this->playlistMapper->deleteAllByUser($userId);
-
-        // Delete all media items with full cleanup (artwork, shares, playlist refs)
-        $this->mediaService->deleteAllForUser($userId);
-
+        $this->mediaService->wipeUserData($this->userId());
         return new DataResponse([]);
     }
 
@@ -214,21 +202,17 @@ class MediaController extends OCSController
         $item     = $this->mediaService->find($id, $this->userId());
         $category = $item->getCategory();
 
-        if ($category === 'film') {
-            return $this->enrichFilm($id, $item);
-        }
-        if ($category === 'book') {
-            return $this->enrichBook($id, $item);
-        }
-        if ($category === 'game') {
-            return $this->enrichGame($id, $item);
-        }
-        if ($category === 'comic') {
-            return $this->enrichComic($id, $item);
-        }
-
-        // Default: music via Discogs
-        return $this->enrichMusic($id, $item);
+        return match ($category) {
+            'music' => $this->enrichMusic($id, $item),
+            'film'  => $this->enrichFilm($id, $item),
+            'book'  => $this->enrichBook($id, $item),
+            'game'  => $this->enrichGame($id, $item),
+            'comic' => $this->enrichComic($id, $item),
+            default => new DataResponse(
+                ['error' => 'Unknown category: ' . (string) $category],
+                Http::STATUS_BAD_REQUEST,
+            ),
+        };
     }
 
     private function enrichMusic(int $id, \OCA\Crate\Db\MediaItem $item): DataResponse

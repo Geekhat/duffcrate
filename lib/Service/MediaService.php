@@ -8,9 +8,11 @@ use OCA\Crate\Db\CrateShareMapper;
 use OCA\Crate\Db\MediaItem;
 use OCA\Crate\Db\MediaItemMapper;
 use OCA\Crate\Db\PlaylistItemMapper;
+use OCA\Crate\Db\PlaylistMapper;
 use OCA\Crate\Dto\MediaItemData;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
+use OCP\IDBConnection;
 
 class MediaService
 {
@@ -18,7 +20,9 @@ class MediaService
         private readonly MediaItemMapper $mapper,
         private readonly PlaylistItemMapper $playlistItemMapper,
         private readonly CrateShareMapper $shareMapper,
+        private readonly PlaylistMapper $playlistMapper,
         private readonly IAppDataFactory $appDataFactory,
+        private readonly IDBConnection $db,
     ) {
     }
 
@@ -111,12 +115,19 @@ class MediaService
     {
         $item = $this->mapper->findByUser($id, $userId);
 
-        // Clean up related data before deleting the item
-        $this->playlistItemMapper->deleteByMediaItem($id);
-        $this->shareMapper->deleteByShareable('album', $id);
-        $this->deleteArtworkFiles($id);
+        $this->db->beginTransaction();
+        try {
+            $this->playlistItemMapper->deleteByMediaItem($id);
+            $this->shareMapper->deleteByShareable('album', $id);
+            $this->mapper->delete($item);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
 
-        $this->mapper->delete($item);
+        // Files are deleted after commit — a failed unlink shouldn't undo the DB delete.
+        $this->deleteArtworkFiles($id);
     }
 
     /** Remove cached/uploaded artwork files for a single item. */
@@ -140,18 +151,69 @@ class MediaService
     }
 
     /**
+     * Wipe everything for a user — media items, playlists, playlist items,
+     * and shares — in a single transaction. Artwork files are cleared after
+     * commit so a filesystem failure doesn't leave orphan DB rows.
+     */
+    public function wipeUserData(string $userId): void
+    {
+        $items     = $this->findAll($userId);
+        $playlists = $this->playlistMapper->findAll($userId);
+
+        $this->db->beginTransaction();
+        try {
+            foreach ($playlists as $playlist) {
+                $this->shareMapper->deleteByShareable('playlist', $playlist->getId());
+                $this->playlistItemMapper->deleteByPlaylist($playlist->getId());
+            }
+            $this->playlistMapper->deleteAllByUser($userId);
+
+            foreach ($items as $item) {
+                $this->playlistItemMapper->deleteByMediaItem($item->getId());
+                $this->shareMapper->deleteByShareable('album', $item->getId());
+            }
+            $this->mapper->deleteAllByUser($userId);
+
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        foreach ($items as $item) {
+            $this->deleteArtworkFiles($item->getId());
+        }
+    }
+
+    /**
      * Delete all media items for a user, including related data cleanup.
      * Handles artwork files, playlist-item references, and album shares.
+     * Database operations run in a single transaction so a mid-loop failure
+     * leaves no orphaned playlist_item / share rows.
      */
     public function deleteAllForUser(string $userId): void
     {
         $items = $this->findAll($userId);
+
+        $this->db->beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $this->playlistItemMapper->deleteByMediaItem($item->getId());
+                $this->shareMapper->deleteByShareable('album', $item->getId());
+            }
+            $this->mapper->deleteAllByUser($userId);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        // Artwork files are deleted outside the transaction — if the filesystem
+        // delete fails we still want the DB rows gone, and stale files are
+        // harmless (they'll be overwritten or garbage-collected).
         foreach ($items as $item) {
-            $this->playlistItemMapper->deleteByMediaItem($item->getId());
-            $this->shareMapper->deleteByShareable('album', $item->getId());
             $this->deleteArtworkFiles($item->getId());
         }
-        $this->mapper->deleteAllByUser($userId);
     }
 
     /**

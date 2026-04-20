@@ -8,14 +8,17 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
+use Psr\Log\LoggerInterface;
 
 /**
  * @extends QBMapper<MediaItem>
  */
 class MediaItemMapper extends QBMapper
 {
-    public function __construct(IDBConnection $db)
-    {
+    public function __construct(
+        IDBConnection $db,
+        private readonly LoggerInterface $logger,
+    ) {
         parent::__construct($db, 'crate_media_items', MediaItem::class);
     }
 
@@ -92,10 +95,18 @@ class MediaItemMapper extends QBMapper
             $qb->andWhere($qb->expr()->gt('updated_at', $qb->createNamedParameter($updatedSince)));
         }
 
-        $result = $qb->executeQuery();
-        $val = $result->fetchOne();
-        $result->closeCursor();
-        return (int) $val;
+        try {
+            $result = $qb->executeQuery();
+            $val = $result->fetchOne();
+            $result->closeCursor();
+            return (int) ($val ?? 0);
+        } catch (\Throwable $e) {
+            $this->logger->warning('MediaItemMapper::countAll failed: {msg}', [
+                'msg' => $e->getMessage(),
+                'app' => 'crate',
+            ]);
+            return 0;
+        }
     }
 
     /**

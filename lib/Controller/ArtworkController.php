@@ -16,6 +16,7 @@ use OCP\AppFramework\Http\Response;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
 use OCP\Http\Client\IClientService;
+use OCP\IDBConnection;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -40,6 +41,9 @@ class ArtworkController extends Controller
         'image/jpeg', 'image/png', 'image/webp', 'image/gif',
     ];
 
+    /** File extensions considered when locating / clearing cached artwork. */
+    private const ARTWORK_EXTENSIONS = ['.jpg', '.png', '.webp', '.gif'];
+
     public function __construct(
         string $appName,
         IRequest $request,
@@ -47,6 +51,7 @@ class ArtworkController extends Controller
         private readonly IUserSession $userSession,
         private readonly IAppDataFactory $appDataFactory,
         private readonly IClientService $clientService,
+        private readonly IDBConnection $db,
     ) {
         parent::__construct($appName, $request);
     }
@@ -81,7 +86,7 @@ class ArtworkController extends Controller
             } catch (NotFoundException) {
                 return new Response(Http::STATUS_NOT_FOUND);
             }
-            foreach (['.jpg', '.png', '.webp', '.gif'] as $ext) {
+            foreach (self::ARTWORK_EXTENSIONS as $ext) {
                 try {
                     $file = $folder->getFile('artwork_' . $itemId . $ext);
                     $mime = match ($ext) {
@@ -244,20 +249,34 @@ class ArtworkController extends Controller
             $folder = $appData->newFolder('artwork');
         }
 
-        // Remove any previous cached/uploaded file for this item
-        foreach (['.jpg', '.png', '.webp', '.gif'] as $oldExt) {
-            try {
-                $folder->getFile('artwork_' . $itemId . $oldExt)->delete();
-            } catch (NotFoundException) {
+        // Serialise concurrent uploads/deletes for the same item via a DB
+        // transaction holding the media_item row. Combined with the file ops
+        // below, this prevents races where two uploads leave the row pointing
+        // at a non-existent file.
+        $this->db->beginTransaction();
+        try {
+            // Re-read inside the transaction
+            $item = $this->mapper->findByUser($itemId, $userId);
+
+            foreach (self::ARTWORK_EXTENSIONS as $oldExt) {
+                try {
+                    $folder->getFile('artwork_' . $itemId . $oldExt)->delete();
+                } catch (NotFoundException) {
+                }
             }
+
+            $file = $folder->newFile('artwork_' . $itemId . $ext);
+            $file->putContent((string) file_get_contents($uploadedFile['tmp_name']));
+
+            $item->setArtworkPath('local');
+            $item->setUpdatedAt(date('Y-m-d H:i:s'));
+            $this->mapper->update($item);
+
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
         }
-
-        $file = $folder->newFile('artwork_' . $itemId . $ext);
-        $file->putContent((string) file_get_contents($uploadedFile['tmp_name']));
-
-        $item->setArtworkPath('local');
-        $item->setUpdatedAt(date('Y-m-d H:i:s'));
-        $this->mapper->update($item);
 
         return new DataResponse(['status' => 'ok', 'artworkPath' => 'local']);
     }
@@ -281,20 +300,28 @@ class ArtworkController extends Controller
             return new DataResponse(['error' => 'Not found'], Http::STATUS_NOT_FOUND);
         }
 
+        $this->db->beginTransaction();
         try {
-            $folder = $this->appDataFactory->get('crate')->getFolder('artwork');
-            foreach (['.jpg', '.png', '.webp', '.gif'] as $ext) {
-                try {
-                    $folder->getFile('artwork_' . $itemId . $ext)->delete();
-                } catch (NotFoundException) {
+            $item = $this->mapper->findByUser($itemId, $userId);
+            try {
+                $folder = $this->appDataFactory->get('crate')->getFolder('artwork');
+                foreach (self::ARTWORK_EXTENSIONS as $ext) {
+                    try {
+                        $folder->getFile('artwork_' . $itemId . $ext)->delete();
+                    } catch (NotFoundException) {
+                    }
                 }
+            } catch (NotFoundException) {
             }
-        } catch (NotFoundException) {
-        }
 
-        $item->setArtworkPath(null);
-        $item->setUpdatedAt(date('Y-m-d H:i:s'));
-        $this->mapper->update($item);
+            $item->setArtworkPath(null);
+            $item->setUpdatedAt(date('Y-m-d H:i:s'));
+            $this->mapper->update($item);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
 
         return new DataResponse(['status' => 'ok']);
     }

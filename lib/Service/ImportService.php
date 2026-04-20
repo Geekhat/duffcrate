@@ -43,6 +43,20 @@ class ImportService
         'omnibus', 'compendium',
     ];
 
+    /**
+     * Column length caps that mirror the DB schema; rows exceeding any of
+     * these are skipped rather than being silently truncated by the DB.
+     */
+    private const MAX_LEN = [
+        'artist'    => 500,
+        'title'     => 500,
+        'format'    => 100,
+        'notes'     => 2000,
+        'barcode'   => 100,
+        'label'     => 500,
+        'discogsId' => 100,
+    ];
+
     /** Column name aliases → canonical field name */
     private const ALIASES = [
         // Artist-equivalent across categories
@@ -360,6 +374,22 @@ class ImportService
             if (!in_array(strtolower($format), self::VALID_FORMATS, true)) {
                 $skipped++;
                 $errors[] = "Row {$rowNum}: unrecognised format \"{$format}\" - skipped";
+                continue;
+            }
+
+            // Length validation — the DB truncates silently, so reject up-front
+            // to make the user aware of the data loss.
+            $overLen = null;
+            foreach (self::MAX_LEN as $field => $max) {
+                $value = (string)($row[$field] ?? '');
+                if (strlen($value) > $max) {
+                    $overLen = "{$field} exceeds {$max} chars";
+                    break;
+                }
+            }
+            if ($overLen !== null) {
+                $skipped++;
+                $errors[] = "Row {$rowNum}: {$overLen} — skipped";
                 continue;
             }
 

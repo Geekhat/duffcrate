@@ -15,6 +15,9 @@ class MarketValueService
     private const API_BASE   = 'https://api.discogs.com';
     private const USER_AGENT = 'CrateNextcloudApp/0.1 +https://gitea.macecloud.co.uk/macebox/crate';
 
+    /** Upper bound for persisted market values — guards against upstream typos. */
+    private const MAX_MARKET_VALUE = 1_000_000.0;
+
     public const SUPPORTED_CURRENCIES = [
         'GBP', 'USD', 'EUR', 'CAD', 'AUD', 'JPY',
         'CHF', 'MXN', 'BRL', 'NZD', 'SEK', 'ZAR',
@@ -61,7 +64,7 @@ class MarketValueService
         }
 
         $now = (new \DateTime())->format('Y-m-d H:i:s');
-        $item->setMarketValue($stats['value']);
+        $item->setMarketValue($this->clampValue($stats['value']));
         $item->setMarketValueLoose(null);
         $item->setMarketValueNew(null);
         $item->setMarketValueCurrency($stats['currency']);
@@ -84,14 +87,30 @@ class MarketValueService
         }
 
         $now = (new \DateTime())->format('Y-m-d H:i:s');
-        $item->setMarketValue($prices['cib']);
-        $item->setMarketValueLoose($prices['loose']);
-        $item->setMarketValueNew($prices['new']);
+        $item->setMarketValue($this->clampValue($prices['cib']));
+        $item->setMarketValueLoose($this->clampValue($prices['loose']));
+        $item->setMarketValueNew($this->clampValue($prices['new']));
         $item->setMarketValueCurrency('USD');
         $item->setMarketValueFetchedAt($now);
         $item->setUpdatedAt($now);
 
         return $this->mapper->update($item);
+    }
+
+    /**
+     * Clamp a reported market value into a sane range. Negatives and
+     * over-large numbers are rejected as null rather than being stored.
+     */
+    private function clampValue(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $f = (float) $value;
+        if ($f < 0 || $f > self::MAX_MARKET_VALUE || !is_finite($f)) {
+            return null;
+        }
+        return $f;
     }
 
     /**
