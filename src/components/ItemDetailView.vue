@@ -28,7 +28,7 @@
             Remove data
           </NcButton>
           <NcButton
-            v-if="isMusic && !fetchingMarket"
+            v-if="hasMarketValue && !fetchingMarket"
             variant="tertiary"
             :disabled="!hasToken || queueBusy"
             @click="fetchMarketValue"
@@ -227,6 +227,7 @@ const stripping = ref(false)
 const fetchingMarket = ref(false)
 
 const isMusic = computed(() => !props.item.category || props.item.category === 'music')
+const hasMarketValue = computed(() => !['film', 'book'].includes(props.item.category))
 
 const enrichSourceLabel = computed(() => {
   const map = { music: 'Discogs', film: 'TMDB', book: 'Open Library', game: 'RAWG' }
@@ -323,6 +324,7 @@ function formatFetchedAt(dateStr) {
 
 function shouldAutoFetchMarket() {
   return isMusic.value && autoFetchMarketRates.value && props.item.discogsId && !props.item.marketValue
+  // games/comics: auto-fetch added in Batch D when PriceCharting backend is wired up
 }
 
 onMounted(() => {
