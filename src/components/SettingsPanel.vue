@@ -5,19 +5,65 @@
     name="Crate settings"
     @update:open="$emit('update:open', $event)"
   >
+    <!-- ── General ── -->
     <NcAppSettingsSection
-      id="crate-settings-enrich"
-      name="Enrichment"
+      id="crate-settings-general"
+      name="General"
+    >
+      <div class="settings-enrichment-options">
+        <div>
+          <NcCheckboxRadioSwitch v-model="autoEnrichOnClick">
+            Auto-enrich items when opening them
+          </NcCheckboxRadioSwitch>
+          <p class="settings-sub-hint">
+            Applies to Music (Discogs), Films (TMDB), Books (Open Library — no key needed), Games (RAWG), and Comics (ComicVine). Requires the relevant API key to be configured below.
+          </p>
+        </div>
+
+        <div>
+          <NcCheckboxRadioSwitch v-model="autoFetchMarketRates">
+            Fetch market rates automatically
+          </NcCheckboxRadioSwitch>
+          <p class="settings-sub-hint">
+            Applies to Music (Discogs) and Games &amp; Comics (PriceCharting). Not available for Films or Books.
+          </p>
+        </div>
+
+        <div class="settings-field settings-field--inline">
+          <label for="market-currency">Display currency</label>
+          <select
+            id="market-currency"
+            v-model="marketCurrency"
+            class="settings-currency-select"
+          >
+            <option
+              v-for="c in currencies"
+              :key="c"
+              :value="c"
+            >
+              {{ c }}
+            </option>
+          </select>
+          <p class="settings-sub-hint">
+            Used for Discogs (Music) market prices. PriceCharting (Games &amp; Comics) prices are always shown in USD.
+          </p>
+        </div>
+      </div>
+    </NcAppSettingsSection>
+
+    <!-- ── Music ── -->
+    <NcAppSettingsSection
+      id="crate-settings-music"
+      name="Music"
     >
       <p class="settings-hint">
-        Crate uses the
+        Metadata, artwork, tracklists and artist info via the
         <a
           href="https://www.discogs.com/developers/"
           target="_blank"
           rel="noopener"
-        >Discogs API</a>
-        to fetch album metadata, artwork, tracklists, genres and artist info.
-        Enter your personal access token below — you can generate one at
+        >Discogs API</a>.
+        Generate a personal access token at
         <a
           href="https://www.discogs.com/settings/developers"
           target="_blank"
@@ -67,52 +113,42 @@
         >{{ savedMessage }}</span>
       </div>
 
-      <div class="settings-enrichment-options">
-        <NcCheckboxRadioSwitch
-          v-model="autoEnrichOnClick"
-          :disabled="!hasToken"
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
+          @click="enrichAll"
         >
-          Auto-enrich albums when clicking on them
-        </NcCheckboxRadioSwitch>
-
-        <div class="settings-actions settings-enrich-all">
-          <NcButton
-            variant="secondary"
-            :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
-            @click="enrichAll"
-          >
-            {{ enrich.running.value ? `Enriching… ${enrich.done.value} / ${enrich.total.value}` : 'Enrich all un-enriched items' }}
-          </NcButton>
-          <NcButton
-            v-if="enrich.running.value"
-            variant="tertiary"
-            @click="enrich.cancel()"
-          >
-            Stop
-          </NcButton>
-          <span
-            v-if="!hasToken"
-            class="settings-hint"
-            style="margin:0"
-          >Add a Discogs token above to enable enrichment.</span>
-        </div>
+          {{ enrich.running.value ? `Enriching… ${enrich.done.value} / ${enrich.total.value}` : 'Enrich all un-enriched music' }}
+        </NcButton>
+        <NcButton
+          v-if="enrich.running.value"
+          variant="tertiary"
+          @click="enrich.cancel()"
+        >
+          Stop
+        </NcButton>
+        <span
+          v-if="!hasToken"
+          class="settings-hint"
+          style="margin:0"
+        >Add a Discogs token above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
 
-    <!-- ── TMDB (Films) ── -->
+    <!-- ── Films ── -->
     <NcAppSettingsSection
-      id="crate-settings-tmdb"
-      name="Films — TMDB"
+      id="crate-settings-films"
+      name="Films"
     >
       <p class="settings-hint">
-        Crate uses the
+        Film metadata, posters and director info via the
         <a
           href="https://www.themoviedb.org/"
           target="_blank"
           rel="noopener"
-        >TMDB API</a>
-        to fetch film metadata, posters, and director info.
-        Enter your API Read Access Token — generate one at
+        >TMDB API</a>.
+        Generate an API Read Access Token at
         <a
           href="https://www.themoviedb.org/settings/api"
           target="_blank"
@@ -163,19 +199,18 @@
       </div>
     </NcAppSettingsSection>
 
-    <!-- ── RAWG (Games) ── -->
+    <!-- ── Games ── -->
     <NcAppSettingsSection
-      id="crate-settings-rawg"
-      name="Games — RAWG"
+      id="crate-settings-games"
+      name="Games"
     >
       <p class="settings-hint">
-        Crate uses the
+        Game metadata and cover art via the
         <a
           href="https://rawg.io/"
           target="_blank"
           rel="noopener"
-        >RAWG API</a>
-        to fetch game metadata and cover art.
+        >RAWG API</a>.
         Get a free API key at
         <a
           href="https://rawg.io/apidocs"
@@ -185,7 +220,7 @@
       </p>
 
       <div class="settings-field">
-        <label for="rawg-key">API Key</label>
+        <label for="rawg-key">RAWG API Key</label>
         <div class="settings-token-row">
           <input
             id="rawg-key"
@@ -227,19 +262,18 @@
       </div>
     </NcAppSettingsSection>
 
-    <!-- ── ComicVine (Comics) ── -->
+    <!-- ── Comics ── -->
     <NcAppSettingsSection
-      id="crate-settings-comicvine"
-      name="Comics — ComicVine"
+      id="crate-settings-comics"
+      name="Comics"
     >
       <p class="settings-hint">
-        Crate uses the
+        Comic volume metadata, artwork, genres and descriptions via the
         <a
           href="https://comicvine.gamespot.com/api/"
           target="_blank"
           rel="noopener"
-        >ComicVine API</a>
-        to fetch comic volume metadata, artwork, genres and descriptions.
+        >ComicVine API</a>.
         Get a free API key at
         <a
           href="https://comicvine.gamespot.com/api/"
@@ -249,7 +283,7 @@
       </p>
 
       <div class="settings-field">
-        <label for="comicvine-key">API Key</label>
+        <label for="comicvine-key">ComicVine API Key</label>
         <div class="settings-token-row">
           <input
             id="comicvine-key"
@@ -291,29 +325,29 @@
       </div>
     </NcAppSettingsSection>
 
-    <!-- ── PriceCharting (Games & Comics) ── -->
+    <!-- ── Market Values ── -->
     <NcAppSettingsSection
-      id="crate-settings-pricecharting"
-      name="Games &amp; Comics — PriceCharting"
+      id="crate-settings-market"
+      name="Market Values"
     >
       <p class="settings-hint">
-        Crate uses the
+        Loose, CIB, and new market prices for Games and Comics via the
         <a
           href="https://www.pricecharting.com/"
           target="_blank"
           rel="noopener"
-        >PriceCharting API</a>
-        to fetch loose, CIB, and new market prices for games and comics.
+        >PriceCharting API</a>.
         Get a free access token at
         <a
           href="https://www.pricecharting.com/api"
           target="_blank"
           rel="noopener"
         >pricecharting.com/api</a>.
+        Music market values use Discogs (configured above). Not available for Films or Books.
       </p>
 
       <div class="settings-field">
-        <label for="pricecharting-token">Access Token</label>
+        <label for="pricecharting-token">PriceCharting Access Token</label>
         <div class="settings-token-row">
           <input
             id="pricecharting-token"
@@ -353,68 +387,33 @@
           class="settings-saved"
         >{{ priceChartingSavedMessage }}</span>
       </div>
-    </NcAppSettingsSection>
 
-    <NcAppSettingsSection
-      id="crate-settings-market"
-      name="Market values"
-    >
-      <p class="settings-hint">
-        Fetches the current lowest Discogs marketplace price for each album.
-        Prices are cached on the item and shown in the collection, album detail, and home page.
-      </p>
-
-      <div class="settings-enrichment-options">
-        <NcCheckboxRadioSwitch
-          v-model="autoFetchMarketRates"
-          :disabled="!hasToken"
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="(!hasToken && !hasPriceChartingToken) || marketQueue.running.value || enrich.running.value"
+          @click="refreshAllMarketRates"
         >
-          Fetch market rates automatically
-        </NcCheckboxRadioSwitch>
-
-        <div class="settings-field">
-          <label for="market-currency">Currency</label>
-          <select
-            id="market-currency"
-            v-model="marketCurrency"
-            class="settings-currency-select"
-          >
-            <option
-              v-for="c in currencies"
-              :key="c"
-              :value="c"
-            >
-              {{ c }}
-            </option>
-          </select>
-        </div>
-
-        <div class="settings-actions settings-enrich-all">
-          <NcButton
-            variant="secondary"
-            :disabled="!hasToken || marketQueue.running.value || enrich.running.value"
-            @click="refreshAllMarketRates"
-          >
-            {{ marketQueue.running.value
-              ? `Fetching… ${marketQueue.done.value} / ${marketQueue.total.value}`
-              : 'Refresh all market rates' }}
-          </NcButton>
-          <NcButton
-            v-if="marketQueue.running.value"
-            variant="tertiary"
-            @click="marketQueue.cancel()"
-          >
-            Stop
-          </NcButton>
-          <span
-            v-if="!hasToken"
-            class="settings-hint"
-            style="margin:0"
-          >Add a Discogs token above to enable market rates.</span>
-        </div>
+          {{ marketQueue.running.value
+            ? `Fetching… ${marketQueue.done.value} / ${marketQueue.total.value}`
+            : 'Refresh all market rates' }}
+        </NcButton>
+        <NcButton
+          v-if="marketQueue.running.value"
+          variant="tertiary"
+          @click="marketQueue.cancel()"
+        >
+          Stop
+        </NcButton>
+        <span
+          v-if="!hasToken && !hasPriceChartingToken"
+          class="settings-hint"
+          style="margin:0"
+        >Add a Discogs or PriceCharting token above to enable market rates.</span>
       </div>
     </NcAppSettingsSection>
 
+    <!-- ── Danger Zone ── -->
     <NcAppSettingsSection
       id="crate-settings-danger"
       name="Danger zone"
@@ -485,34 +484,35 @@ const { autoEnrichOnClick, autoFetchMarketRates, marketCurrency } = useSettings(
 
 const currencies = ref([])
 
+// Discogs (Music)
 const tokenInput = ref('')
 const hasToken = ref(false)
 const showToken = ref(false)
 const saving = ref(false)
 const savedMessage = ref('')
 
-// TMDB
+// TMDB (Films)
 const tmdbTokenInput = ref('')
 const hasTmdbToken = ref(false)
 const showTmdbToken = ref(false)
 const savingTmdb = ref(false)
 const tmdbSavedMessage = ref('')
 
-// RAWG
+// RAWG (Games)
 const rawgKeyInput = ref('')
 const hasRawgKey = ref(false)
 const showRawgKey = ref(false)
 const savingRawg = ref(false)
 const rawgSavedMessage = ref('')
 
-// ComicVine
+// ComicVine (Comics)
 const comicVineKeyInput = ref('')
 const hasComicVineKey = ref(false)
 const showComicVineKey = ref(false)
 const savingComicVine = ref(false)
 const comicVineSavedMessage = ref('')
 
-// PriceCharting
+// PriceCharting (Market Values)
 const priceChartingTokenInput = ref('')
 const hasPriceChartingToken = ref(false)
 const showPriceChartingToken = ref(false)
@@ -549,9 +549,7 @@ async function save() {
   saving.value = true
   savedMessage.value = ''
   try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'), {
-      token: tokenInput.value,
-    })
+    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'), { token: tokenInput.value })
     hasToken.value = tokenInput.value !== ''
     emit('token-changed', hasToken.value)
     tokenInput.value = ''
@@ -579,24 +577,6 @@ async function clearToken() {
     showError('Failed to clear Discogs token')
   } finally {
     saving.value = false
-  }
-}
-
-async function wipeCollection() {
-  confirmWipe.value = false
-  wiping.value = true
-  wipedMessage.value = ''
-  try {
-    await axios.delete(generateOcsUrl('/apps/crate/api/v1/media'))
-    wipedMessage.value = 'Collection wiped.'
-    emit('collection-wiped')
-    setTimeout(() => { wipedMessage.value = '' }, 4000)
-  } catch (e) {
-    console.error('Failed to wipe collection', e)
-    showError('Failed to wipe collection')
-    wipedMessage.value = 'Failed — check the console.'
-  } finally {
-    wiping.value = false
   }
 }
 
@@ -740,14 +720,33 @@ async function clearPriceChartingToken() {
   }
 }
 
-onMounted(load)
+async function wipeCollection() {
+  confirmWipe.value = false
+  wiping.value = true
+  wipedMessage.value = ''
+  try {
+    await axios.delete(generateOcsUrl('/apps/crate/api/v1/media'))
+    wipedMessage.value = 'Collection wiped.'
+    emit('collection-wiped')
+    setTimeout(() => { wipedMessage.value = '' }, 4000)
+  } catch (e) {
+    console.error('Failed to wipe collection', e)
+    showError('Failed to wipe collection')
+    wipedMessage.value = 'Failed — check the console.'
+  } finally {
+    wiping.value = false
+  }
+}
 
 async function refreshAllMarketRates() {
   if (marketQueue.running.value) return
   try {
     const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/media'))
     const all = res.data.ocs?.data ?? []
-    const ids = all.filter(item => item.discogsId).map(item => item.id)
+    // Music uses Discogs (needs discogsId); games/comics use PriceCharting (looked up by title)
+    const ids = all
+      .filter(i => i.discogsId || i.category === 'game' || i.category === 'comic')
+      .map(i => i.id)
     if (ids.length > 0) {
       marketQueue.start(ids, marketCurrency.value)
     }
@@ -772,6 +771,8 @@ async function enrichAll() {
     console.error('Failed to load items for enrichment', e)
   }
 }
+
+onMounted(load)
 </script>
 
 <style scoped>
@@ -786,8 +787,21 @@ async function enrichAll() {
   color: var(--color-primary-element);
 }
 
+.settings-sub-hint {
+  font-size: 0.8em;
+  color: var(--color-text-maxcontrast);
+  margin: 4px 0 0 28px;
+  line-height: 1.4;
+}
+
 .settings-field {
   margin-bottom: 12px;
+}
+
+.settings-field--inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .settings-field label {
@@ -832,19 +846,17 @@ async function enrichAll() {
 }
 
 .settings-enrichment-options {
-  margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .settings-enrich-all {
-  margin-top: 4px;
+  margin-top: 12px;
 }
 
 .settings-currency-select {
   display: block;
-  margin-top: 6px;
   border: 2px solid var(--color-border-dark);
   border-radius: var(--border-radius);
   background: var(--color-main-background);
@@ -852,6 +864,7 @@ async function enrichAll() {
   padding: 6px 10px;
   font-size: 1em;
   min-width: 120px;
+  width: fit-content;
 }
 
 .settings-currency-select:focus {

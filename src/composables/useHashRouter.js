@@ -23,6 +23,7 @@ export function useHashRouter() {
     if (v === 'music') return '#/music'
     if (v === 'films') return '#/films'
     if (v === 'books') return '#/books'
+    if (v === 'comics') return '#/comics'
     if (v === 'games') return '#/games'
     if (v === 'playlists') return '#/playlists'
     if (v === 'shared') return '#/shared'
@@ -37,6 +38,7 @@ export function useHashRouter() {
     if (parts[0] === 'music') return { view: 'music', itemId: null, playlistId: null }
     if (parts[0] === 'films') return { view: 'films', itemId: null, playlistId: null }
     if (parts[0] === 'books') return { view: 'books', itemId: null, playlistId: null }
+    if (parts[0] === 'comics') return { view: 'comics', itemId: null, playlistId: null }
     if (parts[0] === 'games') return { view: 'games', itemId: null, playlistId: null }
     // Legacy hash routes redirect to music
     if (parts[0] === 'collection' || parts[0] === 'wishlist') return { view: 'music', itemId: null, playlistId: null }

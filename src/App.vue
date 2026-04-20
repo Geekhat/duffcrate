@@ -15,16 +15,16 @@
           @click="switchView('books')"
         />
         <NcAppNavigationItem
-          name="Films"
-          :active="view === 'films'"
-          href="#/films"
-          @click="switchView('films')"
-        />
-        <NcAppNavigationItem
           name="Comics"
           :active="view === 'comics'"
           href="#/comics"
           @click="switchView('comics')"
+        />
+        <NcAppNavigationItem
+          name="Films"
+          :active="view === 'films'"
+          href="#/films"
+          @click="switchView('films')"
         />
         <NcAppNavigationItem
           name="Games"
