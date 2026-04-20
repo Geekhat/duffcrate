@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
-use OCP\Http\Client\IClientService;
-use OCP\Security\ICredentialsManager;
-use Psr\Log\LoggerInterface;
-
-class RawgService
+class RawgService extends AbstractApiService
 {
     private const API_BASE = 'https://api.rawg.io/api';
 
-    public function __construct(
-        private readonly IClientService $clientService,
-        private readonly ICredentialsManager $credentialsManager,
-        private readonly LoggerInterface $logger,
-    ) {
+    protected function serviceName(): string
+    {
+        return 'RAWG';
+    }
+
+    protected function credentialKey(): string
+    {
+        return 'crate/rawg_key';
     }
 
     /**
@@ -26,12 +25,12 @@ class RawgService
      */
     public function search(string $userId, string $query): array
     {
-        $key = $this->getKey($userId);
+        $key = $this->getCredential($userId);
         if ($key === '') {
             return [];
         }
 
-        $body = $this->get(self::API_BASE . '/games', [
+        $body = $this->getJson(self::API_BASE . '/games', [
             'key'       => $key,
             'search'    => $query,
             'page_size' => '10',
@@ -48,51 +47,17 @@ class RawgService
      */
     public function getGame(string $userId, string $gameId): array
     {
-        $key = $this->getKey($userId);
+        $key = $this->getCredential($userId);
         if ($key === '') {
             return [];
         }
 
-        $body = $this->get(self::API_BASE . '/games/' . rawurlencode($gameId), ['key' => $key]);
+        $body = $this->getJson(self::API_BASE . '/games/' . rawurlencode($gameId), ['key' => $key]);
         if (empty($body)) {
             return [];
         }
 
         return $this->normaliseGame($body);
-    }
-
-    // -------------------------------------------------------------------------
-
-    private function getKey(string $userId): string
-    {
-        return (string)($this->credentialsManager->retrieve($userId, 'crate/rawg_key') ?? '');
-    }
-
-    /**
-     * @param array<string, string> $query
-     * @return array<string, mixed>
-     */
-    private function get(string $url, array $query = []): array
-    {
-        $options = [
-            'headers' => ['Accept' => 'application/json'],
-            'timeout' => 10,
-        ];
-        if (!empty($query)) {
-            $options['query'] = $query;
-        }
-
-        try {
-            $response = $this->clientService->newClient()->get($url, $options);
-            return json_decode($response->getBody(), true) ?? [];
-        } catch (\Exception $e) {
-            $this->logger->warning('RAWG API error for {url}: {msg}', [
-                'url' => strtok($url, '?') ?: $url,
-                'msg' => $e->getMessage(),
-                'app' => 'crate',
-            ]);
-            return [];
-        }
     }
 
     /** @param array<string, mixed> $r */
@@ -122,19 +87,15 @@ class RawgService
             $year = (int)substr((string)$r['released'], 0, 4) ?: null;
         }
 
-        // Developer (first studio)
         $devs      = (array)($r['developers'] ?? []);
         $developer = !empty($devs[0]['name']) ? (string)$devs[0]['name'] : null;
 
-        // Publisher
         $pubs      = (array)($r['publishers'] ?? []);
         $publisher = !empty($pubs[0]['name']) ? (string)$pubs[0]['name'] : null;
 
-        // Genres
         $genreNames = array_map(fn(array $g) => $g['name'] ?? '', (array)($r['genres'] ?? []));
         $genres     = $genreNames ? implode(', ', array_filter($genreNames)) : null;
 
-        // Description (strip HTML tags)
         $desc = strip_tags((string)($r['description'] ?? ''));
         $desc = trim($desc) ?: null;
 

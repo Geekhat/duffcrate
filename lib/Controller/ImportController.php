@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Controller;
 
+use OCA\Crate\CrateCategories;
 use OCA\Crate\Service\ImportService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -25,8 +26,6 @@ class ImportController extends OCSController
         'artist', 'title', 'format', 'year', 'notes',
         'status', 'discogsId', 'barcode', 'label', 'category',
     ];
-
-    private const VALID_CATEGORIES = ['music', 'film', 'book', 'game', 'comic'];
 
     public function __construct(
         string $appName,
@@ -121,12 +120,10 @@ class ImportController extends OCSController
             return new DataResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
         }
 
-        $mappedRows = $this->importService->applyMapping($parsed['rows'], $mapping);
-        $rawCategory = $this->request->getParam('category', 'music');
-        $category    = in_array($rawCategory, self::VALID_CATEGORIES, true)
-            ? $rawCategory
-            : 'music';
-        $result = $this->importService->import($mappedRows, $this->userId(), $category);
+        $mappedRows  = $this->importService->applyMapping($parsed['rows'], $mapping);
+        $rawCategory = (string) $this->request->getParam('category', CrateCategories::MUSIC);
+        $category    = CrateCategories::isCategory($rawCategory) ? $rawCategory : CrateCategories::MUSIC;
+        $result      = $this->importService->import($mappedRows, $this->userId(), $category);
 
         return new DataResponse($result);
     }

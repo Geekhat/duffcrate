@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
+use OCA\Crate\CrateCategories;
 use OCA\Crate\Db\MediaItemMapper;
 
 class ImportService
@@ -326,9 +327,7 @@ class ImportService
      * @param  string                            $userId
      * @return array{created: int, duplicates: int, skipped: int, errors: string[], itemIds: int[]}
      */
-    private const VALID_CATEGORIES = ['music', 'film', 'book', 'game', 'comic'];
-
-    public function import(array $mappedRows, string $userId, string $batchCategory = 'music'): array
+    public function import(array $mappedRows, string $userId, string $batchCategory = CrateCategories::MUSIC): array
     {
         $created    = 0;
         $duplicates = 0;
@@ -349,9 +348,7 @@ class ImportService
 
             // Per-row category override (e.g. from a re-imported export with Category column)
             $rowCategoryRaw = strtolower(trim((string)($row['category'] ?? '')));
-            $category       = in_array($rowCategoryRaw, self::VALID_CATEGORIES, true)
-                ? $rowCategoryRaw
-                : $batchCategory;
+            $category       = CrateCategories::isCategory($rowCategoryRaw) ? $rowCategoryRaw : $batchCategory;
 
             $artist = $row['artist'] ?? '';
             $title  = $row['title']  ?? '';
@@ -408,8 +405,8 @@ class ImportService
             $barcode   = $row['barcode']   ?? null;
             $label     = $row['label']     ?? null;
 
-            if (!in_array($status, ['owned', 'wanted'], true)) {
-                $status = 'owned';
+            if (!CrateCategories::isStatus($status)) {
+                $status = CrateCategories::STATUS_OWNED;
             }
 
             $item = new \OCA\Crate\Db\MediaItem();

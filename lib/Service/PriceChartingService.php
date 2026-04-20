@@ -4,19 +4,28 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
-use OCP\Http\Client\IClientService;
-use OCP\Security\ICredentialsManager;
-use Psr\Log\LoggerInterface;
-
-class PriceChartingService
+class PriceChartingService extends AbstractApiService
 {
     private const API_BASE = 'https://www.pricecharting.com/api';
 
-    public function __construct(
-        private readonly IClientService $clientService,
-        private readonly ICredentialsManager $credentialsManager,
-        private readonly LoggerInterface $logger,
-    ) {
+    protected function serviceName(): string
+    {
+        return 'PriceCharting';
+    }
+
+    protected function credentialKey(): string
+    {
+        return 'crate/pricecharting_token';
+    }
+
+    public function getToken(string $userId): string
+    {
+        return $this->getCredential($userId);
+    }
+
+    public function hasToken(string $userId): bool
+    {
+        return $this->getCredential($userId) !== '';
     }
 
     /**
@@ -27,12 +36,12 @@ class PriceChartingService
      */
     public function search(string $userId, string $query): array
     {
-        $token = $this->getToken($userId);
+        $token = $this->getCredential($userId);
         if ($token === '') {
             return [];
         }
 
-        $body = $this->get(self::API_BASE . '/products', [
+        $body = $this->getJson(self::API_BASE . '/products', [
             'q'     => $query,
             'token' => $token,
         ]);
@@ -53,12 +62,12 @@ class PriceChartingService
      */
     public function getPrices(string $userId, string $productId): ?array
     {
-        $token = $this->getToken($userId);
+        $token = $this->getCredential($userId);
         if ($token === '') {
             return null;
         }
 
-        $body = $this->get(self::API_BASE . '/product/' . rawurlencode($productId), [
+        $body = $this->getJson(self::API_BASE . '/product/' . rawurlencode($productId), [
             'token' => $token,
         ]);
 
@@ -69,7 +78,7 @@ class PriceChartingService
         return [
             'loose' => isset($body['loose-price']) ? round((int)$body['loose-price'] / 100, 2) : null,
             'cib'   => isset($body['cib-price'])   ? round((int)$body['cib-price']   / 100, 2) : null,
-            'new'   => isset($body['new-price'])    ? round((int)$body['new-price']   / 100, 2) : null,
+            'new'   => isset($body['new-price'])   ? round((int)$body['new-price']   / 100, 2) : null,
         ];
     }
 
@@ -92,44 +101,5 @@ class PriceChartingService
         }
 
         return $this->getPrices($userId, $productId);
-    }
-
-    // -------------------------------------------------------------------------
-
-    public function getToken(string $userId): string
-    {
-        return (string)($this->credentialsManager->retrieve($userId, 'crate/pricecharting_token') ?? '');
-    }
-
-    public function hasToken(string $userId): bool
-    {
-        return $this->getToken($userId) !== '';
-    }
-
-    /**
-     * @param array<string, string> $query
-     * @return array<string, mixed>
-     */
-    private function get(string $url, array $query = []): array
-    {
-        $options = [
-            'headers' => ['Accept' => 'application/json'],
-            'timeout' => 10,
-        ];
-        if (!empty($query)) {
-            $options['query'] = $query;
-        }
-
-        try {
-            $response = $this->clientService->newClient()->get($url, $options);
-            return json_decode($response->getBody(), true) ?? [];
-        } catch (\Exception $e) {
-            $this->logger->warning('PriceCharting API error for {url}: {msg}', [
-                'url' => strtok($url, '?') ?: $url,
-                'msg' => $e->getMessage(),
-                'app' => 'crate',
-            ]);
-            return [];
-        }
     }
 }

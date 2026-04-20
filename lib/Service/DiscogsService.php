@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
-use OCP\Http\Client\IClientService;
-use OCP\Security\ICredentialsManager;
-use Psr\Log\LoggerInterface;
-
-class DiscogsService
+class DiscogsService extends AbstractApiService
 {
     private const API_BASE = 'https://api.discogs.com';
     private const USER_AGENT = 'CrateNextcloudApp/0.1 +https://gitea.macecloud.co.uk/macebox/crate';
 
-    public function __construct(
-        private readonly IClientService $clientService,
-        private readonly ICredentialsManager $credentialsManager,
-        private readonly LoggerInterface $logger,
-    ) {
+    protected function serviceName(): string
+    {
+        return 'Discogs';
+    }
+
+    protected function credentialKey(): string
+    {
+        return 'crate/discogs_token';
     }
 
     // -------------------------------------------------------------------------
@@ -32,6 +31,11 @@ class DiscogsService
     public function search(string $userId, string $query): array
     {
         return $this->searchRequest($userId, ['q' => $query, 'type' => 'release']);
+    }
+
+    private function getToken(string $userId): string
+    {
+        return $this->getCredential($userId);
     }
 
     /**
@@ -94,11 +98,6 @@ class DiscogsService
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
-
-    private function getToken(string $userId): string
-    {
-        return (string) ($this->credentialsManager->retrieve($userId, 'crate/discogs_token') ?? '');
-    }
 
     /**
      * Perform a GET request against the Discogs API.
@@ -177,14 +176,7 @@ class DiscogsService
         } catch (\OCA\Crate\Exception\DiscogsRateLimitException $e) {
             throw $e;
         } catch (\Exception $e) {
-            // Strip query parameters before logging to avoid leaking tokens
-            // or request details.
-            $logUrl = strtok($url, '?') ?: $url;
-            $this->logger->warning('Discogs API error for {url}: {msg}', [
-                'url' => $logUrl,
-                'msg' => $e->getMessage(),
-                'app' => 'crate',
-            ]);
+            $this->logWarning($url, $e);
             return [];
         }
     }

@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
-use OCP\Http\Client\IClientService;
-use OCP\Security\ICredentialsManager;
-use Psr\Log\LoggerInterface;
-
-class ComicVineService
+class ComicVineService extends AbstractApiService
 {
     private const API_BASE = 'https://comicvine.gamespot.com/api';
 
-    public function __construct(
-        private readonly IClientService $clientService,
-        private readonly ICredentialsManager $credentialsManager,
-        private readonly LoggerInterface $logger,
-    ) {
+    protected function serviceName(): string
+    {
+        return 'ComicVine';
+    }
+
+    protected function credentialKey(): string
+    {
+        return 'crate/comicvine_key';
     }
 
     /**
@@ -26,12 +25,12 @@ class ComicVineService
      */
     public function search(string $userId, string $query): array
     {
-        $key = $this->getKey($userId);
+        $key = $this->getCredential($userId);
         if ($key === '') {
             return [];
         }
 
-        $body = $this->get(self::API_BASE . '/search/', [
+        $body = $this->getJson(self::API_BASE . '/search/', [
             'api_key'    => $key,
             'format'     => 'json',
             'resources'  => 'volume',
@@ -51,12 +50,12 @@ class ComicVineService
      */
     public function getVolume(string $userId, string $volumeId): array
     {
-        $key = $this->getKey($userId);
+        $key = $this->getCredential($userId);
         if ($key === '') {
             return [];
         }
 
-        $body = $this->get(self::API_BASE . '/volume/4050-' . rawurlencode($volumeId) . '/', [
+        $body = $this->getJson(self::API_BASE . '/volume/4050-' . rawurlencode($volumeId) . '/', [
             'api_key'    => $key,
             'format'     => 'json',
             'field_list' => 'id,name,start_year,publisher,genres,image,description,count_of_issues',
@@ -68,36 +67,6 @@ class ComicVineService
         }
 
         return $this->normaliseVolume((array)$result);
-    }
-
-    // -------------------------------------------------------------------------
-
-    private function getKey(string $userId): string
-    {
-        return (string)($this->credentialsManager->retrieve($userId, 'crate/comicvine_key') ?? '');
-    }
-
-    /**
-     * @param array<string, string> $query
-     * @return array<string, mixed>
-     */
-    private function get(string $url, array $query = []): array
-    {
-        try {
-            $response = $this->clientService->newClient()->get($url, [
-                'headers' => ['Accept' => 'application/json'],
-                'timeout' => 10,
-                'query'   => $query,
-            ]);
-            return json_decode($response->getBody(), true) ?? [];
-        } catch (\Exception $e) {
-            $this->logger->warning('ComicVine API error for {url}: {msg}', [
-                'url' => strtok($url, '?') ?: $url,
-                'msg' => $e->getMessage(),
-                'app' => 'crate',
-            ]);
-            return [];
-        }
     }
 
     /** @param array<string, mixed> $r */

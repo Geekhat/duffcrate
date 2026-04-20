@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Service;
 
-use OCP\Http\Client\IClientService;
-use Psr\Log\LoggerInterface;
-
-class OpenLibraryService
+class OpenLibraryService extends AbstractApiService
 {
     private const SEARCH_URL = 'https://openlibrary.org/search.json';
     private const COVER_URL  = 'https://covers.openlibrary.org/b/id/';
 
-    public function __construct(
-        private readonly IClientService $clientService,
-        private readonly LoggerInterface $logger,
-    ) {
+    protected function serviceName(): string
+    {
+        return 'Open Library';
     }
 
     /**
@@ -26,7 +22,7 @@ class OpenLibraryService
      */
     public function search(string $query): array
     {
-        $body = $this->get(self::SEARCH_URL, [
+        $body = $this->getJson(self::SEARCH_URL, [
             'q'      => $query,
             'limit'  => '10',
             'fields' => 'key,title,author_name,first_publish_year,cover_i,publisher,isbn,subject',
@@ -49,7 +45,7 @@ class OpenLibraryService
             $workId = '/works/' . $workId;
         }
 
-        $body = $this->get('https://openlibrary.org' . $workId . '.json');
+        $body = $this->getJson('https://openlibrary.org' . $workId . '.json');
         if (empty($body)) {
             return [];
         }
@@ -60,7 +56,7 @@ class OpenLibraryService
         $authorKeys = (array)($body['authors'] ?? []);
         if (!empty($authorKeys[0]['author']['key'])) {
             $authorKey  = (string)$authorKeys[0]['author']['key'];
-            $authorBody = $this->get('https://openlibrary.org' . $authorKey . '.json');
+            $authorBody = $this->getJson('https://openlibrary.org' . $authorKey . '.json');
             if (!empty($authorBody)) {
                 $bio = $authorBody['bio'] ?? null;
                 if (is_array($bio)) {
@@ -70,27 +66,24 @@ class OpenLibraryService
             }
         }
 
-        // Description
         $desc = $body['description'] ?? null;
         if (is_array($desc)) {
             $desc = $desc['value'] ?? null;
         }
 
-        // Subjects
         $subjects = array_slice((array)($body['subjects'] ?? []), 0, 10);
         $genres   = $subjects ? implode(', ', $subjects) : null;
 
-        // Cover from first cover_id
         $coverId    = isset($body['covers'][0]) ? (int)$body['covers'][0] : null;
         $artworkUrl = $coverId ? self::COVER_URL . $coverId . '-L.jpg' : null;
 
         return [
-            'workKey'   => $workId,
-            'genres'    => $genres,
-            'overview'  => trim((string)($desc ?? '')) ?: null,
+            'workKey'    => $workId,
+            'genres'     => $genres,
+            'overview'   => trim((string)($desc ?? '')) ?: null,
             'artworkUrl' => $artworkUrl,
-            'authorKey' => $authorKey,
-            'authorBio' => $authorBio,
+            'authorKey'  => $authorKey,
+            'authorBio'  => $authorBio,
         ];
     }
 
@@ -105,7 +98,7 @@ class OpenLibraryService
         $isbn   = preg_replace('/[^0-9Xx]/', '', $isbn);
         $bibKey = 'ISBN:' . strtoupper($isbn);
 
-        $body = $this->get('https://openlibrary.org/api/books', [
+        $body = $this->getJson('https://openlibrary.org/api/books', [
             'bibkeys' => $bibKey,
             'format'  => 'json',
             'jscmd'   => 'data',
@@ -157,35 +150,6 @@ class OpenLibraryService
             'barcode'    => $isbn,
             'genres'     => $genres,
         ];
-    }
-
-    // -------------------------------------------------------------------------
-
-    /**
-     * @param array<string, string> $query
-     * @return array<string, mixed>
-     */
-    private function get(string $url, array $query = []): array
-    {
-        $options = [
-            'headers' => ['Accept' => 'application/json'],
-            'timeout' => 10,
-        ];
-        if (!empty($query)) {
-            $options['query'] = $query;
-        }
-
-        try {
-            $response = $this->clientService->newClient()->get($url, $options);
-            return json_decode($response->getBody(), true) ?? [];
-        } catch (\Exception $e) {
-            $this->logger->warning('Open Library API error for {url}: {msg}', [
-                'url' => strtok($url, '?') ?: $url,
-                'msg' => $e->getMessage(),
-                'app' => 'crate',
-            ]);
-            return [];
-        }
     }
 
     /** @param array<string, mixed> $d */

@@ -4,17 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Controller;
 
-use OCA\Crate\Db\CrateShareMapper;
+use OCA\Crate\CrateCategories;
 use OCA\Crate\Dto\MediaItemData;
-use OCA\Crate\Service\ComicVineService;
-use OCA\Crate\Service\DiscogsService;
+use OCA\Crate\Service\EnrichmentService;
 use OCA\Crate\Service\MarketValueService;
 use OCA\Crate\Service\MediaService;
-use OCA\Crate\Service\OpenLibraryService;
-use OCA\Crate\Service\RawgService;
-use OCA\Crate\Service\TmdbService;
-use OCA\Crate\Db\PlaylistItemMapper;
-use OCA\Crate\Db\PlaylistMapper;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
@@ -27,31 +21,22 @@ class MediaController extends OCSController
 {
     use UsesAuthenticatedUser;
 
-    public function __construct(
-        string $appName,
-        IRequest $request,
-        private readonly MediaService $mediaService,
-        private readonly DiscogsService $discogsService,
-        private readonly TmdbService $tmdbService,
-        private readonly OpenLibraryService $openLibraryService,
-        private readonly RawgService $rawgService,
-        private readonly ComicVineService $comicVineService,
-        private readonly MarketValueService $marketValueService,
-        private readonly IUserSession $userSession,
-        private readonly PlaylistMapper $playlistMapper,
-        private readonly PlaylistItemMapper $playlistItemMapper,
-        private readonly CrateShareMapper $shareMapper,
-        private readonly IConfig $config,
-    ) {
-        parent::__construct($appName, $request);
-    }
-
-    private const VALID_CATEGORIES = ['music', 'film', 'book', 'game', 'comic'];
-
     /** Max offset accepted by paginated endpoints. Protects against DoS via absurd offsets. */
     private const MAX_OFFSET = 100000;
     /** Max limit accepted by paginated endpoints. */
     private const MAX_LIMIT = 200;
+
+    public function __construct(
+        string $appName,
+        IRequest $request,
+        private readonly MediaService $mediaService,
+        private readonly EnrichmentService $enrichmentService,
+        private readonly MarketValueService $marketValueService,
+        private readonly IUserSession $userSession,
+        private readonly IConfig $config,
+    ) {
+        parent::__construct($appName, $request);
+    }
 
     #[NoAdminRequired]
     public function index(
@@ -97,8 +82,6 @@ class MediaController extends OCSController
         return new DataResponse($this->mediaService->find($id, $this->userId()));
     }
 
-    private const VALID_STATUSES = ['owned', 'wanted'];
-
     #[NoAdminRequired]
     public function create(
         string $title,
@@ -107,17 +90,17 @@ class MediaController extends OCSController
         ?int $year = null,
         ?string $barcode = null,
         ?string $notes = null,
-        string $status = 'owned',
+        string $status = CrateCategories::STATUS_OWNED,
         ?string $discogsId = null,
         ?string $artworkPath = null,
         ?string $label = null,
         ?string $country = null,
-        string $category = 'music',
+        string $category = CrateCategories::MUSIC,
     ): DataResponse {
-        if (!in_array($status, self::VALID_STATUSES, true)) {
+        if (!CrateCategories::isStatus($status)) {
             return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
         }
-        if (!in_array($category, self::VALID_CATEGORIES, true)) {
+        if (!CrateCategories::isCategory($category)) {
             return new DataResponse(['error' => 'Invalid category'], Http::STATUS_BAD_REQUEST);
         }
         $data = new MediaItemData(
@@ -146,17 +129,17 @@ class MediaController extends OCSController
         ?int $year = null,
         ?string $barcode = null,
         ?string $notes = null,
-        string $status = 'owned',
+        string $status = CrateCategories::STATUS_OWNED,
         ?string $discogsId = null,
         ?string $artworkPath = null,
         ?string $label = null,
         ?string $country = null,
-        string $category = 'music',
+        string $category = CrateCategories::MUSIC,
     ): DataResponse {
-        if (!in_array($status, self::VALID_STATUSES, true)) {
+        if (!CrateCategories::isStatus($status)) {
             return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
         }
-        if (!in_array($category, self::VALID_CATEGORIES, true)) {
+        if (!CrateCategories::isCategory($category)) {
             return new DataResponse(['error' => 'Invalid category'], Http::STATUS_BAD_REQUEST);
         }
         $data = new MediaItemData(
@@ -192,204 +175,19 @@ class MediaController extends OCSController
 
     /**
      * Enrich a media item using the appropriate service for its category.
-     * Music → Discogs; Film → TMDB; Book → Open Library; Game → RAWG.
+     * Music → Discogs; Film → TMDB; Book → Open Library; Game → RAWG;
+     * Comic → ComicVine.
      *
      * POST /api/v1/media/{id}/enrich
      */
     #[NoAdminRequired]
     public function enrich(int $id): DataResponse
     {
-        $item     = $this->mediaService->find($id, $this->userId());
-        $category = $item->getCategory();
-
-        return match ($category) {
-            'music' => $this->enrichMusic($id, $item),
-            'film'  => $this->enrichFilm($id, $item),
-            'book'  => $this->enrichBook($id, $item),
-            'game'  => $this->enrichGame($id, $item),
-            'comic' => $this->enrichComic($id, $item),
-            default => new DataResponse(
-                ['error' => 'Unknown category: ' . (string) $category],
-                Http::STATUS_BAD_REQUEST,
-            ),
-        };
-    }
-
-    private function enrichMusic(int $id, \OCA\Crate\Db\MediaItem $item): DataResponse
-    {
-        try {
-            if (empty($item->getDiscogsId())) {
-                $query   = trim($item->getArtist() . ' ' . $item->getTitle());
-                $results = $this->discogsService->search($this->userId(), $query);
-                if (empty($results)) {
-                    return new DataResponse(
-                        ['error' => 'No Discogs match found for this item.'],
-                        Http::STATUS_NOT_FOUND,
-                    );
-                }
-
-                $itemFormat = $item->getFormat();
-                $matching   = array_values(array_filter(
-                    $results,
-                    fn(array $r) => ($r['format'] ?? '') === $itemFormat,
-                ));
-                $best      = !empty($matching) ? $matching[0] : $results[0];
-                $discogsId = $best['discogsId'] ?? '';
-                if ($discogsId === '') {
-                    return new DataResponse(
-                        ['error' => 'No Discogs match found for this item.'],
-                        Http::STATUS_NOT_FOUND,
-                    );
-                }
-                $item = $this->mediaService->patchDiscogsId($id, $this->userId(), $discogsId);
-            }
-
-            $release = $this->discogsService->getRelease($this->userId(), $item->getDiscogsId());
-            if (empty($release)) {
-                return new DataResponse(
-                    ['error' => 'Could not fetch release from Discogs. Check your token.'],
-                    Http::STATUS_BAD_GATEWAY,
-                );
-            }
-
-            $artist   = [];
-            $artistId = $release['discogsArtistId'] ?? $item->getDiscogsArtistId();
-            if (!empty($artistId)) {
-                $artist = $this->discogsService->getArtist($this->userId(), $artistId);
-            }
-
-            $updated = $this->mediaService->applyReleaseData($id, $this->userId(), $release, $artist);
-            return new DataResponse($updated);
-        } catch (\OCA\Crate\Exception\DiscogsRateLimitException) {
-            return new DataResponse(
-                ['error' => 'Discogs rate limit exceeded. The queue will retry automatically.'],
-                Http::STATUS_TOO_MANY_REQUESTS,
-            );
+        $result = $this->enrichmentService->enrich($id, $this->userId());
+        if ($result->isOk()) {
+            return new DataResponse($result->item);
         }
-    }
-
-    private function enrichFilm(int $id, \OCA\Crate\Db\MediaItem $item): DataResponse
-    {
-        $tmdbId = $item->getDiscogsId();
-
-        if (empty($tmdbId)) {
-            $query   = trim($item->getTitle());
-            $results = $this->tmdbService->search($this->userId(), $query);
-            if (empty($results)) {
-                return new DataResponse(
-                    ['error' => 'No TMDB match found. Add a TMDB token in Settings.'],
-                    Http::STATUS_NOT_FOUND,
-                );
-            }
-            $tmdbId = (string)($results[0]['tmdbId'] ?? '');
-        }
-
-        if ($tmdbId === '') {
-            return new DataResponse(['error' => 'No TMDB ID available.'], Http::STATUS_NOT_FOUND);
-        }
-
-        $movie = $this->tmdbService->getMovie($this->userId(), $tmdbId);
-        if (empty($movie)) {
-            return new DataResponse(
-                ['error' => 'Could not fetch film from TMDB. Check your token.'],
-                Http::STATUS_BAD_GATEWAY,
-            );
-        }
-
-        $updated = $this->mediaService->applyTmdbData($id, $this->userId(), $movie);
-        return new DataResponse($updated);
-    }
-
-    private function enrichBook(int $id, \OCA\Crate\Db\MediaItem $item): DataResponse
-    {
-        $workKey = $item->getDiscogsId();
-
-        if (empty($workKey)) {
-            $query   = trim($item->getArtist() . ' ' . $item->getTitle());
-            $results = $this->openLibraryService->search($query);
-            if (empty($results)) {
-                return new DataResponse(
-                    ['error' => 'No Open Library match found.'],
-                    Http::STATUS_NOT_FOUND,
-                );
-            }
-            $workKey = (string)($results[0]['workKey'] ?? '');
-            $doc     = $results[0];
-        } else {
-            $doc = ['workKey' => $workKey];
-        }
-
-        if ($workKey === '') {
-            return new DataResponse(['error' => 'No Open Library work key available.'], Http::STATUS_NOT_FOUND);
-        }
-
-        $work    = $this->openLibraryService->getWork($workKey);
-        $updated = $this->mediaService->applyOpenLibraryData($id, $this->userId(), $doc, $work);
-        return new DataResponse($updated);
-    }
-
-    private function enrichGame(int $id, \OCA\Crate\Db\MediaItem $item): DataResponse
-    {
-        $rawgId = $item->getDiscogsId();
-
-        if (empty($rawgId)) {
-            $query   = trim($item->getTitle());
-            $results = $this->rawgService->search($this->userId(), $query);
-            if (empty($results)) {
-                return new DataResponse(
-                    ['error' => 'No RAWG match found. Add a RAWG API key in Settings.'],
-                    Http::STATUS_NOT_FOUND,
-                );
-            }
-            $rawgId = (string)($results[0]['rawgId'] ?? '');
-        }
-
-        if ($rawgId === '') {
-            return new DataResponse(['error' => 'No RAWG ID available.'], Http::STATUS_NOT_FOUND);
-        }
-
-        $game = $this->rawgService->getGame($this->userId(), $rawgId);
-        if (empty($game)) {
-            return new DataResponse(
-                ['error' => 'Could not fetch game from RAWG. Check your API key.'],
-                Http::STATUS_BAD_GATEWAY,
-            );
-        }
-
-        $updated = $this->mediaService->applyRawgData($id, $this->userId(), $game);
-        return new DataResponse($updated);
-    }
-
-    private function enrichComic(int $id, \OCA\Crate\Db\MediaItem $item): DataResponse
-    {
-        $volumeId = $item->getDiscogsId();
-
-        if (empty($volumeId)) {
-            $query   = trim($item->getTitle());
-            $results = $this->comicVineService->search($this->userId(), $query);
-            if (empty($results)) {
-                return new DataResponse(
-                    ['error' => 'No ComicVine match found. Add a ComicVine API key in Settings.'],
-                    Http::STATUS_NOT_FOUND,
-                );
-            }
-            $volumeId = (string)($results[0]['comicVineId'] ?? '');
-        }
-
-        if ($volumeId === '') {
-            return new DataResponse(['error' => 'No ComicVine volume ID available.'], Http::STATUS_NOT_FOUND);
-        }
-
-        $volume = $this->comicVineService->getVolume($this->userId(), $volumeId);
-        if (empty($volume)) {
-            return new DataResponse(
-                ['error' => 'Could not fetch volume from ComicVine. Check your API key.'],
-                Http::STATUS_BAD_GATEWAY,
-            );
-        }
-
-        $updated = $this->mediaService->applyComicVineData($id, $this->userId(), $volume);
-        return new DataResponse($updated);
+        return new DataResponse(['error' => $result->error], $result->status);
     }
 
     /**
