@@ -4,8 +4,20 @@
  * Handles both local/remote artwork URLs and format-coloured gradient fallbacks.
  */
 import { computed } from 'vue'
-import { generateUrl } from '@nextcloud/router'
 import { FORMAT_COLOURS } from '../utils/formatColours.js'
+import { artworkUrl } from '../utils/artworkUrl.js'
+
+function styleForItem(item) {
+  if (item?.artworkPath) {
+    return {
+      backgroundImage: `url(${artworkUrl(item)})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }
+  }
+  const colours = FORMAT_COLOURS[item?.format] ?? ['#374151', '#6b7280']
+  return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
+}
 
 /**
  * @param {import('vue').Ref<Object>|import('vue').ComputedRef<Object>} itemRef
@@ -15,20 +27,7 @@ import { FORMAT_COLOURS } from '../utils/formatColours.js'
 export function useArtworkStyle(itemRef) {
   return computed(() => {
     const item = itemRef.value
-    if (!item) return {}
-
-    if (item.artworkPath) {
-      const v = item.updatedAt ? '?v=' + encodeURIComponent(item.updatedAt) : ''
-      const url = generateUrl('/apps/crate/artwork/' + item.id) + v
-      return {
-        backgroundImage: `url(${url})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    }
-
-    const colours = FORMAT_COLOURS[item.format] ?? ['#374151', '#6b7280']
-    return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
+    return item ? styleForItem(item) : {}
   })
 }
 
@@ -39,15 +38,5 @@ export function useArtworkStyle(itemRef) {
  * @returns {Object} CSS style object.
  */
 export function artworkStyleFor(item) {
-  if (item.artworkPath) {
-    const v = item.updatedAt ? '?v=' + encodeURIComponent(item.updatedAt) : ''
-    const url = generateUrl('/apps/crate/artwork/' + item.id) + v
-    return {
-      backgroundImage: `url(${url})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }
-  }
-  const colours = FORMAT_COLOURS[item.format] ?? ['#374151', '#6b7280']
-  return { background: `linear-gradient(135deg, ${colours[0]}, ${colours[1]})` }
+  return styleForItem(item)
 }

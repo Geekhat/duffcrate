@@ -79,7 +79,9 @@ export function createApiQueue(urlFn, payloadFn = () => ({}), opts = {}) {
   /** @returns {'ok' | 'rate-limited' | 'error'} */
   async function processOne(id) {
     try {
-      await axios.post(urlFn(id), payloadFn(id, ...liveArgs))
+      // __silent: the queue surfaces its own progress / failed counters,
+      // so the global axios interceptor must not toast per-item 429s.
+      await axios.post(urlFn(id), payloadFn(id, ...liveArgs), { __silent: true })
       return 'ok'
     } catch (err) {
       if (err.response?.status === 429) return 'rate-limited'

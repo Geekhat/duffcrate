@@ -2,6 +2,9 @@ import { createApp } from 'vue'
 import '@nextcloud/dialogs/style.css'
 import { showError } from '@nextcloud/dialogs'
 import App from './App.vue'
+import { installErrorInterceptor } from './utils/apiErrors.js'
+
+installErrorInterceptor()
 
 const app = createApp(App)
 
