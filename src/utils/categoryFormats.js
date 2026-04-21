@@ -39,28 +39,28 @@ export const FORMAT_GROUPS = {
   ],
   game: [
     {
-      label: 'Current Gen',
-      formats: ['PS5', 'Xbox Series X|S', 'Switch 2', 'Switch', 'PC'],
+      label: 'Sony',
+      formats: ['PS5', 'PS4', 'PS3', 'PS2', 'PS1', 'PS Vita', 'PSP'],
     },
     {
-      label: 'PlayStation',
-      formats: ['PS4', 'PS3', 'PS2', 'PS1', 'PSP', 'PS Vita'],
-    },
-    {
-      label: 'Xbox',
-      formats: ['Xbox One', 'Xbox 360', 'Xbox'],
+      label: 'Microsoft',
+      formats: ['Xbox Series X|S', 'Xbox One', 'Xbox 360', 'Xbox'],
     },
     {
       label: 'Nintendo',
-      formats: ['3DS', 'DS', 'Game Boy Advance', 'Game Boy', 'Wii U', 'Wii', 'GameCube', 'N64', 'SNES', 'NES'],
+      formats: ['Switch 2', 'Switch', 'Wii U', 'Wii', 'GameCube', 'N64', 'SNES', 'NES', '3DS', 'DS', 'Game Boy Advance', 'Game Boy'],
     },
     {
       label: 'Sega',
-      formats: ['Mega Drive', 'Saturn', 'Dreamcast'],
+      formats: ['Dreamcast', 'Saturn', 'Mega Drive', 'Master System'],
     },
     {
-      label: 'Retro',
-      formats: ['Atari 2600', 'Commodore 64', 'Amiga', 'Neo Geo', 'Tiger'],
+      label: 'PC',
+      formats: ['PC'],
+    },
+    {
+      label: 'Other',
+      formats: ['Neo Geo', 'Atari 2600', 'Commodore 64', 'Amiga'],
     },
   ],
   comic: [

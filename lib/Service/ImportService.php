@@ -26,19 +26,19 @@ class ImportService
         // Books
         'hardcover', 'paperback', 'mass market paperback', 'trade paperback',
         'graphic novel', 'comic', 'audiobook cd', 'audiobook cassette',
-        // Games — Current Gen
-        'ps5', 'xbox series x|s', 'switch 2', 'switch', 'pc',
-        // Games — PlayStation
-        'ps4', 'ps3', 'ps2', 'ps1', 'psp', 'ps vita',
-        // Games — Xbox
-        'xbox one', 'xbox 360', 'xbox',
+        // Games — Sony
+        'ps5', 'ps4', 'ps3', 'ps2', 'ps1', 'ps vita', 'psp',
+        // Games — Microsoft
+        'xbox series x|s', 'xbox one', 'xbox 360', 'xbox',
         // Games — Nintendo
-        '3ds', 'ds', 'game boy advance', 'game boy', 'wii u', 'wii',
-        'gamecube', 'n64', 'snes', 'nes',
+        'switch 2', 'switch', 'wii u', 'wii', 'gamecube', 'n64', 'snes', 'nes',
+        '3ds', 'ds', 'game boy advance', 'game boy',
         // Games — Sega
-        'mega drive', 'saturn', 'dreamcast',
-        // Games — Retro
-        'atari 2600', 'commodore 64', 'amiga', 'neo geo', 'tiger',
+        'dreamcast', 'saturn', 'mega drive', 'master system',
+        // Games — PC
+        'pc',
+        // Games — Other
+        'neo geo', 'atari 2600', 'commodore 64', 'amiga',
         // Comics — Single Issues
         'single issue', 'annual', 'special', 'one-shot', 'mini-series', 'limited series',
         // Comics — Collected

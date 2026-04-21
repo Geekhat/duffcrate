@@ -41,6 +41,14 @@
             <option value="year-desc">
               Year ↓
             </option>
+            <template v-if="sortLabels.hasFormat">
+              <option value="format-asc">
+                Format A–Z
+              </option>
+              <option value="format-desc">
+                Format Z–A
+              </option>
+            </template>
             <template v-if="sortLabels.hasValue">
               <option value="marketValue-desc">
                 Value ↓
@@ -299,13 +307,16 @@ import { CATEGORY_LABELS, FORMAT_LIST } from '../utils/categoryFormats.js'
  *  - artist / title : sort-option label for that column
  *  - hasValue       : whether this category can have a market value
  *                     (music=Discogs, game+comic=PriceCharting; films/books have no source)
+ *  - hasFormat      : whether to offer Format A–Z / Z–A — useful where the
+ *                     format axis is high-variance (e.g. games spans Sony /
+ *                     Nintendo / Sega / PC and collectors group by platform).
  */
 const CATEGORY_SORT_LABELS = {
-  music: { artist: 'Artist',    title: 'Album',  hasValue: true },
-  film:  { artist: 'Director',  title: 'Film',   hasValue: false },
-  book:  { artist: 'Author',    title: 'Title',  hasValue: false },
-  game:  { artist: 'Developer', title: 'Game',   hasValue: true },
-  comic: { artist: 'Writer',    title: 'Volume', hasValue: true },
+  music: { artist: 'Artist',    title: 'Album',  hasValue: true,  hasFormat: false },
+  film:  { artist: 'Director',  title: 'Film',   hasValue: false, hasFormat: false },
+  book:  { artist: 'Author',    title: 'Title',  hasValue: false, hasFormat: false },
+  game:  { artist: 'Developer', title: 'Game',   hasValue: true,  hasFormat: true  },
+  comic: { artist: 'Writer',    title: 'Volume', hasValue: true,  hasFormat: false },
 }
 
 const props = defineProps({
@@ -345,13 +356,17 @@ defineExpose({ reload: load })
 onMounted(load)
 watch(() => props.category, load)
 
-// If we land on a category that doesn't support market value and the saved
-// sort was a Value sort, reset to a sensible default so the select doesn't
-// show an empty/invalid selection.
+// If we land on a category that doesn't support the active sort axis,
+// reset to a sensible default so the select doesn't show an empty /
+// invalid selection.
 watch(
   [() => props.category, sortKey],
   () => {
-    if (sortKey.value.startsWith('marketValue-') && !sortLabels.value.hasValue) {
+    const key = sortKey.value
+    const stale =
+      (key.startsWith('marketValue-') && !sortLabels.value.hasValue)
+      || (key.startsWith('format-')   && !sortLabels.value.hasFormat)
+    if (stale) {
       sortKey.value = 'artist-asc'
     }
   },
@@ -447,6 +462,10 @@ function getGroupKey(item, field) {
     if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) return 'This Month'
     if (d.getFullYear() === now.getFullYear()) return 'This Year'
     return String(d.getFullYear())
+  }
+
+  if (field === 'format') {
+    return item.format || 'Unknown'
   }
 
   return ''
