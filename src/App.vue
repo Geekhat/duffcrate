@@ -136,7 +136,7 @@
     <ImportModal
       :show="importOpen"
       :has-token="hasDiscogsToken"
-      :category="VIEW_TO_CATEGORY[view.value] ?? 'music'"
+      :category="VIEW_TO_CATEGORY[view] ?? 'music'"
       @close="importOpen = false"
       @imported="handleImported"
     />

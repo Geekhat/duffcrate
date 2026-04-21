@@ -13,12 +13,11 @@
       <!-- ── Step 1: File picker ── -->
       <template v-if="step === 'pick'">
         <p class="import-hint">
-          Upload a CSV or XLSX file. One row per album — one physical format per row.
-          If you own the same album on multiple formats, add a row for each.
+          Upload a CSV or XLSX file. {{ hintLead }}
         </p>
         <p class="import-hint">
-          <strong>Required columns:</strong> Artist, Title (or Album), Format<br>
-          <strong>Optional:</strong> Year, Notes, Status, DiscogsId, Barcode, Label
+          <strong>Required columns:</strong> {{ hintRequired }}<br>
+          <strong>Optional:</strong> {{ hintOptional }}
         </p>
 
         <div class="import-field">
@@ -31,10 +30,21 @@
             v-model="selectedCategory"
             class="import-select"
           >
-            <option value="music">Music</option>
-            <option value="film">Films</option>
-            <option value="book">Books</option>
-            <option value="game">Games</option>
+            <option value="music">
+              Music
+            </option>
+            <option value="film">
+              Films
+            </option>
+            <option value="book">
+              Books
+            </option>
+            <option value="game">
+              Games
+            </option>
+            <option value="comic">
+              Comics
+            </option>
           </select>
         </div>
 
@@ -370,6 +380,32 @@ const mappableFields = computed(() => {
     { value: 'label',     label: cfg.label },
     { value: 'category',  label: 'Category' },
   ]
+})
+
+// Per-category prose for the step 1 hints. Reads the same FIELD_CONFIG the
+// column-mapper uses, so the required-columns list always matches what the
+// mapping step will accept.
+const HINT_LEAD = {
+  music: 'One row per album. If you own the same album on multiple formats, add a row for each.',
+  film:  'One row per film. If you own the same film on multiple formats (Blu-ray, DVD, etc.), add a row for each.',
+  book:  'One row per book.',
+  game:  'One row per game. If you own the same game on multiple platforms, add a row for each.',
+  comic: 'One row per issue or volume.',
+}
+
+const hintLead = computed(() => HINT_LEAD[selectedCategory.value] ?? HINT_LEAD.music)
+
+const hintRequired = computed(() => {
+  const cfg = FIELD_CONFIG[selectedCategory.value] ?? FIELD_CONFIG.music
+  return `${cfg.artist}, ${cfg.title}, Format`
+})
+
+const hintOptional = computed(() => {
+  const cfg = FIELD_CONFIG[selectedCategory.value] ?? FIELD_CONFIG.music
+  const parts = ['Year', 'Notes', 'Status', 'EnrichmentId']
+  if (cfg.showBarcode) parts.push(cfg.barcode)
+  parts.push(cfg.label)
+  return parts.join(', ')
 })
 
 // Reset mapping when category changes (field labels differ)
