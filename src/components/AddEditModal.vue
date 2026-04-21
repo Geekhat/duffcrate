@@ -291,7 +291,7 @@ import DiscogsSearch from './DiscogsSearch.vue'
 import TMDBSearch from './TMDBSearch.vue'
 import OpenLibrarySearch from './OpenLibrarySearch.vue'
 import RAWGSearch from './RAWGSearch.vue'
-import { FORMAT_GROUPS, FIELD_CONFIG, CATEGORY_LABELS } from '../utils/categoryFormats.js'
+import { FORMAT_GROUPS, FIELD_CONFIG } from '../utils/categoryFormats.js'
 
 const props = defineProps({
   show:          { type: Boolean, required: true },
@@ -457,9 +457,19 @@ watch(() => form.value.category, (newCat, oldCat) => {
 const fieldConfig = computed(() => FIELD_CONFIG[form.value.category] ?? FIELD_CONFIG.music)
 const formatGroups = computed(() => FORMAT_GROUPS[form.value.category] ?? FORMAT_GROUPS.music)
 
+// Per-category singular noun for the modal heading. Avoids the historical
+// "Music" → "Musi" bug where `slice(0, -1)` assumed every category label
+// ended in an "s".
+const CATEGORY_SINGULAR = {
+  music: 'album',
+  film:  'film',
+  book:  'book',
+  game:  'game',
+  comic: 'comic',
+}
 const modalTitle = computed(() => {
-  const cat = CATEGORY_LABELS[form.value.category] ?? 'item'
-  return props.item ? `Edit ${cat.slice(0, -1)}` : `Add ${cat.slice(0, -1)}`
+  const noun = CATEGORY_SINGULAR[form.value.category] ?? 'item'
+  return (props.item ? 'Edit ' : 'Add ') + noun
 })
 
 const artistPlaceholder = computed(() => {

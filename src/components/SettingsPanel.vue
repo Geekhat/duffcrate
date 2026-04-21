@@ -20,34 +20,27 @@
           </p>
         </div>
 
-        <div>
-          <NcCheckboxRadioSwitch v-model="autoFetchMarketRates">
-            Fetch market rates automatically
-          </NcCheckboxRadioSwitch>
-          <p class="settings-sub-hint">
-            Applies to Music (Discogs) and Games &amp; Comics (PriceCharting). Not available for Films or Books.
-          </p>
-        </div>
-
-        <div class="settings-field settings-field--inline">
-          <label for="market-currency">Display currency</label>
-          <select
-            id="market-currency"
-            v-model="marketCurrency"
-            class="settings-currency-select"
+        <div class="settings-actions settings-enrich-all">
+          <NcButton
+            variant="secondary"
+            :disabled="enrich.running.value || marketQueue.running.value"
+            @click="enrichAll()"
           >
-            <option
-              v-for="c in currencies"
-              :key="c"
-              :value="c"
-            >
-              {{ c }}
-            </option>
-          </select>
-          <p class="settings-sub-hint">
-            Used for Discogs (Music) market prices. PriceCharting (Games &amp; Comics) prices are always shown in USD.
-          </p>
+            {{ enrich.running.value
+              ? `Enriching… ${enrich.done.value} / ${enrich.total.value}`
+              : 'Enrich all items (every category)' }}
+          </NcButton>
+          <NcButton
+            v-if="enrich.running.value"
+            variant="tertiary"
+            @click="enrich.cancel()"
+          >
+            Stop
+          </NcButton>
         </div>
+        <p class="settings-sub-hint">
+          Enriches every un-enriched item across every category, using whichever API keys you have configured below.
+        </p>
       </div>
     </NcAppSettingsSection>
 
@@ -72,18 +65,18 @@
       </p>
 
       <div class="settings-field">
-        <label for="discogs-token">Personal access token</label>
+        <label for="discogs-token">Discogs personal access token</label>
         <div class="settings-token-row">
           <input
             id="discogs-token"
             v-model="tokenInput"
             :type="showToken ? 'text' : 'password'"
-            :placeholder="hasToken ? '(token saved — paste a new one to replace)' : 'Paste your token here'"
+            :placeholder="hasToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showToken ? 'Hide token' : 'Show token'"
+            :aria-label="showToken ? 'Hide API key' : 'Show API key'"
             @click="showToken = !showToken"
           >
             {{ showToken ? 'Hide' : 'Show' }}
@@ -97,7 +90,7 @@
           :disabled="saving || tokenInput === ''"
           @click="save"
         >
-          {{ saving ? 'Saving…' : 'Save token' }}
+          {{ saving ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
           v-if="hasToken"
@@ -105,7 +98,7 @@
           :disabled="saving"
           @click="clearToken"
         >
-          Remove token
+          Remove
         </NcButton>
         <span
           v-if="savedMessage"
@@ -117,22 +110,15 @@
         <NcButton
           variant="secondary"
           :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
-          @click="enrichAll"
+          @click="enrichAll('music')"
         >
-          {{ enrich.running.value ? `Enriching… ${enrich.done.value} / ${enrich.total.value}` : 'Enrich all un-enriched music' }}
-        </NcButton>
-        <NcButton
-          v-if="enrich.running.value"
-          variant="tertiary"
-          @click="enrich.cancel()"
-        >
-          Stop
+          Enrich all un-enriched music
         </NcButton>
         <span
           v-if="!hasToken"
           class="settings-hint"
           style="margin:0"
-        >Add a Discogs token above to enable enrichment.</span>
+        >Add a Discogs API key above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
 
@@ -157,18 +143,18 @@
       </p>
 
       <div class="settings-field">
-        <label for="tmdb-token">API Read Access Token</label>
+        <label for="tmdb-token">TMDB API Read Access Token</label>
         <div class="settings-token-row">
           <input
             id="tmdb-token"
             v-model="tmdbTokenInput"
             :type="showTmdbToken ? 'text' : 'password'"
-            :placeholder="hasTmdbToken ? '(token saved — paste a new one to replace)' : 'Paste your token here'"
+            :placeholder="hasTmdbToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showTmdbToken ? 'Hide token' : 'Show token'"
+            :aria-label="showTmdbToken ? 'Hide API key' : 'Show API key'"
             @click="showTmdbToken = !showTmdbToken"
           >
             {{ showTmdbToken ? 'Hide' : 'Show' }}
@@ -182,7 +168,7 @@
           :disabled="savingTmdb || tmdbTokenInput === ''"
           @click="saveTmdbToken"
         >
-          {{ savingTmdb ? 'Saving…' : 'Save token' }}
+          {{ savingTmdb ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
           v-if="hasTmdbToken"
@@ -190,12 +176,53 @@
           :disabled="savingTmdb"
           @click="clearTmdbToken"
         >
-          Remove token
+          Remove
         </NcButton>
         <span
           v-if="tmdbSavedMessage"
           class="settings-saved"
         >{{ tmdbSavedMessage }}</span>
+      </div>
+
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="!hasTmdbToken || enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('film')"
+        >
+          Enrich all un-enriched films
+        </NcButton>
+        <span
+          v-if="!hasTmdbToken"
+          class="settings-hint"
+          style="margin:0"
+        >Add a TMDB API key above to enable enrichment.</span>
+      </div>
+    </NcAppSettingsSection>
+
+    <!-- ── Books ── -->
+    <NcAppSettingsSection
+      id="crate-settings-books"
+      name="Books"
+    >
+      <p class="settings-hint">
+        Book metadata, covers and author bios via the
+        <a
+          href="https://openlibrary.org/developers/api"
+          target="_blank"
+          rel="noopener"
+        >Open Library API</a>.
+        No API key is required.
+      </p>
+
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('book')"
+        >
+          Enrich all un-enriched books
+        </NcButton>
       </div>
     </NcAppSettingsSection>
 
@@ -220,18 +247,18 @@
       </p>
 
       <div class="settings-field">
-        <label for="rawg-key">RAWG API Key</label>
+        <label for="rawg-key">RAWG API key</label>
         <div class="settings-token-row">
           <input
             id="rawg-key"
             v-model="rawgKeyInput"
             :type="showRawgKey ? 'text' : 'password'"
-            :placeholder="hasRawgKey ? '(key saved — paste a new one to replace)' : 'Paste your API key here'"
+            :placeholder="hasRawgKey ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showRawgKey ? 'Hide key' : 'Show key'"
+            :aria-label="showRawgKey ? 'Hide API key' : 'Show API key'"
             @click="showRawgKey = !showRawgKey"
           >
             {{ showRawgKey ? 'Hide' : 'Show' }}
@@ -245,7 +272,7 @@
           :disabled="savingRawg || rawgKeyInput === ''"
           @click="saveRawgKey"
         >
-          {{ savingRawg ? 'Saving…' : 'Save key' }}
+          {{ savingRawg ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
           v-if="hasRawgKey"
@@ -253,12 +280,27 @@
           :disabled="savingRawg"
           @click="clearRawgKey"
         >
-          Remove key
+          Remove
         </NcButton>
         <span
           v-if="rawgSavedMessage"
           class="settings-saved"
         >{{ rawgSavedMessage }}</span>
+      </div>
+
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="!hasRawgKey || enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('game')"
+        >
+          Enrich all un-enriched games
+        </NcButton>
+        <span
+          v-if="!hasRawgKey"
+          class="settings-hint"
+          style="margin:0"
+        >Add a RAWG API key above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
 
@@ -283,18 +325,18 @@
       </p>
 
       <div class="settings-field">
-        <label for="comicvine-key">ComicVine API Key</label>
+        <label for="comicvine-key">ComicVine API key</label>
         <div class="settings-token-row">
           <input
             id="comicvine-key"
             v-model="comicVineKeyInput"
             :type="showComicVineKey ? 'text' : 'password'"
-            :placeholder="hasComicVineKey ? '(key saved — paste a new one to replace)' : 'Paste your API key here'"
+            :placeholder="hasComicVineKey ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showComicVineKey ? 'Hide key' : 'Show key'"
+            :aria-label="showComicVineKey ? 'Hide API key' : 'Show API key'"
             @click="showComicVineKey = !showComicVineKey"
           >
             {{ showComicVineKey ? 'Hide' : 'Show' }}
@@ -308,7 +350,7 @@
           :disabled="savingComicVine || comicVineKeyInput === ''"
           @click="saveComicVineKey"
         >
-          {{ savingComicVine ? 'Saving…' : 'Save key' }}
+          {{ savingComicVine ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
           v-if="hasComicVineKey"
@@ -316,49 +358,96 @@
           :disabled="savingComicVine"
           @click="clearComicVineKey"
         >
-          Remove key
+          Remove
         </NcButton>
         <span
           v-if="comicVineSavedMessage"
           class="settings-saved"
         >{{ comicVineSavedMessage }}</span>
       </div>
+
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="!hasComicVineKey || enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('comic')"
+        >
+          Enrich all un-enriched comics
+        </NcButton>
+        <span
+          v-if="!hasComicVineKey"
+          class="settings-hint"
+          style="margin:0"
+        >Add a ComicVine API key above to enable enrichment.</span>
+      </div>
     </NcAppSettingsSection>
 
     <!-- ── Market Values ── -->
     <NcAppSettingsSection
       id="crate-settings-market"
-      name="Market Values"
+      name="Market values"
     >
       <p class="settings-hint">
-        Loose, CIB, and new market prices for Games and Comics via the
+        Music market values come from Discogs (configured in the Music section above); game and comic prices come from
         <a
           href="https://www.pricecharting.com/"
           target="_blank"
           rel="noopener"
-        >PriceCharting API</a>.
-        Get a free access token at
-        <a
-          href="https://www.pricecharting.com/api"
-          target="_blank"
-          rel="noopener"
-        >pricecharting.com/api</a>.
-        Music market values use Discogs (configured above). Not available for Films or Books.
+        >PriceCharting</a>. Films and books have no market-value source.
       </p>
 
+      <div class="settings-enrichment-options">
+        <div>
+          <NcCheckboxRadioSwitch v-model="autoFetchMarketRates">
+            Fetch market rates automatically
+          </NcCheckboxRadioSwitch>
+          <p class="settings-sub-hint">
+            When enabled, opening an item triggers a live price lookup for the applicable categories.
+          </p>
+        </div>
+
+        <div class="settings-field settings-field--inline">
+          <label for="market-currency">Display currency</label>
+          <select
+            id="market-currency"
+            v-model="marketCurrency"
+            class="settings-currency-select"
+          >
+            <option
+              v-for="c in currencies"
+              :key="c"
+              :value="c"
+            >
+              {{ c }}
+            </option>
+          </select>
+          <p class="settings-sub-hint">
+            Used for Discogs (music) prices. PriceCharting (games &amp; comics) prices are always in USD.
+          </p>
+        </div>
+      </div>
+
       <div class="settings-field">
-        <label for="pricecharting-token">PriceCharting Access Token</label>
+        <label for="pricecharting-token">PriceCharting API key</label>
+        <p class="settings-sub-hint pricecharting-helper">
+          Get a free access token at
+          <a
+            href="https://www.pricecharting.com/api"
+            target="_blank"
+            rel="noopener"
+          >pricecharting.com/api</a>.
+        </p>
         <div class="settings-token-row">
           <input
             id="pricecharting-token"
             v-model="priceChartingTokenInput"
             :type="showPriceChartingToken ? 'text' : 'password'"
-            :placeholder="hasPriceChartingToken ? '(token saved — paste a new one to replace)' : 'Paste your token here'"
+            :placeholder="hasPriceChartingToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showPriceChartingToken ? 'Hide token' : 'Show token'"
+            :aria-label="showPriceChartingToken ? 'Hide API key' : 'Show API key'"
             @click="showPriceChartingToken = !showPriceChartingToken"
           >
             {{ showPriceChartingToken ? 'Hide' : 'Show' }}
@@ -372,7 +461,7 @@
           :disabled="savingPriceCharting || priceChartingTokenInput === ''"
           @click="savePriceChartingToken"
         >
-          {{ savingPriceCharting ? 'Saving…' : 'Save token' }}
+          {{ savingPriceCharting ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
           v-if="hasPriceChartingToken"
@@ -380,7 +469,7 @@
           :disabled="savingPriceCharting"
           @click="clearPriceChartingToken"
         >
-          Remove token
+          Remove
         </NcButton>
         <span
           v-if="priceChartingSavedMessage"
@@ -409,7 +498,7 @@
           v-if="!hasToken && !hasPriceChartingToken"
           class="settings-hint"
           style="margin:0"
-        >Add a Discogs or PriceCharting token above to enable market rates.</span>
+        >Add a Discogs or PriceCharting API key to enable market rates.</span>
       </div>
     </NcAppSettingsSection>
 
@@ -798,10 +887,18 @@ async function refreshAllMarketRates() {
   }
 }
 
-async function enrichAll() {
-  if (enrich.running.value) return
+/**
+ * Start the enrich queue for every un-enriched item in the given category,
+ * or — when category is null — across every category the user has. Shared
+ * between the global "Enrich all items" button in General and each
+ * per-category button.
+ */
+async function enrichAll(category = null) {
+  if (enrich.running.value || marketQueue.running.value) return
   try {
-    const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/media'))
+    const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/media'), {
+      params: category ? { category } : {},
+    })
     const all = res.data.ocs?.data ?? []
     const needsEnrich = all.filter(item =>
       !item.genres && !item.artistBio
@@ -812,6 +909,7 @@ async function enrichAll() {
     }
   } catch (e) {
     console.error('Failed to load items for enrichment', e)
+    showError('Failed to start enrichment')
   }
 }
 
@@ -819,6 +917,11 @@ onMounted(load)
 </script>
 
 <style scoped>
+.pricecharting-helper {
+  margin-top: -4px;
+  margin-bottom: 6px;
+}
+
 .wipe-scopes {
   display: flex;
   flex-direction: column;

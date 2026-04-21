@@ -41,12 +41,14 @@
             <option value="year-desc">
               Year ↓
             </option>
-            <option value="marketValue-desc">
-              Value ↓
-            </option>
-            <option value="marketValue-asc">
-              Value ↑
-            </option>
+            <template v-if="sortLabels.hasValue">
+              <option value="marketValue-desc">
+                Value ↓
+              </option>
+              <option value="marketValue-asc">
+                Value ↑
+              </option>
+            </template>
           </select>
 
           <!-- View mode toggle -->
@@ -292,11 +294,18 @@ import { formatMarketValue } from '../utils/formatMarketValue.js'
 import { artworkStyleFor } from '../composables/useArtworkStyle.js'
 import { CATEGORY_LABELS, FORMAT_LIST } from '../utils/categoryFormats.js'
 
+/**
+ * Per-category sort config.
+ *  - artist / title : sort-option label for that column
+ *  - hasValue       : whether this category can have a market value
+ *                     (music=Discogs, game+comic=PriceCharting; films/books have no source)
+ */
 const CATEGORY_SORT_LABELS = {
-  music: { artist: 'Artist', title: 'Album' },
-  film:  { artist: 'Director', title: 'Film' },
-  book:  { artist: 'Author', title: 'Title' },
-  game:  { artist: 'Developer', title: 'Game' },
+  music: { artist: 'Artist',    title: 'Album',  hasValue: true },
+  film:  { artist: 'Director',  title: 'Film',   hasValue: false },
+  book:  { artist: 'Author',    title: 'Title',  hasValue: false },
+  game:  { artist: 'Developer', title: 'Game',   hasValue: true },
+  comic: { artist: 'Writer',    title: 'Volume', hasValue: true },
 }
 
 const props = defineProps({
@@ -335,6 +344,19 @@ defineExpose({ reload: load })
 
 onMounted(load)
 watch(() => props.category, load)
+
+// If we land on a category that doesn't support market value and the saved
+// sort was a Value sort, reset to a sensible default so the select doesn't
+// show an empty/invalid selection.
+watch(
+  [() => props.category, sortKey],
+  () => {
+    if (sortKey.value.startsWith('marketValue-') && !sortLabels.value.hasValue) {
+      sortKey.value = 'artist-asc'
+    }
+  },
+  { immediate: true },
+)
 
 const filteredByStatus = computed(() =>
   items.value.filter(i => i.status === statusFilter.value),
@@ -583,12 +605,24 @@ function thumbStyle(item) {
 }
 
 /* Sort */
+/* Unified height for every bordered toolbar control so the sort select,
+   view toggle, and status tabs all align visually. NcButtons render at
+   the Nextcloud --default-clickable-area (44px) by default; we don't
+   force them into this group, but 36px is a close-enough sibling that
+   the eye accepts. */
+.cv-sort-select,
+.cv-view-toggle,
+.cv-status-tabs {
+  height: 36px;
+  box-sizing: border-box;
+}
+
 .cv-sort-select {
   border: 2px solid var(--color-border-dark);
   border-radius: var(--border-radius);
   background: var(--color-main-background);
   color: var(--color-main-text);
-  padding: 5px 8px;
+  padding: 0 8px;
   font-size: 0.875em;
   cursor: pointer;
 }
@@ -604,7 +638,12 @@ function thumbStyle(item) {
 .cv-toggle-btn {
   background: none;
   border: none;
-  padding: 4px 10px;
+  padding: 0 10px;
+  min-width: 36px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1em;
   cursor: pointer;
   color: var(--color-text-maxcontrast);
@@ -633,7 +672,10 @@ function thumbStyle(item) {
 .cv-status-tab {
   background: none;
   border: none;
-  padding: 5px 16px;
+  padding: 0 16px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
   font-size: 0.875em;
   font-weight: 500;
   cursor: pointer;
