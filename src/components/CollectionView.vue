@@ -605,15 +605,17 @@ function thumbStyle(item) {
 }
 
 /* Sort */
-/* Unified height for every bordered toolbar control so the sort select,
-   view toggle, and status tabs all align visually. NcButtons render at
-   the Nextcloud --default-clickable-area (44px) by default; we don't
-   force them into this group, but 36px is a close-enough sibling that
-   the eye accepts. */
+/* Unified baseline for every bordered toolbar control: same font-size,
+   same vertical padding, same line-height. Internal elements (the view
+   toggle and status tabs live inside bordered wrappers) drop their own
+   border and inherit the wrapper's, so they end up with the exact same
+   external height as the bare <select>. */
 .cv-sort-select,
-.cv-view-toggle,
-.cv-status-tabs {
-  height: 36px;
+.cv-toggle-btn,
+.cv-status-tab {
+  font-size: 0.875em;
+  line-height: 1.4;
+  padding: 6px 12px;
   box-sizing: border-box;
 }
 
@@ -622,14 +624,13 @@ function thumbStyle(item) {
   border-radius: var(--border-radius);
   background: var(--color-main-background);
   color: var(--color-main-text);
-  padding: 0 8px;
-  font-size: 0.875em;
   cursor: pointer;
 }
 
 /* View toggle */
 .cv-view-toggle {
-  display: flex;
+  display: inline-flex;
+  align-items: stretch;
   border: 2px solid var(--color-border-dark);
   border-radius: var(--border-radius);
   overflow: hidden;
@@ -638,9 +639,7 @@ function thumbStyle(item) {
 .cv-toggle-btn {
   background: none;
   border: none;
-  padding: 0 10px;
-  min-width: 36px;
-  height: 100%;
+  min-width: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -661,7 +660,8 @@ function thumbStyle(item) {
 
 /* Status tabs (inline in toolbar) */
 .cv-status-tabs {
-  display: flex;
+  display: inline-flex;
+  align-items: stretch;
   gap: 0;
   border: 2px solid var(--color-border-dark);
   border-radius: var(--border-radius);
@@ -672,11 +672,9 @@ function thumbStyle(item) {
 .cv-status-tab {
   background: none;
   border: none;
-  padding: 0 16px;
-  height: 100%;
+  padding: 6px 16px;
   display: inline-flex;
   align-items: center;
-  font-size: 0.875em;
   font-weight: 500;
   cursor: pointer;
   color: var(--color-text-maxcontrast);
