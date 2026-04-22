@@ -44,42 +44,67 @@
       </div>
     </NcAppSettingsSection>
 
-    <!-- ── Music ── -->
+    <!-- ── Books ── -->
     <NcAppSettingsSection
-      id="crate-settings-music"
-      name="Music"
+      id="crate-settings-books"
+      name="Books"
     >
       <p class="settings-hint">
-        Metadata, artwork, tracklists and artist info via the
+        Book metadata, covers and author bios via the
         <a
-          href="https://www.discogs.com/developers/"
+          href="https://openlibrary.org/developers/api"
           target="_blank"
           rel="noopener"
-        >Discogs API</a>.
-        Generate a personal access token at
+        >Open Library API</a>.
+        No API key is required.
+      </p>
+
+      <div class="settings-actions settings-enrich-all">
+        <NcButton
+          variant="secondary"
+          :disabled="enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('book')"
+        >
+          Enrich all un-enriched books
+        </NcButton>
+      </div>
+    </NcAppSettingsSection>
+    <!-- ── Comics ── -->
+    <NcAppSettingsSection
+      id="crate-settings-comics"
+      name="Comics"
+    >
+      <p class="settings-hint">
+        Comic volume metadata, artwork, genres and descriptions via the
         <a
-          href="https://www.discogs.com/settings/developers"
+          href="https://comicvine.gamespot.com/api/"
           target="_blank"
           rel="noopener"
-        >discogs.com/settings/developers</a>.
+        >ComicVine API</a>.
+        Get a free API key at
+        <a
+          href="https://comicvine.gamespot.com/api/"
+          target="_blank"
+          rel="noopener"
+        >comicvine.gamespot.com/api</a>.
       </p>
 
       <div class="settings-field">
-        <label for="discogs-token">Discogs personal access token</label>
+        <label for="comicvine-key">ComicVine API key</label>
         <div class="settings-token-row">
           <input
-            id="discogs-token"
-            v-model="tokenInput"
-            :type="showToken ? 'text' : 'password'"
-            :placeholder="hasToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            id="comicvine-key"
+            v-model="comicVineKeyInput"
+            :type="showComicVineKey ? 'text' : 'password'"
+            :placeholder="hasComicVineKey ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showToken ? 'Hide API key' : 'Show API key'"
-            @click="showToken = !showToken"
+            :aria-label="showComicVineKey ? 'Hide API key' : 'Show API key'"
+            @click="showComicVineKey = !showComicVineKey"
           >
-            {{ showToken ? 'Hide' : 'Show' }}
+            {{ showComicVineKey ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -87,41 +112,40 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="saving || tokenInput === ''"
-          @click="save"
+          :disabled="savingComicVine || comicVineKeyInput === ''"
+          @click="saveComicVineKey"
         >
-          {{ saving ? 'Saving…' : 'Save' }}
+          {{ savingComicVine ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasToken"
+          v-if="hasComicVineKey"
           variant="tertiary"
-          :disabled="saving"
-          @click="clearToken"
+          :disabled="savingComicVine"
+          @click="clearComicVineKey"
         >
           Remove
         </NcButton>
         <span
-          v-if="savedMessage"
+          v-if="comicVineSavedMessage"
           class="settings-saved"
-        >{{ savedMessage }}</span>
+        >{{ comicVineSavedMessage }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
-          @click="enrichAll('music')"
+          :disabled="!hasComicVineKey || enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('comic')"
         >
-          Enrich all un-enriched music
+          Enrich all un-enriched comics
         </NcButton>
         <span
-          v-if="!hasToken"
+          v-if="!hasComicVineKey"
           class="settings-hint"
           style="margin:0"
-        >Add a Discogs API key above to enable enrichment.</span>
+        >Add a ComicVine API key above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
-
     <!-- ── Films ── -->
     <NcAppSettingsSection
       id="crate-settings-films"
@@ -199,33 +223,6 @@
         >Add a TMDB API key above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
-
-    <!-- ── Books ── -->
-    <NcAppSettingsSection
-      id="crate-settings-books"
-      name="Books"
-    >
-      <p class="settings-hint">
-        Book metadata, covers and author bios via the
-        <a
-          href="https://openlibrary.org/developers/api"
-          target="_blank"
-          rel="noopener"
-        >Open Library API</a>.
-        No API key is required.
-      </p>
-
-      <div class="settings-actions settings-enrich-all">
-        <NcButton
-          variant="secondary"
-          :disabled="enrich.running.value || marketQueue.running.value"
-          @click="enrichAll('book')"
-        >
-          Enrich all un-enriched books
-        </NcButton>
-      </div>
-    </NcAppSettingsSection>
-
     <!-- ── Games ── -->
     <NcAppSettingsSection
       id="crate-settings-games"
@@ -303,43 +300,42 @@
         >Add a RAWG API key above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
-
-    <!-- ── Comics ── -->
+    <!-- ── Music ── -->
     <NcAppSettingsSection
-      id="crate-settings-comics"
-      name="Comics"
+      id="crate-settings-music"
+      name="Music"
     >
       <p class="settings-hint">
-        Comic volume metadata, artwork, genres and descriptions via the
+        Metadata, artwork, tracklists and artist info via the
         <a
-          href="https://comicvine.gamespot.com/api/"
+          href="https://www.discogs.com/developers/"
           target="_blank"
           rel="noopener"
-        >ComicVine API</a>.
-        Get a free API key at
+        >Discogs API</a>.
+        Generate a personal access token at
         <a
-          href="https://comicvine.gamespot.com/api/"
+          href="https://www.discogs.com/settings/developers"
           target="_blank"
           rel="noopener"
-        >comicvine.gamespot.com/api</a>.
+        >discogs.com/settings/developers</a>.
       </p>
 
       <div class="settings-field">
-        <label for="comicvine-key">ComicVine API key</label>
+        <label for="discogs-token">Discogs personal access token</label>
         <div class="settings-token-row">
           <input
-            id="comicvine-key"
-            v-model="comicVineKeyInput"
-            :type="showComicVineKey ? 'text' : 'password'"
-            :placeholder="hasComicVineKey ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            id="discogs-token"
+            v-model="tokenInput"
+            :type="showToken ? 'text' : 'password'"
+            :placeholder="hasToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showComicVineKey ? 'Hide API key' : 'Show API key'"
-            @click="showComicVineKey = !showComicVineKey"
+            :aria-label="showToken ? 'Hide API key' : 'Show API key'"
+            @click="showToken = !showToken"
           >
-            {{ showComicVineKey ? 'Hide' : 'Show' }}
+            {{ showToken ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -347,38 +343,38 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="savingComicVine || comicVineKeyInput === ''"
-          @click="saveComicVineKey"
+          :disabled="saving || tokenInput === ''"
+          @click="save"
         >
-          {{ savingComicVine ? 'Saving…' : 'Save' }}
+          {{ saving ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasComicVineKey"
+          v-if="hasToken"
           variant="tertiary"
-          :disabled="savingComicVine"
-          @click="clearComicVineKey"
+          :disabled="saving"
+          @click="clearToken"
         >
           Remove
         </NcButton>
         <span
-          v-if="comicVineSavedMessage"
+          v-if="savedMessage"
           class="settings-saved"
-        >{{ comicVineSavedMessage }}</span>
+        >{{ savedMessage }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="!hasComicVineKey || enrich.running.value || marketQueue.running.value"
-          @click="enrichAll('comic')"
+          :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
+          @click="enrichAll('music')"
         >
-          Enrich all un-enriched comics
+          Enrich all un-enriched music
         </NcButton>
         <span
-          v-if="!hasComicVineKey"
+          v-if="!hasToken"
           class="settings-hint"
           style="margin:0"
-        >Add a ComicVine API key above to enable enrichment.</span>
+        >Add a Discogs API key above to enable enrichment.</span>
       </div>
     </NcAppSettingsSection>
 
