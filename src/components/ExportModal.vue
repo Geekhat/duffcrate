@@ -11,6 +11,37 @@
       </h2>
 
       <div class="export-field">
+        <label
+          class="export-label"
+          for="export-category"
+        >Category</label>
+        <select
+          id="export-category"
+          v-model="selectedCategory"
+          class="export-select"
+        >
+          <option value="book">
+            Books
+          </option>
+          <option value="comic">
+            Comics
+          </option>
+          <option value="film">
+            Films
+          </option>
+          <option value="game">
+            Games
+          </option>
+          <option value="music">
+            Music
+          </option>
+          <option value="all">
+            All categories
+          </option>
+        </select>
+      </div>
+
+      <div class="export-field">
         <label class="export-label">Items to export</label>
         <div class="export-radio-group">
           <label class="export-radio-label">
@@ -82,6 +113,19 @@
       </div>
 
       <p
+        v-if="itemCount !== null"
+        class="export-count"
+        :class="{ 'export-count--empty': itemCount === 0 }"
+      >
+        <template v-if="itemCount === 0">
+          No items match this selection — the file will contain only a header row.
+        </template>
+        <template v-else>
+          Ready to export <strong>{{ itemCount }}</strong> {{ itemCount === 1 ? 'item' : 'items' }}.
+        </template>
+      </p>
+
+      <p
         v-if="error"
         class="export-error"
       >
@@ -111,7 +155,7 @@
 import { ref, computed, watch } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
-import { generateUrl } from '@nextcloud/router'
+import { generateUrl, generateOcsUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 
 const props = defineProps({
@@ -122,12 +166,15 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const selectedScope   = ref(props.scope)
-const format          = ref('csv')
-const includeEnriched = ref(false)
-const includeMarket   = ref(false)
-const exporting       = ref(false)
-const error           = ref('')
+const selectedCategory = ref(props.category)
+const selectedScope    = ref(props.scope)
+const format           = ref('csv')
+const includeEnriched  = ref(false)
+const includeMarket    = ref(false)
+const exporting        = ref(false)
+const error            = ref('')
+/** Matching-item count under the current selection; null = not yet loaded. */
+const itemCount        = ref(null)
 
 // ── category-aware copy ──────────────────────────────────────────────────────
 const TITLES = {
@@ -136,8 +183,9 @@ const TITLES = {
   book:  'Export book collection',
   game:  'Export game collection',
   comic: 'Export comic collection',
+  all:   'Export entire collection',
 }
-const title = computed(() => TITLES[props.category] ?? 'Export collection')
+const title = computed(() => TITLES[selectedCategory.value] ?? 'Export collection')
 
 const ENRICHED_LABELS = {
   music: 'Enriched Discogs data',
@@ -145,8 +193,9 @@ const ENRICHED_LABELS = {
   book:  'Enriched Open Library data',
   game:  'Enriched RAWG data',
   comic: 'Enriched ComicVine data',
+  all:   'Enriched metadata (from all sources)',
 }
-const enrichedLabel = computed(() => ENRICHED_LABELS[props.category] ?? 'Enriched metadata')
+const enrichedLabel = computed(() => ENRICHED_LABELS[selectedCategory.value] ?? 'Enriched metadata')
 
 const ENRICHED_HINTS = {
   music: 'genres, country, tracklist, pressing notes, artist bio, members',
@@ -154,42 +203,81 @@ const ENRICHED_HINTS = {
   book:  'genres, description, author bio',
   game:  'genres, description',
   comic: 'genres, description',
+  all:   'all available enriched fields across every category',
 }
-const enrichedHint = computed(() => ENRICHED_HINTS[props.category] ?? 'genres and metadata fields')
+const enrichedHint = computed(() => ENRICHED_HINTS[selectedCategory.value] ?? 'genres and metadata fields')
 
 // Market value availability:
 //   - music uses Discogs (single price in display currency)
 //   - games / comics use PriceCharting (loose / CIB / new in USD)
 //   - films and books have no market-value source
-const CATEGORIES_WITH_MARKET = ['music', 'game', 'comic']
-const categoryHasMarket = computed(() => CATEGORIES_WITH_MARKET.includes(props.category))
+//   - "all" includes every category with market data
+const CATEGORIES_WITH_MARKET = ['music', 'game', 'comic', 'all']
+const categoryHasMarket = computed(() => CATEGORIES_WITH_MARKET.includes(selectedCategory.value))
 
 const MARKET_HINTS = {
   music: '(Discogs lowest price, currency, fetched date)',
   game:  '(PriceCharting loose / CIB / new in USD, fetched date)',
   comic: '(PriceCharting loose / CIB / new in USD, fetched date)',
+  all:   '(Discogs for music; PriceCharting loose / CIB / new for games and comics)',
   film:  '— not available for films',
   book:  '— not available for books',
 }
-const marketHint = computed(() => MARKET_HINTS[props.category] ?? '')
+const marketHint = computed(() => MARKET_HINTS[selectedCategory.value] ?? '')
 
 let abortController = null
 
 watch(() => props.show, (open) => {
   if (open) {
-    selectedScope.value = props.scope
-    error.value = ''
+    selectedCategory.value = props.category
+    selectedScope.value    = props.scope
+    itemCount.value        = null
+    error.value            = ''
     // Categories without market values shouldn't leak a true checkbox in
     // from a previous open (e.g. user switched from Music to Films).
     if (!categoryHasMarket.value) {
       includeMarket.value = false
     }
+    refreshCount()
   } else if (abortController) {
     // Modal closed mid-export: cancel the in-flight request.
     abortController.abort()
     abortController = null
   }
 })
+
+// Refresh the count whenever the selection that drives it changes.
+// Category changes may also flip the market-data availability — clear
+// the checkbox so a film/book export doesn't carry a stale true from a
+// previous music selection.
+watch(selectedCategory, () => {
+  if (!categoryHasMarket.value) includeMarket.value = false
+  refreshCount()
+})
+watch(selectedScope, refreshCount)
+
+/**
+ * Fetch the number of items that match the current category + scope.
+ * Uses the paginated media endpoint (limit=1) purely for its `total`
+ * field; the item payload is discarded.
+ */
+async function refreshCount() {
+  if (!props.show) return
+  try {
+    const params = { limit: 1, offset: 0 }
+    if (selectedCategory.value !== 'all') params.category = selectedCategory.value
+    if (selectedScope.value !== 'all')    params.status   = selectedScope.value
+
+    const res = await axios.get(generateOcsUrl('/apps/crate/api/v1/media'), {
+      params,
+      __silent: true,
+    })
+    itemCount.value = res.data?.ocs?.data?.total ?? 0
+  } catch {
+    // Treat as unknown rather than zero so we don't falsely warn the user.
+    itemCount.value = null
+  }
+}
 
 function onCancel() {
   if (abortController) abortController.abort()
@@ -204,7 +292,7 @@ async function doExport() {
     const params = new URLSearchParams({
       format:          format.value,
       scope:           selectedScope.value,
-      category:        props.category,
+      category:        selectedCategory.value,
       includeEnriched: includeEnriched.value ? '1' : '0',
       includeMarket:   includeMarket.value   ? '1' : '0',
     })
@@ -309,6 +397,27 @@ async function doExport() {
 .export-hint {
   font-size: 0.82em;
   color: var(--color-text-maxcontrast);
+}
+
+.export-select {
+  border: 2px solid var(--color-border-dark);
+  border-radius: var(--border-radius);
+  background: var(--color-main-background);
+  color: var(--color-main-text);
+  padding: 6px 10px;
+  font-size: 0.9em;
+  font-family: inherit;
+  width: 220px;
+}
+
+.export-count {
+  font-size: 0.875em;
+  color: var(--color-text-maxcontrast);
+  margin: 0 0 12px;
+}
+
+.export-count--empty {
+  color: #fbbf24;
 }
 
 .export-error {
