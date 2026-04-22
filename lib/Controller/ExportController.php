@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Crate\Controller;
 
+use OCA\Crate\CrateCategories;
 use OCA\Crate\Service\ExportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -29,11 +30,10 @@ class ExportController extends Controller
      * GET /apps/crate/export
      *   ?format=csv|xlsx
      *   &scope=owned|wanted|all
+     *   &category=music|film|book|game|comic|all
      *   &includeEnriched=0|1
      *   &includeMarket=0|1
      */
-    private const VALID_CATEGORIES = ['music', 'film', 'book', 'game'];
-
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function export(
@@ -49,7 +49,7 @@ class ExportController extends Controller
         }
         $userId = $user->getUID();
 
-        $cat = in_array($category, self::VALID_CATEGORIES, true) ? $category : null;
+        $cat = CrateCategories::isCategory($category) ? $category : null;
 
         [$content, $mimeType, $filename] = $this->exportService->generate(
             $userId,

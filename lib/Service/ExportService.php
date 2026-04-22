@@ -38,7 +38,10 @@ class ExportService
         }
 
         $headers = $this->buildHeaders($includeEnriched, $includeMarket, $category);
-        $rows    = array_map(fn($i) => $this->itemToRow($i, $includeEnriched, $includeMarket), $items);
+        $rows    = array_map(
+            fn(MediaItem $i) => $this->itemToRow($i, $includeEnriched, $includeMarket, $category),
+            $items,
+        );
 
         $date     = date('Y-m-d');
         $filename = 'crate-export-' . ($category ?? 'all') . '-' . $date;
@@ -52,6 +55,21 @@ class ExportService
         return [$this->buildCsv($headers, $rows), 'text/csv; charset=UTF-8', $filename . '.csv'];
     }
 
+    /**
+     * Categories that store per-item market values.
+     * Films and Books have no market-value source; their rows contain no
+     * market columns even if includeMarket is requested.
+     */
+    private const MARKET_CATEGORIES = ['music', 'game', 'comic'];
+
+    /**
+     * Categories whose market values come from PriceCharting, which
+     * returns three tiers (loose / CIB / new) in USD. Discogs-backed
+     * music just stores a single Market Value in the user's display
+     * currency.
+     */
+    private const PRICECHARTING_CATEGORIES = ['game', 'comic'];
+
     /** @return string[] */
     private function buildHeaders(bool $includeEnriched, bool $includeMarket, ?string $category = null): array
     {
@@ -62,29 +80,93 @@ class ExportService
             'comic' => 'Writer',
             default => 'Artist',
         };
-        $barcodeLabel = ($category === 'book') ? 'ISBN' : 'Barcode';
+        $titleLabel   = match ($category) {
+            'music' => 'Album',
+            'film'  => 'Film Title',
+            'game'  => 'Game Title',
+            'comic' => 'Series / Volume',
+            default => 'Title',
+        };
         $labelLabel   = match ($category) {
-            'film'          => 'Studio',
+            'film'                  => 'Studio',
             'book', 'game', 'comic' => 'Publisher',
-            default         => 'Label',
+            default                 => 'Label',
+        };
+        $pressingLabel = match ($category) {
+            'music' => 'PressingNotes',
+            'film'  => 'Overview',
+            default => 'Description',
         };
 
         $h = [
-            'Category', $artistLabel, 'Title', 'Format', 'Year',
-            'Status', 'EnrichmentId', $barcodeLabel, $labelLabel, 'Notes',
+            'Category',
+            $artistLabel,
+            $titleLabel,
+            'Format',
+            'Year',
+            'Status',
+            'EnrichmentId',
         ];
+
+        // Barcode column only for categories that actually use it.
+        // Book → ISBN; Music → Barcode; Films / Games / Comics have no barcode.
+        $barcodeLabel = $this->barcodeLabel($category);
+        if ($barcodeLabel !== null) {
+            $h[] = $barcodeLabel;
+        }
+
+        $h[] = $labelLabel;
+        $h[] = 'Notes';
+
         if ($includeEnriched) {
-            array_push($h, 'Genres', 'Country', 'PressingNotes', 'Tracklist', 'ArtistBio');
+            // Every category stores Genres.
+            $h[] = 'Genres';
+            // Country: from Discogs (music) and TMDB (film).
+            if ($this->categoryExportsCountry($category)) {
+                $h[] = 'Country';
+            }
+            // Free-text blurb stored in `pressing_notes` — labelled to match
+            // the source: Pressing Notes (music), Overview (film), Description
+            // (book / game / comic).
+            $h[] = $pressingLabel;
+            // Tracklist only applies to music.
+            if ($category === 'music' || $category === null) {
+                $h[] = 'Tracklist';
+            }
+            // Artist / author bio: music (Discogs) + book (Open Library).
+            if ($this->categoryExportsBio($category)) {
+                $h[] = $artistLabel . ' Bio';
+            }
+            // Band member list: music only (Discogs).
+            if ($category === 'music' || $category === null) {
+                $h[] = 'Artist Members';
+            }
         }
-        if ($includeMarket) {
-            array_push($h, 'MarketValue', 'MarketCurrency', 'MarketValueFetchedAt');
+
+        if ($includeMarket && $this->categoryHasMarket($category)) {
+            if ($this->categoryUsesPriceCharting($category)) {
+                // PriceCharting splits the three price tiers.
+                $h[] = 'Loose Price';
+                $h[] = 'CIB Price';
+                $h[] = 'New Price';
+            }
+            if ($this->categoryUsesDiscogsMarket($category)) {
+                $h[] = 'Market Value';
+            }
+            $h[] = 'Market Currency';
+            $h[] = 'Market Value Fetched At';
         }
+
         return $h;
     }
 
-    /** @return string[] */
-    private function itemToRow(MediaItem $item, bool $includeEnriched, bool $includeMarket): array
-    {
+    /** @return list<string> */
+    private function itemToRow(
+        MediaItem $item,
+        bool $includeEnriched,
+        bool $includeMarket,
+        ?string $category = null,
+    ): array {
         $row = [
             $item->getCategory()  ?? 'music',
             $item->getArtist()    ?? '',
@@ -93,26 +175,85 @@ class ExportService
             $item->getYear() !== null ? (string) $item->getYear() : '',
             $item->getStatus()    ?? '',
             $item->getDiscogsId() ?? '',
-            $item->getBarcode()   ?? '',
-            $item->getLabel()     ?? '',
-            $item->getNotes()     ?? '',
         ];
 
-        if ($includeEnriched) {
-            $row[] = $item->getGenres()        ?? '';
-            $row[] = $item->getCountry()       ?? '';
-            $row[] = $item->getPressingNotes() ?? '';
-            $row[] = $item->getTracklist()     ?? '';
-            $row[] = $item->getArtistBio()     ?? '';
+        if ($this->barcodeLabel($category) !== null) {
+            $row[] = $item->getBarcode() ?? '';
         }
 
-        if ($includeMarket) {
-            $row[] = $item->getMarketValue() !== null ? (string) $item->getMarketValue() : '';
+        $row[] = $item->getLabel() ?? '';
+        $row[] = $item->getNotes() ?? '';
+
+        if ($includeEnriched) {
+            $row[] = $item->getGenres() ?? '';
+            if ($this->categoryExportsCountry($category)) {
+                $row[] = $item->getCountry() ?? '';
+            }
+            $row[] = $item->getPressingNotes() ?? '';
+            if ($category === 'music' || $category === null) {
+                $row[] = $item->getTracklist() ?? '';
+            }
+            if ($this->categoryExportsBio($category)) {
+                $row[] = $item->getArtistBio() ?? '';
+            }
+            if ($category === 'music' || $category === null) {
+                $row[] = $item->getArtistMembers() ?? '';
+            }
+        }
+
+        if ($includeMarket && $this->categoryHasMarket($category)) {
+            if ($this->categoryUsesPriceCharting($category)) {
+                $row[] = $item->getMarketValueLoose() !== null ? (string) $item->getMarketValueLoose() : '';
+                $row[] = $item->getMarketValue()      !== null ? (string) $item->getMarketValue()      : '';
+                $row[] = $item->getMarketValueNew()   !== null ? (string) $item->getMarketValueNew()   : '';
+            }
+            if ($this->categoryUsesDiscogsMarket($category)) {
+                $row[] = $item->getMarketValue() !== null ? (string) $item->getMarketValue() : '';
+            }
             $row[] = $item->getMarketValueCurrency()  ?? '';
             $row[] = $item->getMarketValueFetchedAt() ?? '';
         }
 
         return $row;
+    }
+
+    /** Barcode column label for a category, or null to suppress it. */
+    private function barcodeLabel(?string $category): ?string
+    {
+        return match ($category) {
+            'music' => 'Barcode',
+            'book'  => 'ISBN',
+            // Films / games / comics don't carry a barcode on our schema.
+            'film', 'game', 'comic' => null,
+            // "all" export: retain a generic column so book ISBNs and music
+            // barcodes both fit.
+            default => 'Barcode / ISBN',
+        };
+    }
+
+    private function categoryHasMarket(?string $category): bool
+    {
+        return $category === null || in_array($category, self::MARKET_CATEGORIES, true);
+    }
+
+    private function categoryUsesPriceCharting(?string $category): bool
+    {
+        return $category === null || in_array($category, self::PRICECHARTING_CATEGORIES, true);
+    }
+
+    private function categoryUsesDiscogsMarket(?string $category): bool
+    {
+        return $category === null || $category === 'music';
+    }
+
+    private function categoryExportsCountry(?string $category): bool
+    {
+        return $category === null || in_array($category, ['music', 'film'], true);
+    }
+
+    private function categoryExportsBio(?string $category): bool
+    {
+        return $category === null || in_array($category, ['music', 'book'], true);
     }
 
     private function buildCsv(array $headers, array $rows): string

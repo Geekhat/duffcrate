@@ -7,7 +7,7 @@
   >
     <div class="export-modal">
       <h2 id="export-modal-title">
-        Export collection
+        {{ title }}
       </h2>
 
       <div class="export-field">
@@ -64,16 +64,20 @@
             v-model="includeEnriched"
             type="checkbox"
           >
-          Enriched Discogs data
-          <span class="export-hint">(genres, tracklist, country, artist bio, pressing notes)</span>
+          {{ enrichedLabel }}
+          <span class="export-hint">({{ enrichedHint }})</span>
         </label>
-        <label class="export-checkbox-label">
+        <label
+          class="export-checkbox-label"
+          :class="{ 'export-checkbox-label--disabled': !categoryHasMarket }"
+        >
           <input
             v-model="includeMarket"
             type="checkbox"
+            :disabled="!categoryHasMarket"
           >
           Market data
-          <span class="export-hint">(value, currency, fetched date)</span>
+          <span class="export-hint">{{ marketHint }}</span>
         </label>
       </div>
 
@@ -104,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { NcModal, NcButton } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
@@ -125,12 +129,61 @@ const includeMarket   = ref(false)
 const exporting       = ref(false)
 const error           = ref('')
 
+// ── category-aware copy ──────────────────────────────────────────────────────
+const TITLES = {
+  music: 'Export music collection',
+  film:  'Export film collection',
+  book:  'Export book collection',
+  game:  'Export game collection',
+  comic: 'Export comic collection',
+}
+const title = computed(() => TITLES[props.category] ?? 'Export collection')
+
+const ENRICHED_LABELS = {
+  music: 'Enriched Discogs data',
+  film:  'Enriched TMDB data',
+  book:  'Enriched Open Library data',
+  game:  'Enriched RAWG data',
+  comic: 'Enriched ComicVine data',
+}
+const enrichedLabel = computed(() => ENRICHED_LABELS[props.category] ?? 'Enriched metadata')
+
+const ENRICHED_HINTS = {
+  music: 'genres, country, tracklist, pressing notes, artist bio, members',
+  film:  'genres, country, overview',
+  book:  'genres, description, author bio',
+  game:  'genres, description',
+  comic: 'genres, description',
+}
+const enrichedHint = computed(() => ENRICHED_HINTS[props.category] ?? 'genres and metadata fields')
+
+// Market value availability:
+//   - music uses Discogs (single price in display currency)
+//   - games / comics use PriceCharting (loose / CIB / new in USD)
+//   - films and books have no market-value source
+const CATEGORIES_WITH_MARKET = ['music', 'game', 'comic']
+const categoryHasMarket = computed(() => CATEGORIES_WITH_MARKET.includes(props.category))
+
+const MARKET_HINTS = {
+  music: '(Discogs lowest price, currency, fetched date)',
+  game:  '(PriceCharting loose / CIB / new in USD, fetched date)',
+  comic: '(PriceCharting loose / CIB / new in USD, fetched date)',
+  film:  '— not available for films',
+  book:  '— not available for books',
+}
+const marketHint = computed(() => MARKET_HINTS[props.category] ?? '')
+
 let abortController = null
 
 watch(() => props.show, (open) => {
   if (open) {
     selectedScope.value = props.scope
     error.value = ''
+    // Categories without market values shouldn't leak a true checkbox in
+    // from a previous open (e.g. user switched from Music to Films).
+    if (!categoryHasMarket.value) {
+      includeMarket.value = false
+    }
   } else if (abortController) {
     // Modal closed mid-export: cancel the in-flight request.
     abortController.abort()
@@ -242,6 +295,15 @@ async function doExport() {
 .export-checkbox-label input {
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.export-checkbox-label--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.export-checkbox-label--disabled input {
+  cursor: not-allowed;
 }
 
 .export-hint {
