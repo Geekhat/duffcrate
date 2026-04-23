@@ -135,8 +135,12 @@
 
     <ImportModal
       :show="importOpen"
-      :has-token="hasDiscogsToken"
       :category="VIEW_TO_CATEGORY[view] ?? 'music'"
+      :has-discogs-token="hasDiscogsToken"
+      :has-tmdb-token="hasTmdbToken"
+      :has-rawg-key="hasRawgKey"
+      :has-comic-vine-key="hasComicVineKey"
+      :has-price-charting-token="hasPriceChartingToken"
       @close="importOpen = false"
       @imported="handleImported"
     />

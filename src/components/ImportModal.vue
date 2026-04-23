@@ -181,7 +181,7 @@
         </p>
 
         <div
-          v-if="hasToken"
+          v-if="enrichTokenAvailable"
           class="import-toggle"
         >
           <label class="import-toggle-label">
@@ -189,12 +189,12 @@
               v-model="autoEnrichOnImport"
               type="checkbox"
             >
-            Enrich from Discogs after importing
+            Enrich from {{ enrichServiceName }} after importing
           </label>
         </div>
 
         <div
-          v-if="hasToken"
+          v-if="marketAvailable && marketTokenAvailable"
           class="import-toggle"
         >
           <label class="import-toggle-label">
@@ -202,7 +202,7 @@
               v-model="autoFetchMarketRates"
               type="checkbox"
             >
-            Fetch market rates after importing
+            Fetch market rates from {{ marketServiceName }} after importing
           </label>
         </div>
 
@@ -255,17 +255,17 @@
         </ul>
 
         <!-- Enrichment progress -->
-        <template v-if="hasToken && result.created > 0">
+        <template v-if="enrichTokenAvailable && result.created > 0 && (enrich.running.value || enrich.total.value > 0)">
           <div class="import-enrich">
             <p class="import-enrich__label">
               <template v-if="enrich.finished.value">
-                Enrichment complete — {{ enrich.done.value }} of {{ enrich.total.value }} items enriched from Discogs.
+                Enrichment complete — {{ enrich.done.value }} of {{ enrich.total.value }} items enriched from {{ enrichServiceName }}.
                 <template v-if="enrich.failed.value > 0">
                   {{ enrich.failed.value }} could not be matched.
                 </template>
               </template>
               <template v-else>
-                Enriching from Discogs… {{ enrich.done.value }} / {{ enrich.total.value }}
+                Enriching from {{ enrichServiceName }}… {{ enrich.done.value }} / {{ enrich.total.value }}
               </template>
             </p>
             <div class="import-enrich__bar-wrap">
@@ -283,25 +283,25 @@
             </p>
           </div>
         </template>
-        <template v-else-if="!hasToken && result.created > 0">
+        <template v-else-if="!enrichTokenAvailable && result.created > 0">
           <p class="import-hint import-hint--warn">
-            Discogs enrichment skipped — no API token configured.
-            Add your token in Settings to enrich artwork and metadata.
+            {{ enrichServiceName }} enrichment skipped — no API key configured.
+            Add your key in Settings to enrich artwork and metadata.
           </p>
         </template>
 
         <!-- Market value progress — only shown once the queue has been started -->
-        <template v-if="hasToken && autoFetchMarketRates && result.created > 0 && (marketQueue.running.value || marketQueue.total.value > 0)">
+        <template v-if="marketAvailable && marketTokenAvailable && autoFetchMarketRates && result.created > 0 && (marketQueue.running.value || marketQueue.total.value > 0)">
           <div class="import-enrich">
             <p class="import-enrich__label">
               <template v-if="marketQueue.finished.value">
-                Market rates complete — {{ marketQueue.done.value }} of {{ marketQueue.total.value }} items priced.
+                Market rates complete — {{ marketQueue.done.value }} of {{ marketQueue.total.value }} items priced via {{ marketServiceName }}.
                 <template v-if="marketQueue.failed.value > 0">
                   {{ marketQueue.failed.value }} had no listing.
                 </template>
               </template>
               <template v-else>
-                Fetching market rates… {{ marketQueue.done.value }} / {{ marketQueue.total.value }}
+                Fetching market rates from {{ marketServiceName }}… {{ marketQueue.done.value }} / {{ marketQueue.total.value }}
               </template>
             </p>
             <div class="import-enrich__bar-wrap">
@@ -338,9 +338,15 @@ import { useSettings } from '../composables/useSettings.js'
 import { FIELD_CONFIG } from '../utils/categoryFormats.js'
 
 const props = defineProps({
-  show:     { type: Boolean, required: true },
-  hasToken: { type: Boolean, default: false },
-  category: { type: String,  default: 'music' },
+  show:                  { type: Boolean, required: true },
+  category:              { type: String,  default: 'music' },
+  // One flag per enrichment / market-value provider. Open Library (books)
+  // doesn't need a key, so there's no prop for it.
+  hasDiscogsToken:       { type: Boolean, default: false },
+  hasTmdbToken:          { type: Boolean, default: false },
+  hasRawgKey:            { type: Boolean, default: false },
+  hasComicVineKey:       { type: Boolean, default: false },
+  hasPriceChartingToken: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'imported'])
@@ -414,6 +420,48 @@ watch(selectedCategory, () => { mapping.value = {} })
 const mappingValid = computed(() => {
   const mapped = Object.values(mapping.value).filter(Boolean)
   return mapped.includes('artist') && mapped.includes('title') && mapped.includes('format')
+})
+
+// ── per-category enrichment + market-value availability ──────────────────────
+// Each category has its own upstream enrichment service; Open Library
+// (books) needs no key, the rest do. Films and books have no market-value
+// source at all.
+const ENRICH_SERVICE = {
+  music: 'Discogs',
+  film:  'TMDB',
+  book:  'Open Library',
+  game:  'RAWG',
+  comic: 'ComicVine',
+}
+const enrichServiceName = computed(() => ENRICH_SERVICE[selectedCategory.value] ?? 'the enrichment service')
+
+/** Whether the user has the credential needed to enrich this category. */
+const enrichTokenAvailable = computed(() => {
+  switch (selectedCategory.value) {
+    case 'music': return props.hasDiscogsToken
+    case 'film':  return props.hasTmdbToken
+    case 'book':  return true   // Open Library doesn't require a key
+    case 'game':  return props.hasRawgKey
+    case 'comic': return props.hasComicVineKey
+    default:      return false
+  }
+})
+
+const CATEGORIES_WITH_MARKET = ['music', 'game', 'comic']
+/** Whether the category supports fetching market values at all. */
+const marketAvailable = computed(() => CATEGORIES_WITH_MARKET.includes(selectedCategory.value))
+
+const marketServiceName = computed(() => {
+  if (selectedCategory.value === 'music') return 'Discogs'
+  if (['game', 'comic'].includes(selectedCategory.value)) return 'PriceCharting'
+  return ''
+})
+
+/** Whether the user has the credential needed for market values. */
+const marketTokenAvailable = computed(() => {
+  if (selectedCategory.value === 'music') return props.hasDiscogsToken
+  if (['game', 'comic'].includes(selectedCategory.value)) return props.hasPriceChartingToken
+  return false
 })
 
 // ── reset on open ─────────────────────────────────────────────────────────────
@@ -527,8 +575,11 @@ async function doImport() {
     emit('imported')
 
     const newIds = result.value.itemIds ?? []
-    const doMarket = props.hasToken && autoFetchMarketRates.value && newIds.length > 0
-    if (props.hasToken && autoEnrichOnImport.value && newIds.length > 0) {
+    const doEnrich = enrichTokenAvailable.value && autoEnrichOnImport.value && newIds.length > 0
+    const doMarket = marketAvailable.value && marketTokenAvailable.value
+      && autoFetchMarketRates.value && newIds.length > 0
+
+    if (doEnrich) {
       enrich.start(newIds).then(() => {
         if (doMarket) marketQueue.start(newIds, marketCurrency.value)
       })
