@@ -655,8 +655,9 @@ function thumbStyle(item) {
 .cv-sort-select {
   height: var(--default-clickable-area, 44px);
   box-sizing: border-box;
-  border: 2px solid var(--color-border-dark);
-  border-radius: var(--border-radius);
+  border: 1px solid var(--color-primary-element-light-hover);
+  border-bottom-width: 2px;
+  border-radius: var(--border-radius-element, 22px);
 }
 
 .cv-status-tabs {
@@ -671,13 +672,15 @@ function thumbStyle(item) {
    * 32px of right padding for it. */
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   background:
     linear-gradient(45deg, currentColor 50%, transparent 50%) calc(100% - 18px) 50% / 6px 6px no-repeat,
     linear-gradient(-45deg, currentColor 50%, transparent 50%) calc(100% - 12px) 50% / 6px 6px no-repeat,
-    var(--color-main-background);
-  color: var(--color-main-text);
-  padding: 0 32px 0 12px;
-  font-size: 0.9em;
+    var(--color-primary-element-light);
+  color: var(--color-primary-element-light-text);
+  padding: 1px 32px 0 12px;
+  font-size: var(--default-font-size);
+  font-weight: bold;
   cursor: pointer;
 }
 
@@ -690,37 +693,39 @@ function thumbStyle(item) {
 }
 
 .cv-toggle-btn {
-  background: none;
-  border: 2px solid var(--color-border-dark);
+  background-color: var(--color-primary-element-light);
+  border: 1px solid var(--color-primary-element-light-hover);
+  border-bottom-width: 2px;
   box-sizing: border-box;
   margin: 0;
-  min-width: 44px;
-  padding: 0 12px;
+  min-width: var(--default-clickable-area, 44px);
+  padding: 1px 12px 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.15em;
+  font-weight: bold;
   cursor: pointer;
-  color: var(--color-text-maxcontrast);
+  color: var(--color-primary-element-light-text);
   transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 
 .cv-toggle-btn + .cv-toggle-btn {
-  margin-left: -2px;
+  margin-left: -1px;
 }
 
 .cv-toggle-btn:first-child {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
+  border-radius: var(--border-radius-element, 22px) 0 0 var(--border-radius-element, 22px);
 }
 
 .cv-toggle-btn:last-child {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border-radius: 0 var(--border-radius-element, 22px) var(--border-radius-element, 22px) 0;
 }
 
 .cv-toggle-btn.active {
   background: var(--color-primary-element);
   color: var(--color-primary-element-text);
-  border-color: var(--color-primary-element);
+  border-color: var(--color-primary-element-hover);
   position: relative;
   z-index: 1;
 }
@@ -738,36 +743,37 @@ function thumbStyle(item) {
 }
 
 .cv-status-tab {
-  background: none;
-  border: 2px solid var(--color-border-dark);
+  background-color: var(--color-primary-element-light);
+  border: 1px solid var(--color-primary-element-light-hover);
+  border-bottom-width: 2px;
   box-sizing: border-box;
   margin: 0;
-  padding: 0 18px;
+  padding: 1px 18px 0;
   display: inline-flex;
   align-items: center;
-  font-size: 0.9em;
-  font-weight: 500;
+  font-size: var(--default-font-size);
+  font-weight: bold;
   cursor: pointer;
-  color: var(--color-text-maxcontrast);
+  color: var(--color-primary-element-light-text);
   transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 
 .cv-status-tab + .cv-status-tab {
-  margin-left: -2px;
+  margin-left: -1px;
 }
 
 .cv-status-tab:first-child {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
+  border-radius: var(--border-radius-element, 22px) 0 0 var(--border-radius-element, 22px);
 }
 
 .cv-status-tab:last-child {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border-radius: 0 var(--border-radius-element, 22px) var(--border-radius-element, 22px) 0;
 }
 
 .cv-status-tab.active {
   background: var(--color-primary-element);
   color: var(--color-primary-element-text);
-  border-color: var(--color-primary-element);
+  border-color: var(--color-primary-element-hover);
   position: relative;
   z-index: 1;
 }
