@@ -272,7 +272,7 @@ const categorySections = computed(() => {
         const pool = catItems.filter(i => i.format === fmt)
         if (pool.length === 0) continue
         const shuffled = seededShuffle(pool, seed + stringHash(fmt + cat))
-        rows.push({ format: fmt, label: pluralLabel(fmt), items: shuffled.slice(0, rowCount.value) })
+        rows.push({ format: fmt, label: pluralLabel(fmt, cat), items: shuffled.slice(0, rowCount.value) })
       }
 
       // Formats in the data that aren't in the known list
@@ -282,7 +282,7 @@ const categorySections = computed(() => {
       for (const fmt of extraFmts) {
         const pool = catItems.filter(i => i.format === fmt)
         const shuffled = seededShuffle(pool, seed + stringHash(fmt + cat))
-        rows.push({ format: fmt, label: pluralLabel(fmt), items: shuffled.slice(0, rowCount.value) })
+        rows.push({ format: fmt, label: pluralLabel(fmt, cat), items: shuffled.slice(0, rowCount.value) })
       }
 
       return {
@@ -303,7 +303,11 @@ const mostValuable = computed(() =>
     .slice(0, rowCount.value)
 )
 
-function pluralLabel(fmt) {
+function pluralLabel(fmt, cat) {
+  // Game systems are proper nouns ("GameCube", "Dreamcast", "Neo Geo CD") —
+  // pluralising them reads as nonsense ("GameCubes", "Dreamcasts"). Books,
+  // films and music formats (Hardcover, Blu-ray, Vinyl) pluralise naturally.
+  if (cat === 'game') return fmt
   if (fmt === 'Vinyl') return 'Vinyl'
   if (fmt.endsWith('s')) return fmt
   return fmt + 's'

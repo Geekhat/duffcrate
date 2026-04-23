@@ -642,11 +642,19 @@ function thumbStyle(item) {
 }
 
 .cv-sort-select {
-  background: var(--color-main-background);
+  /* appearance:none so the browser's native dropdown chrome doesn't push
+   * the label off-centre or eat the right-hand edge. We redraw the chevron
+   * as two gradient lines so it sits in a predictable spot and reserve
+   * 32px of right padding for it. */
+  appearance: none;
+  -webkit-appearance: none;
+  background:
+    linear-gradient(45deg, currentColor 50%, transparent 50%) calc(100% - 18px) 50% / 6px 6px no-repeat,
+    linear-gradient(-45deg, currentColor 50%, transparent 50%) calc(100% - 12px) 50% / 6px 6px no-repeat,
+    var(--color-main-background);
   color: var(--color-main-text);
-  padding: 0 12px;
+  padding: 0 32px 0 12px;
   font-size: 0.9em;
-  line-height: 1;
   cursor: pointer;
 }
 

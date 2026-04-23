@@ -68,10 +68,6 @@ export const FORMAT_GROUPS = {
       // the split (since market values come from there).
       formats: ['Neo Geo MVS', 'Neo Geo AES', 'Neo Geo CD', 'Neo Geo Pocket Color'],
     },
-    {
-      label: 'PC',
-      formats: ['PC'],
-    },
   ],
   comic: [
     {

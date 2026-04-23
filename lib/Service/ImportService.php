@@ -40,8 +40,6 @@ class ImportService
         'atari 2600', 'atari 5200', 'atari 7800', 'atari lynx', 'jaguar',
         // Games — SNK
         'neo geo mvs', 'neo geo aes', 'neo geo cd', 'neo geo pocket color',
-        // Games — PC
-        'pc',
         // Comics — Single Issues
         'single issue', 'annual', 'special', 'one-shot', 'mini-series', 'limited series',
         // Comics — Collected
