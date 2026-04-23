@@ -426,12 +426,12 @@
       <div class="settings-field">
         <label for="pricecharting-token">PriceCharting API key</label>
         <p class="settings-sub-hint pricecharting-helper">
-          API access is a paid subscription &mdash; see
+          API access is a paid subscription &mdash; see the
           <a
-            href="https://www.pricecharting.com/api"
+            href="https://www.pricecharting.com/api-documentation"
             target="_blank"
             rel="noopener"
-          >pricecharting.com/api</a> for pricing.
+          >API documentation</a> for pricing and details.
         </p>
         <div class="settings-token-row">
           <input
