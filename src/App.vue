@@ -262,7 +262,11 @@ const modalCategory = computed(() => {
 })
 
 const activeQueue = computed(() => {
-  if (enrich.running.value) return { queue: enrich, label: 'Enriching albums' }
+  // "Enriching items" rather than "…albums" — the queue is shared across
+  // all five categories, and since successive start() calls now append
+  // rather than getting dropped, a single drain may contain a mix (e.g.
+  // music + books). "Items" is the only label that's always accurate.
+  if (enrich.running.value) return { queue: enrich, label: 'Enriching items' }
   if (market.running.value) return { queue: market, label: 'Fetching market rates' }
   return null
 })
