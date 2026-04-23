@@ -61,8 +61,12 @@ export function useHashRouter() {
 
   async function restoreScroll(el) {
     const top = savedScrollTop.value
+    if (!el || top === 0) return
+    // Wait for Vue to flush DOM updates, then use a short rAF so the
+    // browser has actually laid out the now-visible content.
     await nextTick()
-    el?.scrollTo({ top, behavior: 'instant' })
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    el.scrollTo({ top, behavior: 'instant' })
   }
 
   return {

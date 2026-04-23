@@ -493,10 +493,7 @@ async function goBack() {
   selectedItem.value = null
   if (dest !== 'playlist-detail') selectedPlaylist.value = null
   setHash(hashForView(dest))
-  // For non-collection views (e.g. playlists), restore scroll position
-  if (!COLLECTION_VIEWS.includes(dest)) {
-    await restoreScroll(appContentRef.value?.$el)
-  }
+  await restoreScroll(appContentRef.value?.$el)
 }
 
 // ── playlist navigation ───────────────────────────────────────────────────────

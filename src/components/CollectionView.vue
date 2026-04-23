@@ -662,8 +662,6 @@ function thumbStyle(item) {
 .cv-status-tabs {
   height: var(--default-clickable-area, 44px);
   box-sizing: border-box;
-  border: 2px solid var(--color-border-dark);
-  border-radius: var(--border-radius);
 }
 
 .cv-sort-select {
@@ -730,18 +728,18 @@ function thumbStyle(item) {
   font-size: 1.1em;
 }
 
-/* Status tabs (inline in toolbar) */
+/* Status tabs (inline in toolbar) – button-group pattern, same as view toggle */
 .cv-status-tabs {
   display: inline-flex;
   align-items: stretch;
   gap: 0;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
 .cv-status-tab {
   background: none;
-  border: none;
+  border: 2px solid var(--color-border-dark);
+  box-sizing: border-box;
   padding: 0 18px;
   display: inline-flex;
   align-items: center;
@@ -749,16 +747,27 @@ function thumbStyle(item) {
   font-weight: 500;
   cursor: pointer;
   color: var(--color-text-maxcontrast);
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 
 .cv-status-tab + .cv-status-tab {
-  border-left: 2px solid var(--color-border-dark);
+  margin-left: -2px;
+}
+
+.cv-status-tab:first-child {
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.cv-status-tab:last-child {
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
 .cv-status-tab.active {
   background: var(--color-primary-element);
   color: var(--color-primary-element-text);
+  border-color: var(--color-primary-element);
+  position: relative;
+  z-index: 1;
 }
 
 /* Format filter chips */
