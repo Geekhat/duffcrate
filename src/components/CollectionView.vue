@@ -652,16 +652,10 @@ function thumbStyle(item) {
    explicit height + line-height to vertically centre its text. The
    <div> wrappers for view-toggle and status-tabs use align-items:
    stretch and let their child buttons fill via flex centering. */
-.cv-sort-select {
-  height: var(--default-clickable-area, 44px);
-  box-sizing: border-box;
-  border: 1px solid var(--color-primary-element-light-hover);
-  border-bottom-width: 2px;
-  border-radius: var(--border-radius-element, 22px);
-}
-
-.cv-status-tabs {
-  height: var(--default-clickable-area, 44px);
+.cv-sort-select,
+.cv-toggle-btn,
+.cv-status-tab {
+  min-height: var(--default-clickable-area, 44px);
   box-sizing: border-box;
 }
 
@@ -673,11 +667,15 @@ function thumbStyle(item) {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background:
-    linear-gradient(45deg, currentColor 50%, transparent 50%) calc(100% - 18px) 50% / 6px 6px no-repeat,
-    linear-gradient(-45deg, currentColor 50%, transparent 50%) calc(100% - 12px) 50% / 6px 6px no-repeat,
-    var(--color-primary-element-light);
+  background-color: var(--color-primary-element-light);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23222'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 12px) center;
+  background-size: 10px 6px;
   color: var(--color-primary-element-light-text);
+  border: 1px solid var(--color-primary-element-light-hover);
+  border-bottom-width: 2px;
+  border-radius: var(--border-radius-element, 22px);
   padding: 1px 32px 0 12px;
   font-size: var(--default-font-size);
   font-weight: bold;
@@ -689,14 +687,12 @@ function thumbStyle(item) {
 .cv-view-toggle {
   display: inline-flex;
   align-items: stretch;
-  height: var(--default-clickable-area, 44px);
 }
 
 .cv-toggle-btn {
   background-color: var(--color-primary-element-light);
   border: 1px solid var(--color-primary-element-light-hover);
   border-bottom-width: 2px;
-  box-sizing: border-box;
   margin: 0;
   min-width: var(--default-clickable-area, 44px);
   padding: 1px 12px 0;
@@ -746,7 +742,6 @@ function thumbStyle(item) {
   background-color: var(--color-primary-element-light);
   border: 1px solid var(--color-primary-element-light-hover);
   border-bottom-width: 2px;
-  box-sizing: border-box;
   margin: 0;
   padding: 1px 18px 0;
   display: inline-flex;

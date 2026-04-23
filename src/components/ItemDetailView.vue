@@ -5,7 +5,7 @@
       <!-- Top bar -->
       <div class="detail-topbar">
         <NcButton
-          variant="tertiary"
+          variant="secondary"
           class="detail-back"
           @click="$emit('back')"
         >
@@ -14,7 +14,7 @@
         <div class="detail-topbar-actions">
           <NcButton
             v-if="!enriching && !stripping"
-            variant="tertiary"
+            variant="secondary"
             :disabled="!hasToken || queueBusy"
             @click="enrich"
           >
@@ -22,14 +22,14 @@
           </NcButton>
           <NcButton
             v-if="isEnriched && !enriching && !stripping"
-            variant="tertiary"
+            variant="secondary"
             @click="stripEnrich"
           >
             Remove data
           </NcButton>
           <NcButton
             v-if="hasMarketValue && !fetchingMarket"
-            variant="tertiary"
+            variant="secondary"
             :disabled="!hasMarketToken || queueBusy"
             @click="fetchMarketValue"
           >
@@ -48,19 +48,19 @@
             class="detail-enriching"
           >Fetching price…</span>
           <NcButton
-            variant="tertiary"
+            variant="secondary"
             @click="$emit('addToPlaylist', item)"
           >
             Add to playlist
           </NcButton>
           <NcButton
-            variant="tertiary"
+            variant="secondary"
             @click="$emit('share', item)"
           >
             Share
           </NcButton>
           <NcButton
-            variant="tertiary"
+            variant="secondary"
             @click="$emit('edit', item)"
           >
             Edit
