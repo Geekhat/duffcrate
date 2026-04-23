@@ -92,7 +92,7 @@
           <span class="pd-item-artist">{{ item.artist }}</span>
           <span class="pd-item-meta">
             <span
-              v-if="item.category && item.category !== 'music'"
+              v-if="item.category"
               class="pd-badge pd-badge--cat"
             >{{ CATEGORY_LABELS[item.category] ?? item.category }}</span>
             <span class="pd-badge">{{ item.format }}</span>
