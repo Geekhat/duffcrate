@@ -547,6 +547,7 @@ function applyOpenLibrary(result) {
 function applyRawg(result) {
   form.value.artist    = result.artist    || form.value.artist
   form.value.title     = result.title     || form.value.title
+  form.value.format    = result.format    || form.value.format
   form.value.year      = result.year      || form.value.year
   form.value.label     = result.label     || form.value.label
   form.value.discogsId = result.rawgId    || null

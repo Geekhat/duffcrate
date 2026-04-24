@@ -457,8 +457,9 @@ function showDetail(item) {
   selectedItem.value = item
   view.value = 'detail'
   setHash(hashForView('detail', item.id))
-  // Auto-enrich items that haven't been enriched yet (search-then-enrich handles missing discogsId)
-  const notEnriched = !item.genres && !item.artistBio && !item.pressingNotes && !item.discogsId &&
+  // Auto-enrich items that haven't been enriched yet — having a discogsId
+  // (external API key from search) doesn't mean enrichment data was fetched.
+  const notEnriched = !item.genres && !item.artistBio && !item.pressingNotes &&
     !(Array.isArray(item.tracklist) && item.tracklist.length > 0)
   const cat = item.category ?? 'music'
   const canAutoEnrich =

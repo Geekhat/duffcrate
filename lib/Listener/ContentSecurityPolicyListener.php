@@ -19,8 +19,15 @@ class ContentSecurityPolicyListener implements IEventListener
         }
 
         $csp = new ContentSecurityPolicy();
-        // Allow Discogs CDN thumbnails in search results
+        // Allow enrichment-source CDN thumbnails in search results and artwork preview
         $csp->addAllowedImageDomain('https://i.discogs.com');
+        $csp->addAllowedImageDomain('https://img.discogs.com');
+        $csp->addAllowedImageDomain('https://st.discogs.com');
+        $csp->addAllowedImageDomain('https://image.tmdb.org');
+        $csp->addAllowedImageDomain('https://media.rawg.io');
+        $csp->addAllowedImageDomain('https://comicvine.gamespot.com');
+        $csp->addAllowedImageDomain('https://static.comicvine.com');
+        $csp->addAllowedImageDomain('https://covers.openlibrary.org');
         $event->addPolicy($csp);
     }
 }

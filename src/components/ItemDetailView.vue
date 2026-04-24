@@ -290,7 +290,7 @@ const barcodeFieldLabel = computed(() => props.item.category === 'book' ? 'ISBN'
 
 const isEnriched = computed(() => {
   const i = props.item
-  return !!(i.genres || i.artistBio || i.pressingNotes || i.discogsId ||
+  return !!(i.genres || i.artistBio || i.pressingNotes ||
     (Array.isArray(i.tracklist) && i.tracklist.length > 0))
 })
 
