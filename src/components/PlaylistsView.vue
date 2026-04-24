@@ -418,6 +418,8 @@ defineExpose({ load })
 }
 
 .pv-card-count {
+  position: relative;
+  z-index: 1;
   font-size: 0.7em;
   font-weight: 700;
   text-transform: uppercase;
