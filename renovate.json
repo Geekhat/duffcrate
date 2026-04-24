@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "npm minor/patch",
+      "automerge": true
+    },
+    {
+      "matchManagers": ["composer"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "composer minor/patch",
+      "automerge": true
+    },
+    {
+      "matchPackagePatterns": ["^@nextcloud/"],
+      "groupName": "nextcloud packages"
+    }
+  ]
+}
