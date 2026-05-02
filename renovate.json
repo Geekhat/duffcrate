@@ -1,25 +1,91 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":enableVulnerabilityAlertsWithLabel(security)",
+    "schedule:weekly"
   ],
+  "timezone": "Europe/London",
   "labels": ["dependencies"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 8,
+  "rangeStrategy": "bump",
+  "rebaseWhen": "behind-base-branch",
+  "minimumReleaseAge": "5 days",
+  "osvVulnerabilityAlerts": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
   "packageRules": [
     {
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "npm minor/patch",
-      "automerge": true
+      "description": "Patch-level npm and composer bumps may auto-merge. Minors are held back — Vue/Webpack/ESLint majors-as-minors and Composer dep tightening have bitten us before.",
+      "matchManagers": ["npm", "composer"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "npm + composer patch updates",
+      "automerge": true,
+      "automergeType": "branch"
     },
     {
-      "matchManagers": ["composer"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "composer minor/patch",
-      "automerge": true
+      "description": "Nextcloud server-side packages must align with the Nextcloud version we deploy against. Group and review manually — bumping `nextcloud/ocp` typically means we've also moved the target NC release.",
+      "matchPackageNames": [
+        "nextcloud/ocp",
+        "/^@nextcloud\\//"
+      ],
+      "groupName": "nextcloud packages",
+      "automerge": false,
+      "labels": ["dependencies", "nextcloud"]
     },
     {
-      "matchPackagePatterns": ["^@nextcloud/"],
-      "groupName": "nextcloud packages"
+      "description": "ESLint family — config schema changes between majors (we just migrated from .eslintrc.js to flat config for v10).",
+      "matchPackageNames": [
+        "eslint",
+        "/^eslint-/",
+        "/^@eslint\\//",
+        "globals"
+      ],
+      "groupName": "eslint",
+      "automerge": false
+    },
+    {
+      "description": "Webpack family.",
+      "matchPackageNames": [
+        "webpack",
+        "/^webpack-/"
+      ],
+      "groupName": "webpack",
+      "automerge": false
+    },
+    {
+      "description": "Vue runtime + tooling stays in sync.",
+      "matchPackageNames": [
+        "vue",
+        "/^@vue\\//",
+        "vue-template-compiler"
+      ],
+      "groupName": "vue"
+    },
+    {
+      "description": "PHP dev tooling (PHPUnit, PHPCS) — lockstep with the PHP version constraint in composer.json.",
+      "matchPackageNames": [
+        "phpunit/phpunit",
+        "squizlabs/php_codesniffer"
+      ],
+      "groupName": "php dev tools",
+      "automerge": false
+    },
+    {
+      "description": "Container images used in CI (node, composer). Surface bumps but never auto-merge.",
+      "matchManagers": ["dockerfile", "woodpecker"],
+      "automerge": false,
+      "labels": ["ci"]
+    },
+    {
+      "description": "Never auto-merge any major bump anywhere in the project.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
     }
   ]
 }
