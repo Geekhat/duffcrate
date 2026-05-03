@@ -7,11 +7,11 @@
     <description><![CDATA[Catalogue your physical music collection — vinyl, CDs, cassettes, MiniDiscs and more. Add items manually or by barcode, pull metadata from Discogs, and keep track of what you own and what you want.]]></description>
     <version>0.3.0</version>
     <licence>agpl</licence>
-    <author mail="david@macemail.co.uk" homepage="https://gitea.macecloud.co.uk/macebox/crate">David Mace</author>
+    <author mail="22581049+megamaced@users.noreply.github.com" homepage="https://github.com/megamaced/crate">megamaced</author>
     <namespace>Crate</namespace>
     <category>multimedia</category>
-    <bugs>https://gitea.macecloud.co.uk/macebox/crate/issues</bugs>
-    <repository type="git">https://gitea.macecloud.co.uk/macebox/crate</repository>
+    <bugs>https://github.com/megamaced/crate/issues</bugs>
+    <repository type="git">https://github.com/megamaced/crate</repository>
     <dependencies>
         <nextcloud min-version="29" max-version="33"/>
     </dependencies>

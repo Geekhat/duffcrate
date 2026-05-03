@@ -13,7 +13,7 @@ use OCP\Security\ICredentialsManager;
 class MarketValueService
 {
     private const API_BASE   = 'https://api.discogs.com';
-    private const USER_AGENT = 'CrateNextcloudApp/0.1 +https://gitea.macecloud.co.uk/macebox/crate';
+    private const USER_AGENT = 'CrateNextcloudApp/0.1 +https://github.com/megamaced/crate';
 
     /** Upper bound for persisted market values — guards against upstream typos. */
     private const MAX_MARKET_VALUE = 1_000_000.0;

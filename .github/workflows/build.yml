@@ -1,0 +1,95 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write   # needed to upload release assets on tag pushes
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - run: composer install --no-interaction --no-progress
+
+      - run: vendor/bin/phpcs --standard=PSR12 lib/
+
+      - run: vendor/bin/phpunit --testsuite unit
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run build
+
+      - name: Upload built JS bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: crate-js-${{ github.sha }}
+          path: js/
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: [php, js]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Build release archive
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#v}"
+          STAGE="$(mktemp -d)"
+          mkdir -p "$STAGE/crate"
+          cp -r appinfo img lib templates js LICENSE README.md "$STAGE/crate/"
+          tar -C "$STAGE" -czf "crate-${VERSION}.tar.gz" crate
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: crate-*.tar.gz
+          generate_release_notes: true
