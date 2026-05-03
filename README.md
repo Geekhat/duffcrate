@@ -8,23 +8,23 @@ A personal physical media cataloguing app for [Nextcloud](https://nextcloud.com)
 
 ## Screenshots
 
-### Browsing
+### Collection views
 
-| Music | Films & Comics | Books |
+| Books | Comics | Films |
 | --- | --- | --- |
-| ![Music collection with format filter chips: Vinyl, CD, Cassette](docs/screenshots/music.png) | ![Comics collection grouped alphabetically](docs/screenshots/comics.png) | ![Books collection sorted by author](docs/screenshots/books.png) |
+| ![Books collection sorted by author](docs/screenshots/books.png) | ![Comics collection grouped alphabetically](docs/screenshots/comics.png) | ![Films collection with format filter chips: Blu-ray, 4K UHD, DVD](docs/screenshots/films.png) |
 
-| Games | Playlists | Import |
+| Games | Music | Playlists |
 | --- | --- | --- |
-| ![Games collection with platform filter chips](docs/screenshots/games.png) | ![Playlists — mixed-category groups](docs/screenshots/playlists.png) | ![CSV / XLSX import dialog with required + optional columns](docs/screenshots/import.png) |
+| ![Games collection with platform filter chips](docs/screenshots/games.png) | ![Music collection with format filter chips: Vinyl, CD, Cassette](docs/screenshots/music.png) | ![Playlists — mixed-category groups](docs/screenshots/playlists.png) |
 
-### Detail views
+### Detail views & import
 
-Rich, category-aware detail with auto-fetched metadata, tracklists, market values, and per-item actions (re-enrich, refresh market rate, share, edit, add to playlist).
+Rich, category-aware detail with auto-fetched metadata, tracklists, market values, and per-item actions (re-enrich, refresh market rate, share, edit, add to playlist). Bulk-add an existing collection by uploading a CSV or XLSX.
 
-| Music | Games |
-| --- | --- |
-| ![Vinyl detail — Billy Idol, with tracklist, label, market value of £4.44](docs/screenshots/detail-music.png) | ![Game detail — Control, with full plot, developer, publisher, genres](docs/screenshots/detail-game.png) |
+| Music detail | Game detail | Import |
+| --- | --- | --- |
+| ![Vinyl detail — Billy Idol, with tracklist, label, market value of £4.44](docs/screenshots/detail-music.png) | ![Game detail — Control, with full plot, developer, publisher, genres](docs/screenshots/detail-game.png) | ![CSV / XLSX import dialog with required + optional columns](docs/screenshots/import.png) |
 
 ## Features
 
