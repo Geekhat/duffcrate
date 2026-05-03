@@ -360,7 +360,18 @@ async function load() {
   }
 }
 
-defineExpose({ reload: load })
+/**
+ * Patch a single item in the in-memory list — used after enrich / strip /
+ * market-value fetch in the detail view, so the kept-alive collection view
+ * reflects the change without a full reload when the user navigates back.
+ */
+function update(updated) {
+  if (!updated?.id) return
+  const i = items.value.findIndex(x => x.id === updated.id)
+  if (i >= 0) items.value[i] = updated
+}
+
+defineExpose({ reload: load, update })
 
 // Defer initial load until the view is actually visible. When the parent
 // uses v-show, the component mounts immediately (even while hidden), so

@@ -736,6 +736,9 @@ async function deleteItem() {
 // ── enrich ────────────────────────────────────────────────────────────────────
 function handleEnriched(updated) {
   selectedItem.value = updated
+  // Patch the kept-alive collection view so navigating back doesn't show
+  // the pre-enrichment row. Same for new market-value fetches.
+  collectionViewRef.value?.update?.(updated)
 }
 </script>
 
