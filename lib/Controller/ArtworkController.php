@@ -134,7 +134,7 @@ class ArtworkController extends Controller
             try {
                 $client = $this->clientService->newClient();
                 $download = $client->get($artworkPath, [
-                    'headers' => ['User-Agent' => 'CrateNextcloudApp/0.1'],
+                    'headers' => ['User-Agent' => 'CrateNextcloudApp/0.4'],
                     'timeout' => 10,
                 ]);
                 // Reject non-image responses to prevent cache-poisoning via

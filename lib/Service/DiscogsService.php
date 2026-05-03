@@ -7,7 +7,7 @@ namespace OCA\Crate\Service;
 class DiscogsService extends AbstractApiService
 {
     private const API_BASE = 'https://api.discogs.com';
-    private const USER_AGENT = 'CrateNextcloudApp/0.1 +https://github.com/megamaced/crate';
+    private const USER_AGENT = 'CrateNextcloudApp/0.4 +https://github.com/megamaced/crate';
 
     protected function serviceName(): string
     {
