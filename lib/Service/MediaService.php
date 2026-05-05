@@ -269,42 +269,18 @@ class MediaService
      */
     public function applyTmdbData(int $id, string $userId, array $movie): MediaItem
     {
-        $item = $this->mapper->findByUser($id, $userId);
-        $this->snapshotOriginals($item);
-
-        if (!empty($movie['title'])) {
-            $item->setTitle($movie['title']);
-        }
-        if (!empty($movie['artist'])) {
-            $item->setArtist($movie['artist']);
-        }
-        if (isset($movie['year'])) {
-            $item->setYear($movie['year']);
-        }
-        if (!empty($movie['genres'])) {
-            $item->setGenres($movie['genres']);
-        }
-        if (!empty($movie['label'])) {
-            $item->setLabel($movie['label']);
-        }
-        if (!empty($movie['country'])) {
-            $item->setCountry($movie['country']);
-        }
-        if (!empty($movie['overview'])) {
-            $item->setPressingNotes($movie['overview']);
-        }
-        if (!empty($movie['artworkUrl'])) {
-            $item->setArtworkPath($movie['artworkUrl']);
-        }
-        if (!empty($movie['tmdbId'])) {
-            $item->setDiscogsId($movie['tmdbId']);
-        }
-        if (!empty($movie['directorId'])) {
-            $item->setDiscogsArtistId($movie['directorId']);
-        }
-
-        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-        return $this->mapper->update($item);
+        return $this->applyEnrichmentFields($id, $userId, [
+            'title' => $movie['title'] ?? null,
+            'artist' => $movie['artist'] ?? null,
+            'year' => $movie['year'] ?? null,
+            'genres' => $movie['genres'] ?? null,
+            'label' => $movie['label'] ?? null,
+            'country' => $movie['country'] ?? null,
+            'overview' => $movie['overview'] ?? null,
+            'artworkUrl' => $movie['artworkUrl'] ?? null,
+            'enrichmentId' => $movie['tmdbId'] ?? null,
+            'enrichmentArtistId' => $movie['directorId'] ?? null,
+        ]);
     }
 
     /**
@@ -316,48 +292,20 @@ class MediaService
      */
     public function applyOpenLibraryData(int $id, string $userId, array $doc, array $work): MediaItem
     {
-        $item = $this->mapper->findByUser($id, $userId);
-        $this->snapshotOriginals($item);
-
-        if (!empty($doc['title'])) {
-            $item->setTitle($doc['title']);
-        }
-        if (!empty($doc['artist'])) {
-            $item->setArtist($doc['artist']);
-        }
-        if (isset($doc['year'])) {
-            $item->setYear($doc['year']);
-        }
-        if (!empty($doc['label'])) {
-            $item->setLabel($doc['label']);
-        }
-        if (!empty($doc['barcode'])) {
-            $item->setBarcode($doc['barcode']);
-        }
-
-        // Work detail fields take precedence over search fields
         $genres = $work['genres'] ?? $doc['genres'] ?? null;
-        if (!empty($genres)) {
-            $item->setGenres($genres);
-        }
-        if (!empty($work['overview'])) {
-            $item->setPressingNotes($work['overview']);
-        }
-        if (!empty($work['artworkUrl'])) {
-            $item->setArtworkPath($work['artworkUrl']);
-        }
-        if (!empty($work['authorBio'])) {
-            $item->setArtistBio($work['authorBio']);
-        }
-        if (!empty($work['authorKey'])) {
-            $item->setDiscogsArtistId($work['authorKey']);
-        }
-        if (!empty($doc['workKey'])) {
-            $item->setDiscogsId($doc['workKey']);
-        }
-
-        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-        return $this->mapper->update($item);
+        return $this->applyEnrichmentFields($id, $userId, [
+            'title' => $doc['title'] ?? null,
+            'artist' => $doc['artist'] ?? null,
+            'year' => $doc['year'] ?? null,
+            'label' => $doc['label'] ?? null,
+            'barcode' => $doc['barcode'] ?? null,
+            'genres' => $genres,
+            'overview' => $work['overview'] ?? null,
+            'artworkUrl' => $work['artworkUrl'] ?? null,
+            'artistBio' => $work['authorBio'] ?? null,
+            'enrichmentArtistId' => $work['authorKey'] ?? null,
+            'enrichmentId' => $doc['workKey'] ?? null,
+        ]);
     }
 
     /**
@@ -368,36 +316,16 @@ class MediaService
      */
     public function applyRawgData(int $id, string $userId, array $game): MediaItem
     {
-        $item = $this->mapper->findByUser($id, $userId);
-        $this->snapshotOriginals($item);
-
-        if (!empty($game['title'])) {
-            $item->setTitle($game['title']);
-        }
-        if (!empty($game['artist'])) {
-            $item->setArtist($game['artist']);
-        }
-        if (isset($game['year'])) {
-            $item->setYear($game['year']);
-        }
-        if (!empty($game['label'])) {
-            $item->setLabel($game['label']);
-        }
-        if (!empty($game['genres'])) {
-            $item->setGenres($game['genres']);
-        }
-        if (!empty($game['overview'])) {
-            $item->setPressingNotes($game['overview']);
-        }
-        if (!empty($game['artworkUrl'])) {
-            $item->setArtworkPath($game['artworkUrl']);
-        }
-        if (!empty($game['rawgId'])) {
-            $item->setDiscogsId($game['rawgId']);
-        }
-
-        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-        return $this->mapper->update($item);
+        return $this->applyEnrichmentFields($id, $userId, [
+            'title' => $game['title'] ?? null,
+            'artist' => $game['artist'] ?? null,
+            'year' => $game['year'] ?? null,
+            'label' => $game['label'] ?? null,
+            'genres' => $game['genres'] ?? null,
+            'overview' => $game['overview'] ?? null,
+            'artworkUrl' => $game['artworkUrl'] ?? null,
+            'enrichmentId' => $game['rawgId'] ?? null,
+        ]);
     }
 
     /**
@@ -408,29 +336,62 @@ class MediaService
      */
     public function applyComicVineData(int $id, string $userId, array $volume): MediaItem
     {
+        return $this->applyEnrichmentFields($id, $userId, [
+            'title' => $volume['title'] ?? null,
+            'year' => $volume['year'] ?? null,
+            'label' => $volume['label'] ?? null,
+            'genres' => $volume['genres'] ?? null,
+            'overview' => $volume['overview'] ?? null,
+            'artworkUrl' => $volume['artworkUrl'] ?? null,
+            'enrichmentId' => $volume['comicVineId'] ?? null,
+        ]);
+    }
+
+    /**
+     * Apply a normalised set of enrichment fields to an item.
+     *
+     * Supported keys: title, artist, year, genres, label, country, barcode,
+     * overview, artworkUrl, enrichmentId, enrichmentArtistId, artistBio,
+     * artistMembers, tracklist.
+     *
+     * @param array<string, mixed> $fields
+     */
+    private function applyEnrichmentFields(int $id, string $userId, array $fields): MediaItem
+    {
         $item = $this->mapper->findByUser($id, $userId);
         $this->snapshotOriginals($item);
 
-        if (!empty($volume['title'])) {
-            $item->setTitle($volume['title']);
+        $map = [
+            'title'               => 'setTitle',
+            'artist'              => 'setArtist',
+            'label'               => 'setLabel',
+            'country'             => 'setCountry',
+            'barcode'             => 'setBarcode',
+            'genres'              => 'setGenres',
+            'overview'            => 'setPressingNotes',
+            'artworkUrl'          => 'setArtworkPath',
+            'enrichmentId'        => 'setDiscogsId',
+            'enrichmentArtistId'  => 'setDiscogsArtistId',
+            'artistBio'           => 'setArtistBio',
+        ];
+
+        foreach ($map as $key => $setter) {
+            if (!empty($fields[$key])) {
+                $item->$setter($fields[$key]);
+            }
         }
-        if (isset($volume['year'])) {
-            $item->setYear($volume['year']);
+
+        // Year uses isset() — 0 is a valid value
+        if (isset($fields['year'])) {
+            $item->setYear($fields['year']);
         }
-        if (!empty($volume['label'])) {
-            $item->setLabel($volume['label']);
+
+        // JSON-encoded array fields
+        if (isset($fields['tracklist']) && is_array($fields['tracklist'])) {
+            $item->setTracklist(json_encode($fields['tracklist']));
         }
-        if (!empty($volume['genres'])) {
-            $item->setGenres($volume['genres']);
-        }
-        if (!empty($volume['overview'])) {
-            $item->setPressingNotes($volume['overview']);
-        }
-        if (!empty($volume['artworkUrl'])) {
-            $item->setArtworkPath($volume['artworkUrl']);
-        }
-        if (!empty($volume['comicVineId'])) {
-            $item->setDiscogsId($volume['comicVineId']);
+        if (isset($fields['artistMembers']) && is_array($fields['artistMembers'])) {
+            $item->setArtistMembers(json_encode($fields['artistMembers']));
         }
 
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
@@ -511,53 +472,19 @@ class MediaService
      */
     public function applyReleaseData(int $id, string $userId, array $release, array $artist = []): MediaItem
     {
-        $item = $this->mapper->findByUser($id, $userId);
-        $this->snapshotOriginals($item);
-
-        if (!empty($release['title'])) {
-            $item->setTitle($release['title']);
-        }
-        if (!empty($release['artist'])) {
-            $item->setArtist($release['artist']);
-        }
-        // Format is not overwritten — the user's stored format is their explicit record
-        // of which pressing/format they own, and should not be changed by enrichment.
-        if (isset($release['year'])) {
-            $item->setYear($release['year']);
-        }
-        if (!empty($release['label'])) {
-            $item->setLabel($release['label']);
-        }
-        if (!empty($release['country'])) {
-            $item->setCountry($release['country']);
-        }
-        if (!empty($release['genres'])) {
-            $item->setGenres($release['genres']);
-        }
-        if (isset($release['tracklist']) && is_array($release['tracklist'])) {
-            $item->setTracklist(json_encode($release['tracklist']));
-        }
-        if (!empty($release['pressingNotes'])) {
-            $item->setPressingNotes($release['pressingNotes']);
-        }
-        if (!empty($release['discogsArtistId'])) {
-            $item->setDiscogsArtistId($release['discogsArtistId']);
-        }
-        // Use full-size artwork URL (ArtworkController will cache it lazily)
-        if (!empty($release['artworkUrl'])) {
-            $item->setArtworkPath($release['artworkUrl']);
-        }
-
-        // Artist fields
-        if (!empty($artist['bio'])) {
-            $item->setArtistBio($artist['bio']);
-        }
-        if (isset($artist['members']) && is_array($artist['members'])) {
-            $item->setArtistMembers(json_encode($artist['members']));
-        }
-
-        $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-
-        return $this->mapper->update($item);
+        return $this->applyEnrichmentFields($id, $userId, [
+            'title' => $release['title'] ?? null,
+            'artist' => $release['artist'] ?? null,
+            'year' => $release['year'] ?? null,
+            'label' => $release['label'] ?? null,
+            'country' => $release['country'] ?? null,
+            'genres' => $release['genres'] ?? null,
+            'tracklist' => $release['tracklist'] ?? null,
+            'overview' => $release['pressingNotes'] ?? null,
+            'enrichmentArtistId' => $release['discogsArtistId'] ?? null,
+            'artworkUrl' => $release['artworkUrl'] ?? null,
+            'artistBio' => $artist['bio'] ?? null,
+            'artistMembers' => $artist['members'] ?? null,
+        ]);
     }
 }

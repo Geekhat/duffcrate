@@ -214,6 +214,7 @@ class SettingsController extends OCSController
             'autoFetchMarketRates' => $autoFetch,
             'autoEnrichOnClick'    => $autoEnrichClick,
             'autoEnrichOnImport'   => $autoEnrichImport,
+            'crateVersion'         => $this->config->getAppValue('crate', 'installed_version', '0.0.0'),
         ]);
     }
 }

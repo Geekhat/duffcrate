@@ -46,13 +46,16 @@ class MediaController extends OCSController
         ?string $updatedSince = null,
         int $limit = 50,
         int $offset = 0,
+        ?bool $paginated = null,
     ): DataResponse {
-        // Legacy callers (web app) get the flat array; API callers using
-        // limit/offset/updatedSince get wrapped pagination metadata.
-        $isPaginated = $this->request->getParam('limit') !== null
-            || $this->request->getParam('offset') !== null
-            || $this->request->getParam('updatedSince') !== null
-            || $this->request->getParam('status') !== null;
+        // Explicit flag or inferred from presence of pagination-related params.
+        $isPaginated = $paginated === true
+            || ($paginated === null && (
+                $this->request->getParam('limit') !== null
+                || $this->request->getParam('offset') !== null
+                || $this->request->getParam('updatedSince') !== null
+                || $this->request->getParam('status') !== null
+            ));
 
         $offset = max(0, min($offset, self::MAX_OFFSET));
         $limit  = max(1, min($limit, self::MAX_LIMIT));

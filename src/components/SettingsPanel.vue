@@ -94,17 +94,17 @@
         <div class="settings-token-row">
           <input
             id="comicvine-key"
-            v-model="comicVineKeyInput"
-            :type="showComicVineKey ? 'text' : 'password'"
-            :placeholder="hasComicVineKey ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            v-model="comicVine.input.value"
+            :type="comicVine.showValue.value ? 'text' : 'password'"
+            :placeholder="comicVine.hasValue.value ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showComicVineKey ? 'Hide API key' : 'Show API key'"
-            @click="showComicVineKey = !showComicVineKey"
+            :aria-label="comicVine.showValue.value ? 'Hide API key' : 'Show API key'"
+            @click="comicVine.toggleVisibility()"
           >
-            {{ showComicVineKey ? 'Hide' : 'Show' }}
+            {{ comicVine.showValue.value ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -112,35 +112,35 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="savingComicVine || comicVineKeyInput === ''"
+          :disabled="comicVine.saving.value || comicVine.input.value === ''""
           @click="saveComicVineKey"
         >
-          {{ savingComicVine ? 'Saving…' : 'Save' }}
+          {{ comicVine.saving.value ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasComicVineKey"
+          v-if="comicVine.hasValue.value"
           variant="tertiary"
-          :disabled="savingComicVine"
+          :disabled="comicVine.saving.value"
           @click="clearComicVineKey"
         >
           Remove
         </NcButton>
         <span
-          v-if="comicVineSavedMessage"
+          v-if="comicVine.message.value"
           class="settings-saved"
-        >{{ comicVineSavedMessage }}</span>
+        >{{ comicVine.message.value }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="!hasComicVineKey || enrich.running.value || marketQueue.running.value"
+          :disabled="!comicVine.hasValue.value || enrich.running.value || marketQueue.running.value"
           @click="enrichAll('comic')"
         >
           Enrich all un-enriched comics
         </NcButton>
         <span
-          v-if="!hasComicVineKey"
+          v-if="!comicVine.hasValue.value"
           class="settings-hint"
           style="margin:0"
         >Add a ComicVine API key above to enable enrichment.</span>
@@ -171,17 +171,17 @@
         <div class="settings-token-row">
           <input
             id="tmdb-token"
-            v-model="tmdbTokenInput"
-            :type="showTmdbToken ? 'text' : 'password'"
-            :placeholder="hasTmdbToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            v-model="tmdb.input.value"
+            :type="tmdb.showValue.value ? 'text' : 'password'"
+            :placeholder="tmdb.hasValue.value ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showTmdbToken ? 'Hide API key' : 'Show API key'"
-            @click="showTmdbToken = !showTmdbToken"
+            :aria-label="tmdb.showValue.value ? 'Hide API key' : 'Show API key'"
+            @click="tmdb.toggleVisibility()"
           >
-            {{ showTmdbToken ? 'Hide' : 'Show' }}
+            {{ tmdb.showValue.value ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -189,35 +189,35 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="savingTmdb || tmdbTokenInput === ''"
+          :disabled="tmdb.saving.value || tmdb.input.value === ''""
           @click="saveTmdbToken"
         >
-          {{ savingTmdb ? 'Saving…' : 'Save' }}
+          {{ tmdb.saving.value ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasTmdbToken"
+          v-if="tmdb.hasValue.value"
           variant="tertiary"
-          :disabled="savingTmdb"
+          :disabled="tmdb.saving.value"
           @click="clearTmdbToken"
         >
           Remove
         </NcButton>
         <span
-          v-if="tmdbSavedMessage"
+          v-if="tmdb.message.value"
           class="settings-saved"
-        >{{ tmdbSavedMessage }}</span>
+        >{{ tmdb.message.value }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="!hasTmdbToken || enrich.running.value || marketQueue.running.value"
+          :disabled="!tmdb.hasValue.value || enrich.running.value || marketQueue.running.value"
           @click="enrichAll('film')"
         >
           Enrich all un-enriched films
         </NcButton>
         <span
-          v-if="!hasTmdbToken"
+          v-if="!tmdb.hasValue.value"
           class="settings-hint"
           style="margin:0"
         >Add a TMDB API key above to enable enrichment.</span>
@@ -248,17 +248,17 @@
         <div class="settings-token-row">
           <input
             id="rawg-key"
-            v-model="rawgKeyInput"
-            :type="showRawgKey ? 'text' : 'password'"
-            :placeholder="hasRawgKey ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            v-model="rawg.input.value"
+            :type="rawg.showValue.value ? 'text' : 'password'"
+            :placeholder="rawg.hasValue.value ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showRawgKey ? 'Hide API key' : 'Show API key'"
-            @click="showRawgKey = !showRawgKey"
+            :aria-label="rawg.showValue.value ? 'Hide API key' : 'Show API key'"
+            @click="rawg.toggleVisibility()"
           >
-            {{ showRawgKey ? 'Hide' : 'Show' }}
+            {{ rawg.showValue.value ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -266,35 +266,35 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="savingRawg || rawgKeyInput === ''"
+          :disabled="rawg.saving.value || rawg.input.value === ''""
           @click="saveRawgKey"
         >
-          {{ savingRawg ? 'Saving…' : 'Save' }}
+          {{ rawg.saving.value ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasRawgKey"
+          v-if="rawg.hasValue.value"
           variant="tertiary"
-          :disabled="savingRawg"
+          :disabled="rawg.saving.value"
           @click="clearRawgKey"
         >
           Remove
         </NcButton>
         <span
-          v-if="rawgSavedMessage"
+          v-if="rawg.message.value"
           class="settings-saved"
-        >{{ rawgSavedMessage }}</span>
+        >{{ rawg.message.value }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="!hasRawgKey || enrich.running.value || marketQueue.running.value"
+          :disabled="!rawg.hasValue.value || enrich.running.value || marketQueue.running.value"
           @click="enrichAll('game')"
         >
           Enrich all un-enriched games
         </NcButton>
         <span
-          v-if="!hasRawgKey"
+          v-if="!rawg.hasValue.value"
           class="settings-hint"
           style="margin:0"
         >Add a RAWG API key above to enable enrichment.</span>
@@ -325,17 +325,17 @@
         <div class="settings-token-row">
           <input
             id="discogs-token"
-            v-model="tokenInput"
-            :type="showToken ? 'text' : 'password'"
-            :placeholder="hasToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            v-model="discogs.input.value"
+            :type="discogs.showValue.value ? 'text' : 'password'"
+            :placeholder="discogs.hasValue.value ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showToken ? 'Hide API key' : 'Show API key'"
-            @click="showToken = !showToken"
+            :aria-label="discogs.showValue.value ? 'Hide API key' : 'Show API key'"
+            @click="discogs.toggleVisibility()"
           >
-            {{ showToken ? 'Hide' : 'Show' }}
+            {{ discogs.showValue.value ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -343,35 +343,35 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="saving || tokenInput === ''"
-          @click="save"
+          :disabled="discogs.saving.value || discogs.input.value === ''""
+          @click="saveDiscogsToken"
         >
-          {{ saving ? 'Saving…' : 'Save' }}
+          {{ discogs.saving.value ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasToken"
+          v-if="discogs.hasValue.value"
           variant="tertiary"
-          :disabled="saving"
-          @click="clearToken"
+          :disabled="discogs.saving.value"
+          @click="clearDiscogsToken"
         >
           Remove
         </NcButton>
         <span
-          v-if="savedMessage"
+          v-if="discogs.message.value"
           class="settings-saved"
-        >{{ savedMessage }}</span>
+        >{{ discogs.message.value }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="!hasToken || enrich.running.value || marketQueue.running.value"
+          :disabled="!discogs.hasValue.value || enrich.running.value || marketQueue.running.value"
           @click="enrichAll('music')"
         >
           Enrich all un-enriched music
         </NcButton>
         <span
-          v-if="!hasToken"
+          v-if="!discogs.hasValue.value"
           class="settings-hint"
           style="margin:0"
         >Add a Discogs API key above to enable enrichment.</span>
@@ -436,17 +436,17 @@
         <div class="settings-token-row">
           <input
             id="pricecharting-token"
-            v-model="priceChartingTokenInput"
-            :type="showPriceChartingToken ? 'text' : 'password'"
-            :placeholder="hasPriceChartingToken ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
+            v-model="priceCharting.input.value"
+            :type="priceCharting.showValue.value ? 'text' : 'password'"
+            :placeholder="priceCharting.hasValue.value ? '(saved — paste a new one to replace)' : 'Paste your API key here'"
             autocomplete="off"
           >
           <NcButton
             variant="tertiary"
-            :aria-label="showPriceChartingToken ? 'Hide API key' : 'Show API key'"
-            @click="showPriceChartingToken = !showPriceChartingToken"
+            :aria-label="priceCharting.showValue.value ? 'Hide API key' : 'Show API key'"
+            @click="priceCharting.toggleVisibility()"
           >
-            {{ showPriceChartingToken ? 'Hide' : 'Show' }}
+            {{ priceCharting.showValue.value ? 'Hide' : 'Show' }}
           </NcButton>
         </div>
       </div>
@@ -454,29 +454,29 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="savingPriceCharting || priceChartingTokenInput === ''"
+          :disabled="priceCharting.saving.value || priceCharting.input.value === ''""
           @click="savePriceChartingToken"
         >
-          {{ savingPriceCharting ? 'Saving…' : 'Save' }}
+          {{ priceCharting.saving.value ? 'Saving…' : 'Save' }}
         </NcButton>
         <NcButton
-          v-if="hasPriceChartingToken"
+          v-if="priceCharting.hasValue.value"
           variant="tertiary"
-          :disabled="savingPriceCharting"
+          :disabled="priceCharting.saving.value"
           @click="clearPriceChartingToken"
         >
           Remove
         </NcButton>
         <span
-          v-if="priceChartingSavedMessage"
+          v-if="priceCharting.message.value"
           class="settings-saved"
-        >{{ priceChartingSavedMessage }}</span>
+        >{{ priceCharting.message.value }}</span>
       </div>
 
       <div class="settings-actions settings-enrich-all">
         <NcButton
           variant="secondary"
-          :disabled="(!hasToken && !hasPriceChartingToken) || marketQueue.running.value || enrich.running.value"
+          :disabled="(!discogs.hasValue.value && !priceCharting.hasValue.value) || marketQueue.running.value || enrich.running.value"
           @click="refreshAllMarketRates"
         >
           {{ marketQueue.running.value
@@ -491,7 +491,7 @@
           Stop
         </NcButton>
         <span
-          v-if="!hasToken && !hasPriceChartingToken"
+          v-if="!discogs.hasValue.value && !priceCharting.hasValue.value"
           class="settings-hint"
           style="margin:0"
         >Add a Discogs or PriceCharting API key to enable market rates.</span>
@@ -568,6 +568,7 @@ import { showError } from '@nextcloud/dialogs'
 import { useEnrichQueue } from '../composables/useEnrichQueue.js'
 import { useMarketValueQueue } from '../composables/useMarketValueQueue.js'
 import { useSettings } from '../composables/useSettings.js'
+import { useTokenSetting } from '../composables/useTokenSetting.js'
 
 defineProps({
   open: { type: Boolean, required: true },
@@ -580,40 +581,12 @@ const { autoEnrichOnClick, autoFetchMarketRates, marketCurrency } = useSettings(
 
 const currencies = ref([])
 
-// Discogs (Music)
-const tokenInput = ref('')
-const hasToken = ref(false)
-const showToken = ref(false)
-const saving = ref(false)
-const savedMessage = ref('')
-
-// TMDB (Films)
-const tmdbTokenInput = ref('')
-const hasTmdbToken = ref(false)
-const showTmdbToken = ref(false)
-const savingTmdb = ref(false)
-const tmdbSavedMessage = ref('')
-
-// RAWG (Games)
-const rawgKeyInput = ref('')
-const hasRawgKey = ref(false)
-const showRawgKey = ref(false)
-const savingRawg = ref(false)
-const rawgSavedMessage = ref('')
-
-// ComicVine (Comics)
-const comicVineKeyInput = ref('')
-const hasComicVineKey = ref(false)
-const showComicVineKey = ref(false)
-const savingComicVine = ref(false)
-const comicVineSavedMessage = ref('')
-
-// PriceCharting (Market Values)
-const priceChartingTokenInput = ref('')
-const hasPriceChartingToken = ref(false)
-const showPriceChartingToken = ref(false)
-const savingPriceCharting = ref(false)
-const priceChartingSavedMessage = ref('')
+// Token settings via composable
+const discogs = useTokenSetting({ endpoint: '/settings/discogs-token', payloadKey: 'token', responseKey: 'hasToken', label: 'Discogs token' })
+const tmdb = useTokenSetting({ endpoint: '/settings/tmdb-token', payloadKey: 'token', responseKey: 'hasToken', label: 'TMDB token' })
+const rawg = useTokenSetting({ endpoint: '/settings/rawg-key', payloadKey: 'key', responseKey: 'hasKey', label: 'RAWG key' })
+const comicVine = useTokenSetting({ endpoint: '/settings/comicvine-key', payloadKey: 'key', responseKey: 'hasKey', label: 'ComicVine key' })
+const priceCharting = useTokenSetting({ endpoint: '/settings/pricecharting-token', payloadKey: 'token', responseKey: 'hasToken', label: 'PriceCharting token' })
 
 const confirmWipe = ref(false)
 const wiping = ref(false)
@@ -645,202 +618,69 @@ function toggleWipeScope(value, checked) {
 
 async function load() {
   try {
-    const [tokenRes, currRes, tmdbRes, rawgRes, cvRes, pcRes] = await Promise.all([
-      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token')),
+    const [currRes] = await Promise.all([
       axios.get(generateOcsUrl('/apps/crate/api/v1/settings/currencies')),
-      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/tmdb-token')),
-      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/rawg-key')),
-      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/comicvine-key')),
-      axios.get(generateOcsUrl('/apps/crate/api/v1/settings/pricecharting-token')),
+      discogs.load(),
+      tmdb.load(),
+      rawg.load(),
+      comicVine.load(),
+      priceCharting.load(),
     ])
-    hasToken.value              = tokenRes.data.ocs?.data?.hasToken ?? false
-    currencies.value            = currRes.data.ocs?.data ?? []
-    hasTmdbToken.value          = tmdbRes.data.ocs?.data?.hasToken ?? false
-    hasRawgKey.value            = rawgRes.data.ocs?.data?.hasKey ?? false
-    hasComicVineKey.value       = cvRes.data.ocs?.data?.hasKey ?? false
-    hasPriceChartingToken.value = pcRes.data.ocs?.data?.hasToken ?? false
-    // Inputs intentionally start empty — saved tokens are never sent back
-    // to the client. The Show/Hide toggle reveals only what the user has
-    // typed in this session.
+    currencies.value = currRes.data.ocs?.data ?? []
   } catch (e) {
     console.error('Failed to load settings', e)
     showError('Failed to load settings')
   }
 }
 
-async function save() {
-  saving.value = true
-  savedMessage.value = ''
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'), { token: tokenInput.value })
-    hasToken.value = tokenInput.value !== ''
-    emit('token-changed', hasToken.value)
-    savedMessage.value = 'Saved!'
-    setTimeout(() => { savedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to save Discogs token', e?.response?.status)
-    showError('Failed to save Discogs token')
-    savedMessage.value = 'Failed to save.'
-  } finally {
-    saving.value = false
-  }
+async function saveDiscogsToken() {
+  await discogs.save()
+  emit('token-changed', discogs.hasValue.value)
 }
 
-async function clearToken() {
-  saving.value = true
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/discogs-token'), { token: '' })
-    hasToken.value = false
-    tokenInput.value = ''
-    emit('token-changed', false)
-    savedMessage.value = 'Token removed.'
-    setTimeout(() => { savedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to clear Discogs token', e?.response?.status)
-    showError('Failed to clear Discogs token')
-  } finally {
-    saving.value = false
-  }
+async function clearDiscogsToken() {
+  await discogs.clear()
+  emit('token-changed', false)
 }
 
 async function saveTmdbToken() {
-  savingTmdb.value = true
-  tmdbSavedMessage.value = ''
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/tmdb-token'), { token: tmdbTokenInput.value })
-    hasTmdbToken.value = tmdbTokenInput.value !== ''
-    emit('tmdb-token-changed', hasTmdbToken.value)
-    tmdbSavedMessage.value = 'Saved!'
-    setTimeout(() => { tmdbSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to save TMDB token', e?.response?.status)
-    showError('Failed to save TMDB token')
-    tmdbSavedMessage.value = 'Failed to save.'
-  } finally {
-    savingTmdb.value = false
-  }
+  await tmdb.save()
+  emit('tmdb-token-changed', tmdb.hasValue.value)
 }
 
 async function clearTmdbToken() {
-  savingTmdb.value = true
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/tmdb-token'), { token: '' })
-    hasTmdbToken.value = false
-    tmdbTokenInput.value = ''
-    emit('tmdb-token-changed', false)
-    tmdbSavedMessage.value = 'Token removed.'
-    setTimeout(() => { tmdbSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to clear TMDB token', e?.response?.status)
-    showError('Failed to clear TMDB token')
-  } finally {
-    savingTmdb.value = false
-  }
+  await tmdb.clear()
+  emit('tmdb-token-changed', false)
 }
 
 async function saveRawgKey() {
-  savingRawg.value = true
-  rawgSavedMessage.value = ''
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/rawg-key'), { key: rawgKeyInput.value })
-    hasRawgKey.value = rawgKeyInput.value !== ''
-    emit('rawg-key-changed', hasRawgKey.value)
-    rawgSavedMessage.value = 'Saved!'
-    setTimeout(() => { rawgSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to save RAWG key', e?.response?.status)
-    showError('Failed to save RAWG key')
-    rawgSavedMessage.value = 'Failed to save.'
-  } finally {
-    savingRawg.value = false
-  }
+  await rawg.save()
+  emit('rawg-key-changed', rawg.hasValue.value)
 }
 
 async function clearRawgKey() {
-  savingRawg.value = true
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/rawg-key'), { key: '' })
-    hasRawgKey.value = false
-    rawgKeyInput.value = ''
-    emit('rawg-key-changed', false)
-    rawgSavedMessage.value = 'Key removed.'
-    setTimeout(() => { rawgSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to clear RAWG key', e?.response?.status)
-    showError('Failed to clear RAWG key')
-  } finally {
-    savingRawg.value = false
-  }
+  await rawg.clear()
+  emit('rawg-key-changed', false)
 }
 
 async function saveComicVineKey() {
-  savingComicVine.value = true
-  comicVineSavedMessage.value = ''
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/comicvine-key'), { key: comicVineKeyInput.value })
-    hasComicVineKey.value = comicVineKeyInput.value !== ''
-    emit('comicvine-key-changed', hasComicVineKey.value)
-    comicVineSavedMessage.value = 'Saved!'
-    setTimeout(() => { comicVineSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to save ComicVine key', e?.response?.status)
-    showError('Failed to save ComicVine key')
-    comicVineSavedMessage.value = 'Failed to save.'
-  } finally {
-    savingComicVine.value = false
-  }
+  await comicVine.save()
+  emit('comicvine-key-changed', comicVine.hasValue.value)
 }
 
 async function clearComicVineKey() {
-  savingComicVine.value = true
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/comicvine-key'), { key: '' })
-    hasComicVineKey.value = false
-    comicVineKeyInput.value = ''
-    emit('comicvine-key-changed', false)
-    comicVineSavedMessage.value = 'Key removed.'
-    setTimeout(() => { comicVineSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to clear ComicVine key', e?.response?.status)
-    showError('Failed to clear ComicVine key')
-  } finally {
-    savingComicVine.value = false
-  }
+  await comicVine.clear()
+  emit('comicvine-key-changed', false)
 }
 
 async function savePriceChartingToken() {
-  savingPriceCharting.value = true
-  priceChartingSavedMessage.value = ''
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/pricecharting-token'), { token: priceChartingTokenInput.value })
-    hasPriceChartingToken.value = priceChartingTokenInput.value !== ''
-    emit('pricecharting-token-changed', hasPriceChartingToken.value)
-    priceChartingSavedMessage.value = 'Saved!'
-    setTimeout(() => { priceChartingSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to save PriceCharting token', e?.response?.status)
-    showError('Failed to save PriceCharting token')
-    priceChartingSavedMessage.value = 'Failed to save.'
-  } finally {
-    savingPriceCharting.value = false
-  }
+  await priceCharting.save()
+  emit('pricecharting-token-changed', priceCharting.hasValue.value)
 }
 
 async function clearPriceChartingToken() {
-  savingPriceCharting.value = true
-  try {
-    await axios.post(generateOcsUrl('/apps/crate/api/v1/settings/pricecharting-token'), { token: '' })
-    hasPriceChartingToken.value = false
-    priceChartingTokenInput.value = ''
-    emit('pricecharting-token-changed', false)
-    priceChartingSavedMessage.value = 'Token removed.'
-    setTimeout(() => { priceChartingSavedMessage.value = '' }, 3000)
-  } catch (e) {
-    console.error('Failed to clear PriceCharting token', e?.response?.status)
-    showError('Failed to clear PriceCharting token')
-  } finally {
-    savingPriceCharting.value = false
-  }
+  await priceCharting.clear()
+  emit('pricecharting-token-changed', false)
 }
 
 async function wipeCollection() {
