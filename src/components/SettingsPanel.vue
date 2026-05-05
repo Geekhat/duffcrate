@@ -112,7 +112,7 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="comicVine.saving.value || comicVine.input.value === ''""
+          :disabled="comicVine.saving.value || comicVine.input.value === ''"
           @click="saveComicVineKey"
         >
           {{ comicVine.saving.value ? 'Saving…' : 'Save' }}
@@ -189,7 +189,7 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="tmdb.saving.value || tmdb.input.value === ''""
+          :disabled="tmdb.saving.value || tmdb.input.value === ''"
           @click="saveTmdbToken"
         >
           {{ tmdb.saving.value ? 'Saving…' : 'Save' }}
@@ -266,7 +266,7 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="rawg.saving.value || rawg.input.value === ''""
+          :disabled="rawg.saving.value || rawg.input.value === ''"
           @click="saveRawgKey"
         >
           {{ rawg.saving.value ? 'Saving…' : 'Save' }}
@@ -343,7 +343,7 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="discogs.saving.value || discogs.input.value === ''""
+          :disabled="discogs.saving.value || discogs.input.value === ''"
           @click="saveDiscogsToken"
         >
           {{ discogs.saving.value ? 'Saving…' : 'Save' }}
@@ -454,7 +454,7 @@
       <div class="settings-actions">
         <NcButton
           variant="primary"
-          :disabled="priceCharting.saving.value || priceCharting.input.value === ''""
+          :disabled="priceCharting.saving.value || priceCharting.input.value === ''"
           @click="savePriceChartingToken"
         >
           {{ priceCharting.saving.value ? 'Saving…' : 'Save' }}
