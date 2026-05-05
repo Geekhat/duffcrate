@@ -35,12 +35,11 @@ class PlaylistService
     {
         $playlists = $this->playlistMapper->findAll($userId);
 
-        // First pass: collect items per playlist and all unique media-item IDs
+        // Single batched query for all playlists' items, then collect unique media-item IDs.
         $allMediaIds = [];
-        $playlistItems = [];
-        foreach ($playlists as $playlist) {
-            $items = $this->playlistItemMapper->findByPlaylist($playlist->getId());
-            $playlistItems[$playlist->getId()] = $items;
+        $playlistIds = array_map(fn($p) => $p->getId(), $playlists);
+        $playlistItems = $this->playlistItemMapper->findByPlaylistIds($playlistIds);
+        foreach ($playlistItems as $items) {
             foreach ($items as $item) {
                 $allMediaIds[$item->getMediaItemId()] = true;
             }
@@ -204,15 +203,25 @@ class PlaylistService
     {
         $uid   = $ownerUserId ?? $playlist->getUserId();
         $pItems = $this->playlistItemMapper->findByPlaylist($playlist->getId());
-        $mediaItems = [];
-        foreach ($pItems as $pi) {
-            try {
-                $mediaItem = $this->mediaItemMapper->findByUser($pi->getMediaItemId(), $uid);
-                $mediaItems[] = $mediaItem->jsonSerialize();
-            } catch (DoesNotExistException) {
-                // Item was deleted — skip silently
+
+        // Bulk-fetch all referenced media items in one query, then filter by
+        // owner in PHP and reorder to match the playlist's position order.
+        $ids = array_map(fn($pi) => $pi->getMediaItemId(), $pItems);
+        $byId = [];
+        foreach ($this->mediaItemMapper->findByIds($ids) as $mi) {
+            if ($mi->getUserId() === $uid) {
+                $byId[$mi->getId()] = $mi;
             }
         }
+
+        $mediaItems = [];
+        foreach ($pItems as $pi) {
+            $mi = $byId[$pi->getMediaItemId()] ?? null;
+            if ($mi !== null) {
+                $mediaItems[] = $mi->jsonSerialize();
+            }
+        }
+
         $data = $playlist->jsonSerialize();
         $data['items']     = $mediaItems;
         $data['itemCount'] = count($mediaItems);

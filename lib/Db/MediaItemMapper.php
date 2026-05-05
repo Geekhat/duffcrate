@@ -176,6 +176,30 @@ class MediaItemMapper extends QBMapper
     }
 
     /**
+     * Return ids of items that have a non-empty discogs_id for the user.
+     * Used by the refresh-all market-value flow so we don't pull entire
+     * collections into PHP just to filter.
+     *
+     * @return int[]
+     */
+    public function findIdsWithEnrichmentForUser(string $userId): array
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('id')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+            ->andWhere($qb->expr()->isNotNull('discogs_id'))
+            ->andWhere($qb->expr()->neq('discogs_id', $qb->createNamedParameter('')));
+        $cursor = $qb->executeQuery();
+        $ids = [];
+        while ($row = $cursor->fetch()) {
+            $ids[] = (int) $row['id'];
+        }
+        $cursor->closeCursor();
+        return $ids;
+    }
+
+    /**
      * Full-text search over title and artist for a user (case-insensitive).
      *
      * @return MediaItem[]

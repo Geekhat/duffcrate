@@ -29,6 +29,37 @@ class PlaylistItemMapper extends QBMapper
         return $this->findEntities($qb);
     }
 
+    /**
+     * Single-query variant of findByPlaylist for many playlists at once.
+     * Returns a map keyed by playlist_id; each value is items ordered by position.
+     *
+     * @param int[] $playlistIds
+     * @return array<int, PlaylistItem[]>
+     */
+    public function findByPlaylistIds(array $playlistIds): array
+    {
+        $grouped = [];
+        foreach ($playlistIds as $id) {
+            $grouped[$id] = [];
+        }
+        if (empty($playlistIds)) {
+            return $grouped;
+        }
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->in(
+                'playlist_id',
+                $qb->createNamedParameter($playlistIds, IQueryBuilder::PARAM_INT_ARRAY),
+            ))
+            ->orderBy('playlist_id', 'ASC')
+            ->addOrderBy('position', 'ASC');
+        foreach ($this->findEntities($qb) as $row) {
+            $grouped[$row->getPlaylistId()][] = $row;
+        }
+        return $grouped;
+    }
+
     public function existsInPlaylist(int $playlistId, int $mediaItemId): bool
     {
         $qb = $this->db->getQueryBuilder();

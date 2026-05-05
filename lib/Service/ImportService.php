@@ -6,6 +6,7 @@ namespace OCA\Crate\Service;
 
 use OCA\Crate\CrateCategories;
 use OCA\Crate\Db\MediaItemMapper;
+use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 
 class ImportService
@@ -102,6 +103,7 @@ class ImportService
     public function __construct(
         private readonly MediaItemMapper $mapper,
         private readonly LoggerInterface $logger,
+        private readonly IDBConnection $db,
     ) {
     }
 
@@ -347,6 +349,10 @@ class ImportService
             $existingKeys[$key] = true;
         }
 
+        // Wrap the insert loop in a transaction. Big imports go from N
+        // round-trips to one, and partial-failure rollback is automatic.
+        $this->db->beginTransaction();
+
         foreach ($mappedRows as $i => $row) {
             $rowNum = $i + 2; // 1-indexed + header row
 
@@ -433,6 +439,13 @@ class ImportService
             $existingKeys[$key] = true;
             $itemIds[] = $saved->getId();
             $created++;
+        }
+
+        try {
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
         }
 
         $this->logger->info(

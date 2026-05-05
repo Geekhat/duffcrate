@@ -227,14 +227,11 @@ class MediaController extends OCSController
     {
         $userId   = $this->userId();
         $currency = $this->config->getUserValue($userId, 'crate', 'market_currency', 'GBP');
-        $items    = $this->mediaService->findAll($userId);
-        $eligible = array_values(
-            array_filter($items, fn($i) => $i->getDiscogsId() !== null && $i->getDiscogsId() !== '')
-        );
+        $itemIds  = $this->mediaService->findIdsWithEnrichmentForUser($userId);
         return new DataResponse([
             'currency' => $currency,
-            'total'    => count($eligible),
-            'itemIds'  => array_map(fn($i) => $i->getId(), $eligible),
+            'total'    => count($itemIds),
+            'itemIds'  => $itemIds,
         ]);
     }
 

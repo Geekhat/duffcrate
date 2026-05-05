@@ -54,6 +54,12 @@ class MediaService
         ];
     }
 
+    /** @return int[] */
+    public function findIdsWithEnrichmentForUser(string $userId): array
+    {
+        return $this->mapper->findIdsWithEnrichmentForUser($userId);
+    }
+
     public function find(int $id, string $userId): MediaItem
     {
         return $this->mapper->findByUser($id, $userId);
