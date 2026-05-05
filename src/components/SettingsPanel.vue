@@ -659,14 +659,9 @@ async function load() {
     hasRawgKey.value            = rawgRes.data.ocs?.data?.hasKey ?? false
     hasComicVineKey.value       = cvRes.data.ocs?.data?.hasKey ?? false
     hasPriceChartingToken.value = pcRes.data.ocs?.data?.hasToken ?? false
-    // Populate the inputs with the saved secrets so the Show toggle has
-    // something to reveal. The input type is still `password` by default, so
-    // the value is masked until the user clicks Show.
-    tokenInput.value               = tokenRes.data.ocs?.data?.token ?? ''
-    tmdbTokenInput.value           = tmdbRes.data.ocs?.data?.token ?? ''
-    rawgKeyInput.value             = rawgRes.data.ocs?.data?.key ?? ''
-    comicVineKeyInput.value        = cvRes.data.ocs?.data?.key ?? ''
-    priceChartingTokenInput.value  = pcRes.data.ocs?.data?.token ?? ''
+    // Inputs intentionally start empty — saved tokens are never sent back
+    // to the client. The Show/Hide toggle reveals only what the user has
+    // typed in this session.
   } catch (e) {
     console.error('Failed to load settings', e)
     showError('Failed to load settings')
@@ -683,7 +678,7 @@ async function save() {
     savedMessage.value = 'Saved!'
     setTimeout(() => { savedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to save token', e)
+    console.error('Failed to save Discogs token', e?.response?.status)
     showError('Failed to save Discogs token')
     savedMessage.value = 'Failed to save.'
   } finally {
@@ -701,7 +696,7 @@ async function clearToken() {
     savedMessage.value = 'Token removed.'
     setTimeout(() => { savedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to clear token', e)
+    console.error('Failed to clear Discogs token', e?.response?.status)
     showError('Failed to clear Discogs token')
   } finally {
     saving.value = false
@@ -718,7 +713,7 @@ async function saveTmdbToken() {
     tmdbSavedMessage.value = 'Saved!'
     setTimeout(() => { tmdbSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to save TMDB token', e)
+    console.error('Failed to save TMDB token', e?.response?.status)
     showError('Failed to save TMDB token')
     tmdbSavedMessage.value = 'Failed to save.'
   } finally {
@@ -736,7 +731,7 @@ async function clearTmdbToken() {
     tmdbSavedMessage.value = 'Token removed.'
     setTimeout(() => { tmdbSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to clear TMDB token', e)
+    console.error('Failed to clear TMDB token', e?.response?.status)
     showError('Failed to clear TMDB token')
   } finally {
     savingTmdb.value = false
@@ -753,7 +748,7 @@ async function saveRawgKey() {
     rawgSavedMessage.value = 'Saved!'
     setTimeout(() => { rawgSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to save RAWG key', e)
+    console.error('Failed to save RAWG key', e?.response?.status)
     showError('Failed to save RAWG key')
     rawgSavedMessage.value = 'Failed to save.'
   } finally {
@@ -771,7 +766,7 @@ async function clearRawgKey() {
     rawgSavedMessage.value = 'Key removed.'
     setTimeout(() => { rawgSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to clear RAWG key', e)
+    console.error('Failed to clear RAWG key', e?.response?.status)
     showError('Failed to clear RAWG key')
   } finally {
     savingRawg.value = false
@@ -788,7 +783,7 @@ async function saveComicVineKey() {
     comicVineSavedMessage.value = 'Saved!'
     setTimeout(() => { comicVineSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to save ComicVine key', e)
+    console.error('Failed to save ComicVine key', e?.response?.status)
     showError('Failed to save ComicVine key')
     comicVineSavedMessage.value = 'Failed to save.'
   } finally {
@@ -806,7 +801,7 @@ async function clearComicVineKey() {
     comicVineSavedMessage.value = 'Key removed.'
     setTimeout(() => { comicVineSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to clear ComicVine key', e)
+    console.error('Failed to clear ComicVine key', e?.response?.status)
     showError('Failed to clear ComicVine key')
   } finally {
     savingComicVine.value = false
@@ -823,7 +818,7 @@ async function savePriceChartingToken() {
     priceChartingSavedMessage.value = 'Saved!'
     setTimeout(() => { priceChartingSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to save PriceCharting token', e)
+    console.error('Failed to save PriceCharting token', e?.response?.status)
     showError('Failed to save PriceCharting token')
     priceChartingSavedMessage.value = 'Failed to save.'
   } finally {
@@ -841,7 +836,7 @@ async function clearPriceChartingToken() {
     priceChartingSavedMessage.value = 'Token removed.'
     setTimeout(() => { priceChartingSavedMessage.value = '' }, 3000)
   } catch (e) {
-    console.error('Failed to clear PriceCharting token', e)
+    console.error('Failed to clear PriceCharting token', e?.response?.status)
     showError('Failed to clear PriceCharting token')
   } finally {
     savingPriceCharting.value = false
