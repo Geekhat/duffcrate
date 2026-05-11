@@ -70,10 +70,11 @@ class MediaController extends OCSController
                 $offset,
             );
             return new DataResponse([
-                'items'  => $result['items'],
-                'total'  => $result['total'],
-                'limit'  => $limit,
-                'offset' => $offset,
+                'items'   => $result['items'],
+                'total'   => $result['total'],
+                'limit'   => $limit,
+                'offset'  => $offset,
+                'wipedAt' => $this->mediaService->getWipedAt($this->userId()),
             ]);
         }
 

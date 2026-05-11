@@ -13,11 +13,15 @@ use OCA\Crate\Db\PlaylistMapper;
 use OCA\Crate\Dto\MediaItemData;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 
 class MediaService
 {
+    /** Per-user config key holding the timestamp of the last bulk wipe. */
+    public const WIPED_AT_KEY = 'wiped_at';
+
     public function __construct(
         private readonly MediaItemMapper $mapper,
         private readonly PlaylistItemMapper $playlistItemMapper,
@@ -26,7 +30,30 @@ class MediaService
         private readonly IAppDataFactory $appDataFactory,
         private readonly IDBConnection $db,
         private readonly LoggerInterface $logger,
+        private readonly ActivityService $activityService,
+        private readonly IConfig $config,
     ) {
+    }
+
+    /**
+     * Timestamp of the last bulk wipe for $userId, or null if never wiped.
+     * Clients use this to detect when their local cache must be discarded —
+     * delta sync can't otherwise observe deletions.
+     */
+    public function getWipedAt(string $userId): ?string
+    {
+        $value = $this->config->getUserValue($userId, 'crate', self::WIPED_AT_KEY, '');
+        return $value === '' ? null : $value;
+    }
+
+    private function markWiped(string $userId): void
+    {
+        $this->config->setUserValue(
+            $userId,
+            'crate',
+            self::WIPED_AT_KEY,
+            (new \DateTime())->format('Y-m-d H:i:s'),
+        );
     }
 
     /** @return MediaItem[] */
@@ -86,7 +113,9 @@ class MediaService
         $now = (new \DateTime())->format('Y-m-d H:i:s');
         $item->setCreatedAt($now);
         $item->setUpdatedAt($now);
-        return $this->mapper->insert($item);
+        $item = $this->mapper->insert($item);
+        $this->activityService->itemCreated($item, $userId);
+        return $item;
     }
 
     public function update(
@@ -120,7 +149,9 @@ class MediaService
             $item->setCategory($data->category);
         }
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-        return $this->mapper->update($item);
+        $item = $this->mapper->update($item);
+        $this->activityService->itemUpdated($item, $userId);
+        return $item;
     }
 
     public function delete(int $id, string $userId): void
@@ -140,6 +171,8 @@ class MediaService
 
         // Files are deleted after commit — a failed unlink shouldn't undo the DB delete.
         $this->deleteArtworkFiles($id);
+
+        $this->activityService->itemDeleted($item, $userId);
 
         $this->logger->info('Deleted media item {id} for user {user}', [
             'id'   => $id,
@@ -237,6 +270,8 @@ class MediaService
         foreach ($itemsToDelete as $item) {
             $this->deleteArtworkFiles($item->getId());
         }
+
+        $this->markWiped($userId);
 
         $this->logger->warning(
             'Wiped Crate data for user {user}: scopes={scopes}, items={items}, playlists={playlists}',
@@ -395,7 +430,9 @@ class MediaService
         }
 
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-        return $this->mapper->update($item);
+        $item = $this->mapper->update($item);
+        $this->activityService->itemEnriched($item, $userId);
+        return $item;
     }
 
     /**
@@ -424,6 +461,12 @@ class MediaService
     public function stripEnrichment(int $id, string $userId): MediaItem
     {
         $item = $this->mapper->findByUser($id, $userId);
+
+        // Determine whether the pre-enrichment state had user-uploaded artwork.
+        // If so, preserve the file on disk. Otherwise, delete stale cache files
+        // so re-enrichment with a new URL doesn't serve the old cached image.
+        $originalArtwork = $item->getOriginalArtworkPath();
+        $shouldDeleteFiles = ($originalArtwork !== 'local');
 
         // Restore pre-enrichment values if a snapshot was taken, then clear it.
         if ($item->getOriginalTitle() !== null) {
@@ -454,6 +497,13 @@ class MediaService
         $item->setArtistMembers(null);
         $item->setDiscogsId(null);
         $item->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+
+        // Delete cached artwork files so stale images are not served when the
+        // item is re-enriched with a different artwork URL.
+        if ($shouldDeleteFiles) {
+            $this->deleteArtworkFiles($id);
+        }
+
         return $this->mapper->update($item);
     }
 
