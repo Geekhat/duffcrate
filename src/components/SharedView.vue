@@ -36,9 +36,9 @@
             class="sv-row"
             @click="$emit('detail', item)"
           >
-            <div
+            <MediaThumb
+              :item="item"
               class="sv-thumb"
-              :style="thumbStyle(item)"
             />
             <div class="sv-info">
               <span class="sv-title">{{ item.title }}</span>
@@ -90,16 +90,13 @@ import { generateUrl, generateOcsUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import { playlistCountLabel } from '../utils/categoryFormats.js'
 import { artworkStyleFor } from '../composables/useArtworkStyle.js'
+import MediaThumb from './MediaThumb.vue'
 
 defineEmits(['detail', 'playlist'])
 
 const albums = ref([])
 const playlists = ref([])
 const loading = ref(false)
-
-function thumbStyle(item) {
-  return artworkStyleFor(item)
-}
 
 function playlistCoverStyle(pl) {
   if (pl.coverId) {

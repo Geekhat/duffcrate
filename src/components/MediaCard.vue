@@ -3,12 +3,12 @@
     class="media-card"
     @click="$emit('detail', item)"
   >
-    <div
+    <MediaThumb
+      :item="item"
       class="media-card-art"
-      :style="artStyle"
     >
       <span class="media-card-format-label">{{ item.format }}</span>
-    </div>
+    </MediaThumb>
     <div class="media-card-info">
       <span class="media-card-title">{{ item.title }}</span>
       <span class="media-card-artist">{{ item.artist }}</span>
@@ -27,17 +27,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { formatMarketValue } from '../utils/formatMarketValue.js'
-import { artworkStyleFor } from '../composables/useArtworkStyle.js'
+import MediaThumb from './MediaThumb.vue'
 
-const props = defineProps({
+defineProps({
   item: { type: Object, required: true },
 })
 
 defineEmits(['detail'])
-
-const artStyle = computed(() => artworkStyleFor(props.item))
 </script>
 
 <style scoped>
@@ -59,6 +56,11 @@ const artStyle = computed(() => artworkStyleFor(props.item))
   display: flex;
   align-items: flex-end;
   padding: 10px;
+}
+
+.media-card-art .media-card-format-label {
+  position: relative;
+  z-index: 1;
 }
 
 .media-card-format-label {

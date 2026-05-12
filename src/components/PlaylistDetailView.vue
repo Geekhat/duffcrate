@@ -83,9 +83,9 @@
         class="pd-row"
         @click="$emit('detail', item)"
       >
-        <div
+        <MediaThumb
+          :item="item"
           class="pd-thumb"
-          :style="thumbStyle(item)"
         />
         <div class="pd-info">
           <span class="pd-item-title">{{ item.title }}</span>
@@ -197,7 +197,7 @@ import { NcButton, NcDialog } from '@nextcloud/vue'
 import axios from '@nextcloud/axios'
 import { generateUrl, generateOcsUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
-import { artworkStyleFor } from '../composables/useArtworkStyle.js'
+import MediaThumb from './MediaThumb.vue'
 import { CATEGORY_LABELS, playlistCountLabel } from '../utils/categoryFormats.js'
 
 const props = defineProps({
@@ -270,9 +270,6 @@ function artCellStyle(mediaItemId) {
   return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
 }
 
-function thumbStyle(item) {
-  return artworkStyleFor(item)
-}
 
 async function removeItem(item) {
   try {

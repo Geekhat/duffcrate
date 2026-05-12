@@ -221,9 +221,9 @@
             class="cv-list-row"
             @click="$emit('detail', item)"
           >
-            <div
+            <MediaThumb
+              :item="item"
               class="cv-list-thumb"
-              :style="thumbStyle(item)"
             />
             <div class="cv-list-info">
               <span class="cv-list-title">{{ item.title }}</span>
@@ -303,9 +303,9 @@ import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { showError } from '@nextcloud/dialogs'
 import MediaCard from './MediaCard.vue'
+import MediaThumb from './MediaThumb.vue'
 import ExportModal from './ExportModal.vue'
 import { formatMarketValue } from '../utils/formatMarketValue.js'
-import { artworkStyleFor } from '../composables/useArtworkStyle.js'
 import { CATEGORY_LABELS, FORMAT_LIST } from '../utils/categoryFormats.js'
 
 /**
@@ -606,9 +606,6 @@ function scrollToGroup(header) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-function thumbStyle(item) {
-  return artworkStyleFor(item)
-}
 </script>
 
 <style scoped>
