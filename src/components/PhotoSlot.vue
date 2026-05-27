@@ -26,6 +26,14 @@
         {{ hasPhoto ? 'Replace' : 'Upload' }}
       </NcButton>
       <NcButton
+        type="button"
+        variant="tertiary"
+        native-type="button"
+        @click="pickFromNextcloud"
+      >
+        Pick from Files
+      </NcButton>
+      <NcButton
         v-if="hasPhoto"
         type="button"
         variant="tertiary"
@@ -41,6 +49,8 @@
 <script setup>
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { NcButton } from '@nextcloud/vue'
+import axios from '@nextcloud/axios'
+import { showError } from '@nextcloud/dialogs'
 import { photoGet } from '../api.js'
 
 const props = defineProps({
@@ -109,6 +119,35 @@ function onFileSelected(event) {
   emit('pick', file)
   // Reset the input so the same file can be picked again after Remove.
   event.target.value = ''
+}
+
+function pickFromNextcloud() {
+  const oc = window.OC
+  if (!oc?.dialogs?.filepicker) {
+    showError('File picker not available.')
+    return
+  }
+  oc.dialogs.filepicker(
+    `Select photo ${props.slotNum}`,
+    async (path) => {
+      try {
+        const uid = encodeURIComponent(oc.currentUser ?? '')
+        const safePath = path.split('/').map(encodeURIComponent).join('/')
+        const webdavUrl = `/remote.php/dav/files/${uid}${safePath}`
+        const resp = await axios.get(webdavUrl, { responseType: 'arraybuffer' })
+        const mime = resp.headers['content-type']?.split(';')[0]?.trim() || 'image/jpeg'
+        const fileName = path.split('/').pop() || `photo-${props.slotNum}`
+        const blob = new Blob([resp.data], { type: mime })
+        emit('pick', new File([blob], fileName, { type: mime }))
+      } catch (e) {
+        console.error('Failed to fetch photo from Nextcloud', e)
+        showError('Failed to fetch photo')
+      }
+    },
+    false,
+    ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    true,
+  )
 }
 
 function onRemove() {
