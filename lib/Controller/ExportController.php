@@ -33,6 +33,7 @@ class ExportController extends Controller
      *   &category=music|film|book|game|comic|all
      *   &includeEnriched=0|1
      *   &includeMarket=0|1
+     *   &includePrice=0|1   — original purchase price + currency
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -42,6 +43,7 @@ class ExportController extends Controller
         string $category = 'all',
         int $includeEnriched = 0,
         int $includeMarket = 0,
+        int $includePrice = 0,
     ): DataDownloadResponse {
         $user = $this->userSession->getUser();
         if ($user === null) {
@@ -58,6 +60,7 @@ class ExportController extends Controller
             $includeEnriched === 1,
             $includeMarket === 1,
             $cat,
+            $includePrice === 1,
         );
 
         return new DataDownloadResponse($content, $filename, $mimeType);

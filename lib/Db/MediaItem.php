@@ -65,6 +65,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setMarketValueCurrency(?string $marketValueCurrency)
  * @method string|null getMarketValueFetchedAt()
  * @method void setMarketValueFetchedAt(?string $marketValueFetchedAt)
+ * @method float|null getPurchasePrice()
+ * @method void setPurchasePrice(?float $purchasePrice)
+ * @method string|null getPurchasePriceCurrency()
+ * @method void setPurchasePriceCurrency(?string $purchasePriceCurrency)
  * @method string getCategory()
  * @method void setCategory(string $category)
  * @method string|null getCreatedAt()
@@ -103,6 +107,8 @@ class MediaItem extends Entity implements \JsonSerializable
     protected ?float $marketValueNew = null;
     protected ?string $marketValueCurrency = null;
     protected ?string $marketValueFetchedAt = null;
+    protected ?float $purchasePrice = null;
+    protected ?string $purchasePriceCurrency = null;
     protected string $category = 'music';
     protected ?string $createdAt = null;
     protected ?string $updatedAt = null;
@@ -114,6 +120,7 @@ class MediaItem extends Entity implements \JsonSerializable
         $this->addType('marketValue', 'float');
         $this->addType('marketValueLoose', 'float');
         $this->addType('marketValueNew', 'float');
+        $this->addType('purchasePrice', 'float');
     }
 
     public function jsonSerialize(): array
@@ -147,6 +154,8 @@ class MediaItem extends Entity implements \JsonSerializable
             'marketValueNew'       => $this->marketValueNew,
             'marketValueCurrency'  => $this->marketValueCurrency,
             'marketValueFetchedAt' => $this->marketValueFetchedAt,
+            'purchasePrice'         => $this->purchasePrice,
+            'purchasePriceCurrency' => $this->purchasePriceCurrency,
             'category'        => $this->category,
             'createdAt'       => $this->createdAt,
             'updatedAt'       => $this->updatedAt,

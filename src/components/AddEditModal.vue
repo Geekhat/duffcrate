@@ -199,6 +199,39 @@
           >
         </div>
 
+        <!-- Purchase price + currency (what the user paid) -->
+        <div class="crate-row">
+          <div class="crate-field crate-field--price">
+            <label for="field-purchase-price">Original price</label>
+            <input
+              id="field-purchase-price"
+              v-model.number="form.purchasePrice"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="e.g. 24.99"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="crate-field crate-field--currency">
+            <label for="field-purchase-currency">Currency</label>
+            <select
+              id="field-purchase-currency"
+              v-model="form.purchasePriceCurrency"
+              :disabled="!form.purchasePrice"
+            >
+              <option
+                v-for="code in currencyOptions"
+                :key="code"
+                :value="code"
+              >
+                {{ code }}
+              </option>
+            </select>
+          </div>
+        </div>
+
         <div class="crate-field">
           <label for="field-notes">Notes</label>
           <textarea
@@ -292,6 +325,8 @@ import TMDBSearch from './TMDBSearch.vue'
 import OpenLibrarySearch from './OpenLibrarySearch.vue'
 import RAWGSearch from './RAWGSearch.vue'
 import { FORMAT_GROUPS, FIELD_CONFIG } from '../utils/categoryFormats.js'
+import { settingsCurrencies } from '../api.js'
+import { useSettings } from '../composables/useSettings.js'
 
 const props = defineProps({
   show:          { type: Boolean, required: true },
@@ -413,6 +448,8 @@ function resetArtworkState() {
 }
 
 // ── Form ───────────────────────────────────────────────────────────────────────
+const { marketCurrency } = useSettings()
+
 const blankForm = () => ({
   title:      '',
   artist:     '',
@@ -425,9 +462,26 @@ const blankForm = () => ({
   label:      null,
   barcode:    null,
   category:   props.category,
+  purchasePrice:          null,
+  purchasePriceCurrency:  marketCurrency.value,
 })
 
 const form = ref(blankForm())
+
+// Currency options — supplied by the backend allowlist. Falls back to a
+// minimal default if the request fails (e.g. offline), so the form remains
+// usable rather than blocking save.
+const currencyOptions = ref([
+  'GBP', 'USD', 'EUR', 'CAD', 'AUD', 'JPY', 'CHF', 'MXN', 'BRL', 'NZD', 'SEK', 'ZAR',
+])
+axios.get(settingsCurrencies())
+  .then((res) => {
+    const list = res.data.ocs?.data
+    if (Array.isArray(list) && list.length > 0) {
+      currencyOptions.value = list
+    }
+  })
+  .catch(() => { /* fall back to the static default */ })
 
 watch(
   () => props.show,
@@ -447,6 +501,8 @@ watch(
             label:      props.item.label ?? null,
             barcode:    props.item.barcode ?? null,
             category:   props.item.category ?? props.category,
+            purchasePrice:         props.item.purchasePrice ?? null,
+            purchasePriceCurrency: props.item.purchasePriceCurrency ?? marketCurrency.value,
           }
         : blankForm()
     }
@@ -574,15 +630,25 @@ const applyComicVine = applyEnrichment
 async function submit() {
   saving.value = true
   try {
+    // Normalise the purchase price. The backend treats null + null as "clear",
+    // and rejects a non-null price without a currency. An invalid number from
+    // the input (e.g. "1.2.3") parses to NaN; coerce that to null so v-model
+    // doesn't send an unexpected non-number through the API.
+    const rawPrice = form.value.purchasePrice
+    const price = (rawPrice === null || rawPrice === '' || Number.isNaN(rawPrice))
+      ? null
+      : Number(rawPrice)
     const payload = {
       ...form.value,
-      year:            form.value.year || null,
-      notes:           form.value.notes || null,
-      label:           form.value.label || null,
-      barcode:         form.value.barcode || null,
-      _artworkFile:    artworkFile.value,
-      _removeArtwork:  removeArtworkFlag.value,
-      _replaceArtwork: replaceArtworkFlag.value,
+      year:                  form.value.year || null,
+      notes:                 form.value.notes || null,
+      label:                 form.value.label || null,
+      barcode:               form.value.barcode || null,
+      purchasePrice:         price,
+      purchasePriceCurrency: price !== null ? (form.value.purchasePriceCurrency || marketCurrency.value) : null,
+      _artworkFile:          artworkFile.value,
+      _removeArtwork:        removeArtworkFlag.value,
+      _replaceArtwork:       replaceArtworkFlag.value,
     }
     emit('save', payload)
   } finally {
@@ -619,6 +685,14 @@ async function submit() {
 }
 
 .crate-field--year {
+  flex: 0 0 110px;
+}
+
+.crate-field--price {
+  flex: 1 1 0;
+}
+
+.crate-field--currency {
   flex: 0 0 110px;
 }
 

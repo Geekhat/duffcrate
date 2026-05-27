@@ -26,6 +26,7 @@ class ExportService
         bool $includeEnriched,
         bool $includeMarket,
         ?string $category = null,
+        bool $includePrice = false,
     ): array {
         $items = $this->mapper->findAll($userId, $category);
 
@@ -37,9 +38,9 @@ class ExportService
             $items = array_values($items);
         }
 
-        $headers = $this->buildHeaders($includeEnriched, $includeMarket, $category);
+        $headers = $this->buildHeaders($includeEnriched, $includeMarket, $category, $includePrice);
         $rows    = array_map(
-            fn(MediaItem $i) => $this->itemToRow($i, $includeEnriched, $includeMarket, $category),
+            fn(MediaItem $i) => $this->itemToRow($i, $includeEnriched, $includeMarket, $category, $includePrice),
             $items,
         );
 
@@ -71,8 +72,12 @@ class ExportService
     private const PRICECHARTING_CATEGORIES = ['game', 'comic'];
 
     /** @return string[] */
-    private function buildHeaders(bool $includeEnriched, bool $includeMarket, ?string $category = null): array
-    {
+    private function buildHeaders(
+        bool $includeEnriched,
+        bool $includeMarket,
+        ?string $category = null,
+        bool $includePrice = false,
+    ): array {
         $artistLabel  = match ($category) {
             'film'  => 'Director',
             'book'  => 'Author',
@@ -157,6 +162,14 @@ class ExportService
             $h[] = 'Market Value Fetched At';
         }
 
+        // Original purchase price is category-agnostic — the user can record
+        // what they paid for any item, regardless of whether the category has
+        // a market-value source.
+        if ($includePrice) {
+            $h[] = 'Purchase Price';
+            $h[] = 'Purchase Currency';
+        }
+
         return $h;
     }
 
@@ -166,6 +179,7 @@ class ExportService
         bool $includeEnriched,
         bool $includeMarket,
         ?string $category = null,
+        bool $includePrice = false,
     ): array {
         $row = [
             $item->getCategory()  ?? 'music',
@@ -212,6 +226,11 @@ class ExportService
             }
             $row[] = $item->getMarketValueCurrency()  ?? '';
             $row[] = $item->getMarketValueFetchedAt() ?? '';
+        }
+
+        if ($includePrice) {
+            $row[] = $item->getPurchasePrice() !== null ? (string) $item->getPurchasePrice() : '';
+            $row[] = $item->getPurchasePriceCurrency() ?? '';
         }
 
         return $row;

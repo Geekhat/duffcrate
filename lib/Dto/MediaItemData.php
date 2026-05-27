@@ -24,6 +24,14 @@ class MediaItemData
         public readonly ?string $label = null,
         public readonly ?string $country = null,
         public readonly ?string $category = null,
+        /**
+         * What the user paid for the item, in their chosen currency. Null
+         * leaves the stored value unchanged on update; pass a negative
+         * sentinel via the controller to clear the field (see
+         * MediaController::clearablePrice).
+         */
+        public readonly ?float $purchasePrice = null,
+        public readonly ?string $purchasePriceCurrency = null,
     ) {
     }
 }

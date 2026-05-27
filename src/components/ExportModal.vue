@@ -110,6 +110,14 @@
           Market data
           <span class="export-hint">{{ marketHint }}</span>
         </label>
+        <label class="export-checkbox-label">
+          <input
+            v-model="includePrice"
+            type="checkbox"
+          >
+          Original price paid
+          <span class="export-hint">(purchase price + currency you entered)</span>
+        </label>
       </div>
 
       <p
@@ -173,6 +181,7 @@ const selectedScope    = ref(props.scope)
 const format           = ref('csv')
 const includeEnriched  = ref(false)
 const includeMarket    = ref(false)
+const includePrice     = ref(false)
 const exporting        = ref(false)
 const error            = ref('')
 /** Matching-item count under the current selection; null = not yet loaded. */
@@ -304,6 +313,7 @@ async function doExport() {
       category:        selectedCategory.value,
       includeEnriched: includeEnriched.value ? '1' : '0',
       includeMarket:   includeMarket.value   ? '1' : '0',
+      includePrice:    includePrice.value    ? '1' : '0',
     })
     const url = generateUrl('/apps/crate/export') + '?' + params.toString()
     const res = await axios.get(url, {

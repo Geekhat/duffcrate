@@ -105,6 +105,32 @@
             >{{ item.country }}</span>
           </div>
 
+          <!-- Original purchase price + gain/loss vs current market value -->
+          <div
+            v-if="item.purchasePrice != null"
+            class="detail-purchase-block"
+          >
+            <span class="detail-purchase-label">Original price</span>
+            <span class="detail-purchase-value">
+              {{ formatPrice(item.purchasePrice, item.purchasePriceCurrency) }}
+            </span>
+            <span
+              v-if="purchaseDelta"
+              class="detail-purchase-delta"
+              :class="purchaseDelta.direction"
+            >
+              {{ purchaseDelta.sign }}{{ formatPrice(purchaseDelta.amount, item.purchasePriceCurrency) }}
+              <span class="detail-purchase-delta-pct">({{ purchaseDelta.sign }}{{ purchaseDelta.percent }}%)</span>
+            </span>
+            <span
+              v-else-if="purchaseDeltaCurrencyMismatch"
+              class="detail-purchase-mismatch"
+              title="Purchase and market currencies differ — no gain/loss shown"
+            >
+              currencies differ
+            </span>
+          </div>
+
           <!-- Market value — single price for music, three-tier for games/comics -->
           <div
             v-if="item.marketValue || item.marketValueLoose || item.marketValueNew"
@@ -355,6 +381,35 @@ function formatPrice(value, currency) {
   }
 }
 
+/**
+ * Compares purchase price against current market value. Returns null when
+ * either side is missing, or when the two currencies differ (FX conversion
+ * is deliberately out of scope — see Phase 13 design). Otherwise produces a
+ * structured delta the template renders with green / red styling.
+ */
+const purchaseDelta = computed(() => {
+  const i = props.item
+  if (i.purchasePrice == null || i.marketValue == null) return null
+  if ((i.purchasePriceCurrency || '') !== (i.marketValueCurrency || '')) return null
+  const diff = i.marketValue - i.purchasePrice
+  const percent = i.purchasePrice > 0
+    ? Math.round((diff / i.purchasePrice) * 100)
+    : null
+  return {
+    amount:    Math.abs(diff),
+    direction: diff >= 0 ? 'gain' : 'loss',
+    sign:      diff >= 0 ? '+' : '−',
+    percent:   percent !== null ? Math.abs(percent) : '?',
+  }
+})
+
+const purchaseDeltaCurrencyMismatch = computed(() => {
+  const i = props.item
+  return i.purchasePrice != null
+    && i.marketValue != null
+    && (i.purchasePriceCurrency || '') !== (i.marketValueCurrency || '')
+})
+
 function formatFetchedAt(dateStr) {
   if (!dateStr) return ''
   try {
@@ -415,6 +470,51 @@ async function stripEnrich() {
   font-weight: 400;
   color: var(--color-text-maxcontrast);
   margin-left: 8px;
+}
+
+.detail-purchase-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 0.95em;
+}
+
+.detail-purchase-label {
+  font-weight: 600;
+  color: var(--color-text-maxcontrast);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78em;
+}
+
+.detail-purchase-value {
+  font-weight: 700;
+}
+
+.detail-purchase-delta {
+  font-weight: 600;
+}
+
+.detail-purchase-delta.gain {
+  color: #4ade80;
+}
+
+.detail-purchase-delta.loss {
+  color: var(--color-error);
+}
+
+.detail-purchase-delta-pct {
+  font-weight: 500;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
+.detail-purchase-mismatch {
+  font-size: 0.82em;
+  font-style: italic;
+  color: var(--color-text-maxcontrast);
 }
 
 .detail-view {

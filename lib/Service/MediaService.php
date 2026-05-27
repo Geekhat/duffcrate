@@ -109,6 +109,8 @@ class MediaService
         $item->setArtworkPath($data->artworkPath);
         $item->setLabel($data->label);
         $item->setCountry($data->country);
+        $item->setPurchasePrice($data->purchasePrice);
+        $item->setPurchasePriceCurrency($data->purchasePriceCurrency);
         $item->setCategory($data->category ?? \OCA\Crate\CrateCategories::MUSIC);
         $now = (new \DateTime())->format('Y-m-d H:i:s');
         $item->setCreatedAt($now);
@@ -144,6 +146,11 @@ class MediaService
         if ($data->country !== null) {
             $item->setCountry($data->country !== '' ? $data->country : null);
         }
+        // Purchase price + currency are user-entered and never touched by enrichment,
+        // so the AddEditModal sends the full payload and we always overwrite. Null
+        // explicitly clears the field. This matches year/notes/status behaviour.
+        $item->setPurchasePrice($data->purchasePrice);
+        $item->setPurchasePriceCurrency($data->purchasePriceCurrency);
         // Preserve existing category on partial updates (caller omitted it)
         if ($data->category !== null) {
             $item->setCategory($data->category);

@@ -101,12 +101,18 @@ class MediaController extends OCSController
         ?string $label = null,
         ?string $country = null,
         string $category = CrateCategories::MUSIC,
+        ?float $purchasePrice = null,
+        ?string $purchasePriceCurrency = null,
     ): DataResponse {
         if (!CrateCategories::isStatus($status)) {
             return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
         }
         if (!CrateCategories::isCategory($category)) {
             return new DataResponse(['error' => 'Invalid category'], Http::STATUS_BAD_REQUEST);
+        }
+        $priceResult = $this->normalisePurchasePrice($purchasePrice, $purchasePriceCurrency);
+        if (isset($priceResult['error'])) {
+            return new DataResponse(['error' => $priceResult['error']], Http::STATUS_BAD_REQUEST);
         }
         $data = new MediaItemData(
             $title,
@@ -121,6 +127,8 @@ class MediaController extends OCSController
             $label,
             $country,
             $category,
+            $priceResult['price'],
+            $priceResult['currency'],
         );
         return new DataResponse($this->mediaService->create($this->userId(), $data));
     }
@@ -140,12 +148,18 @@ class MediaController extends OCSController
         ?string $label = null,
         ?string $country = null,
         ?string $category = null,
+        ?float $purchasePrice = null,
+        ?string $purchasePriceCurrency = null,
     ): DataResponse {
         if (!CrateCategories::isStatus($status)) {
             return new DataResponse(['error' => 'Invalid status'], Http::STATUS_BAD_REQUEST);
         }
         if ($category !== null && !CrateCategories::isCategory($category)) {
             return new DataResponse(['error' => 'Invalid category'], Http::STATUS_BAD_REQUEST);
+        }
+        $priceResult = $this->normalisePurchasePrice($purchasePrice, $purchasePriceCurrency);
+        if (isset($priceResult['error'])) {
+            return new DataResponse(['error' => $priceResult['error']], Http::STATUS_BAD_REQUEST);
         }
         $data = new MediaItemData(
             $title,
@@ -160,8 +174,39 @@ class MediaController extends OCSController
             $label,
             $country,
             $category,
+            $priceResult['price'],
+            $priceResult['currency'],
         );
         return new DataResponse($this->mediaService->update($id, $this->userId(), $data));
+    }
+
+    /**
+     * Normalise the purchase-price pair: bound the value to a sane range, allow
+     * either null (clear) or a non-negative number, and require the currency to
+     * sit on the shared MarketValueService allowlist when a price is set.
+     *
+     * Returns ['price' => ?float, 'currency' => ?string] on success, or
+     * ['error' => string] for the controller to surface as a 400.
+     *
+     * @return array{price?: ?float, currency?: ?string, error?: string}
+     */
+    private function normalisePurchasePrice(?float $price, ?string $currency): array
+    {
+        if ($price === null) {
+            // Treat a stray currency without a price as "clear both".
+            return ['price' => null, 'currency' => null];
+        }
+        if ($price < 0 || $price > 1_000_000) {
+            return ['error' => 'purchasePrice out of range'];
+        }
+        $currency = $currency !== null ? strtoupper(trim($currency)) : null;
+        if ($currency === null || $currency === '') {
+            return ['error' => 'purchasePriceCurrency is required when purchasePrice is set'];
+        }
+        if (!in_array($currency, MarketValueService::SUPPORTED_CURRENCIES, true)) {
+            return ['error' => 'Unsupported purchasePriceCurrency'];
+        }
+        return ['price' => $price, 'currency' => $currency];
     }
 
     #[NoAdminRequired]

@@ -6,6 +6,7 @@ namespace OCA\Crate\Service;
 
 use OCA\Crate\CrateCategories;
 use OCA\Crate\Db\MediaItemMapper;
+use OCA\Crate\Service\MarketValueService;
 use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 
@@ -98,6 +99,25 @@ class ImportService
         'studio'          => 'label',
         // Category — allows per-row override from exported Category column
         'category'        => 'category',
+        // Original purchase price + currency
+        'purchase price'  => 'purchasePrice',
+        'purchaseprice'   => 'purchasePrice',
+        'purchase_price'  => 'purchasePrice',
+        'price paid'      => 'purchasePrice',
+        'pricepaid'       => 'purchasePrice',
+        'price_paid'      => 'purchasePrice',
+        'bought for'      => 'purchasePrice',
+        'cost'            => 'purchasePrice',
+        'paid'            => 'purchasePrice',
+        'original price'  => 'purchasePrice',
+        'purchase currency'         => 'purchasePriceCurrency',
+        'purchasecurrency'          => 'purchasePriceCurrency',
+        'purchase_currency'         => 'purchasePriceCurrency',
+        'purchase price currency'   => 'purchasePriceCurrency',
+        'purchasepricecurrency'     => 'purchasePriceCurrency',
+        'purchase_price_currency'   => 'purchasePriceCurrency',
+        'price currency'            => 'purchasePriceCurrency',
+        'paid currency'             => 'purchasePriceCurrency',
     ];
 
     public function __construct(
@@ -419,6 +439,46 @@ class ImportService
                 $status = CrateCategories::STATUS_OWNED;
             }
 
+            // Purchase price + currency. The price column may carry currency
+            // symbols / thousand separators from spreadsheets; strip them.
+            // A row that names a currency without a price is treated as
+            // "no purchase price recorded" rather than an error — the user
+            // probably forgot to fill in the amount.
+            $purchasePriceRaw = $row['purchasePrice'] ?? null;
+            $purchasePrice = null;
+            if ($purchasePriceRaw !== null && $purchasePriceRaw !== '') {
+                $stripped = preg_replace('/[^0-9.\-]/', '', (string)$purchasePriceRaw);
+                if ($stripped !== '' && is_numeric($stripped)) {
+                    $val = (float) $stripped;
+                    if ($val >= 0 && $val <= 1_000_000) {
+                        $purchasePrice = $val;
+                    } else {
+                        $skipped++;
+                        $errors[] = "Row {$rowNum}: purchase price out of range — skipped";
+                        continue;
+                    }
+                } else {
+                    $skipped++;
+                    $errors[] = "Row {$rowNum}: unparseable purchase price \"{$purchasePriceRaw}\" — skipped";
+                    continue;
+                }
+            }
+            $purchaseCurrency = null;
+            if ($purchasePrice !== null) {
+                $rawCur = strtoupper(trim((string)($row['purchasePriceCurrency'] ?? '')));
+                if ($rawCur === '') {
+                    $skipped++;
+                    $errors[] = "Row {$rowNum}: purchase price requires a currency — skipped";
+                    continue;
+                }
+                if (!in_array($rawCur, MarketValueService::SUPPORTED_CURRENCIES, true)) {
+                    $skipped++;
+                    $errors[] = "Row {$rowNum}: unsupported purchase currency \"{$rawCur}\" — skipped";
+                    continue;
+                }
+                $purchaseCurrency = $rawCur;
+            }
+
             $item = new \OCA\Crate\Db\MediaItem();
             $item->setUserId($userId);
             $item->setArtist($artist);
@@ -430,6 +490,8 @@ class ImportService
             $item->setDiscogsId($discogsId ?: null);
             $item->setBarcode($barcode ?: null);
             $item->setLabel($label ?: null);
+            $item->setPurchasePrice($purchasePrice);
+            $item->setPurchasePriceCurrency($purchaseCurrency);
             $item->setCategory($category);
             $now = (new \DateTime())->format('Y-m-d H:i:s');
             $item->setCreatedAt($now);
