@@ -1,12 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- Crate sidebar icon: stylised vinyl disc with a "C" letterform sat
-       inside the centre label. Matches the launcher mark used by the
-       Android companion (com.megamaced.crate) so the two apps read as
-       a pair. Mono so Nextcloud's theme system can re-tint it for
-       light/dark sidebars. -->
+  <!-- Crate sidebar icon: stylised vinyl LP with three concentric groove
+       gaps + a "C" letterform on the centre label. Matches the launcher
+       mark used by the Android companion (com.megamaced.crate) so the
+       two apps read as a pair — the vinyl identity (rather than CD)
+       comes from the groove bands.
+
+       evenodd fill rule alternates fill/no-fill with each closed sub-path:
+         r=7.50  ON  → outer rim band starts here
+         r=6.66  OFF → top of groove 1
+         r=6.46  ON  → band 2 starts here
+         r=5.73  OFF → top of groove 2
+         r=5.53  ON  → band 3 starts here
+         r=4.79  OFF → top of groove 3
+         r=4.59  ON  → band 4 starts here
+         r=3.40  OFF → label hole
+
+       Mono so Nextcloud's theme system can re-tint it for light and
+       dark sidebars. -->
   <path fill="#ffffff" fill-rule="evenodd"
         d="M8 0.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15z
+           M8 1.34a6.66 6.66 0 1 0 0 13.32 6.66 6.66 0 0 0 0-13.32z
+           M8 1.54a6.46 6.46 0 1 0 0 12.92 6.46 6.46 0 0 0 0-12.92z
+           M8 2.27a5.73 5.73 0 1 0 0 11.46 5.73 5.73 0 0 0 0-11.46z
+           M8 2.47a5.53 5.53 0 1 0 0 11.06 5.53 5.53 0 0 0 0-11.06z
+           M8 3.21a4.79 4.79 0 1 0 0 9.58 4.79 4.79 0 0 0 0-9.58z
+           M8 3.41a4.59 4.59 0 1 0 0 9.18 4.59 4.59 0 0 0 0-9.18z
            M8 4.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/>
+  <!-- C letterform: 270° arc opening to the right, centred on the label
+       at (8, 8), radius 1.6, stroke 1.1 with rounded caps. -->
   <path fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round"
         d="M9.13 6.87a1.6 1.6 0 1 0 0 2.26"/>
 </svg>
