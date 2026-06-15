@@ -62,7 +62,6 @@ class MediaController extends OCSController
 
         if ($isPaginated) {
             $result = $this->mediaService->findPaginated(
-                $this->userId(),
                 $status,
                 $category,
                 $updatedSince,

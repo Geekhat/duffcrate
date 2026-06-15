@@ -36,9 +36,9 @@ class PlaylistMapper extends QBMapper
     {
 	$qb = $this->db->getQueryBuilder();
 	$qb->select('*')
-	->from($this->getTableName())
-	->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
-	return $this->findEntity($qb);
+	  ->from($this->getTableName())
+	  ->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+	  return $this->findEntity($qb);
     }
 
 

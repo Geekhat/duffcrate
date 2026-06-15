@@ -41,7 +41,7 @@ class Provider implements IProvider
     public function search(IUser $user, ISearchQuery $query): SearchResult
     {
         $term  = $query->getTerm();
-        $items = $this->mapper->search($user->getUID(), $term);
+        $items = $this->mapper->search($term);
 
         $appUrl = $this->urlGenerator->linkToRouteAbsolute('crate.page.index');
 

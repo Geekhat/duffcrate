@@ -67,7 +67,6 @@ class MediaService
      * Returns ['items' => MediaItem[], 'total' => int].
      */
     public function findPaginated(
-        string $userId,
         ?string $status = null,
         ?string $category = null,
         ?string $updatedSince = null,
@@ -76,8 +75,8 @@ class MediaService
     ): array {
         $limit = max(1, min(200, $limit));
         return [
-            'items' => $this->mapper->findPaginated($userId, $status, $category, $updatedSince, $limit, $offset),
-            'total' => $this->mapper->countAll($userId, $status, $category, $updatedSince),
+            'items' => $this->mapper->findPaginated($status, $category, $updatedSince, $limit, $offset),
+            'total' => $this->mapper->countAll($status, $category, $updatedSince),
         ];
     }
 
@@ -262,11 +261,11 @@ class MediaService
         // Load before the transaction so we know which artwork files to sweep.
         $itemsToDelete = [];
         foreach ($categories as $category) {
-            foreach ($this->mapper->findAll($userId, $category) as $item) {
+            foreach ($this->mapper->findAll($category) as $item) {
                 $itemsToDelete[] = $item;
             }
         }
-        $playlistsToDelete = $wipePlaylists ? $this->playlistMapper->findAll($userId) : [];
+        $playlistsToDelete = $wipePlaylists ? $this->playlistMapper->findAll() : [];
 
         $this->db->beginTransaction();
         try {

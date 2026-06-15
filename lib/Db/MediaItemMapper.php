@@ -45,7 +45,6 @@ class MediaItemMapper extends QBMapper
      * @return MediaItem[]
      */
     public function findPaginated(
-        string $userId,
         ?string $status = null,
         ?string $category = null,
         ?string $updatedSince = null,
@@ -55,7 +54,6 @@ class MediaItemMapper extends QBMapper
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
-            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
             ->orderBy('created_at', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset);
@@ -66,15 +64,13 @@ class MediaItemMapper extends QBMapper
     }
 
     public function countAll(
-        string $userId,
         ?string $status = null,
         ?string $category = null,
         ?string $updatedSince = null,
     ): int {
         $qb = $this->db->getQueryBuilder();
         $qb->select($qb->func()->count('*', 'cnt'))
-            ->from($this->getTableName())
-            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+            ->from($this->getTableName());
 
         $this->applyFilters($qb, $status, $category, $updatedSince);
 
@@ -209,15 +205,14 @@ class MediaItemMapper extends QBMapper
      *
      * @return MediaItem[]
      */
-    public function search(string $userId, string $term): array
+    public function search(string $term): array
     {
         $like = '%' . $this->db->escapeLikeParameter(strtolower($term)) . '%';
         $qb   = $this->db->getQueryBuilder();
 
         $qb->select('*')
             ->from($this->getTableName())
-            ->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-            ->andWhere(
+            ->Where(
                 $qb->expr()->orX(
                     $qb->expr()->like($qb->func()->lower('title'), $qb->createNamedParameter($like)),
                     $qb->expr()->like($qb->func()->lower('artist'), $qb->createNamedParameter($like)),
