@@ -45,15 +45,26 @@ abstract class AbstractApiService
         return null;
     }
 
-    /** Retrieve the user's stored credential for this service, or '' if missing. */
+/** Retrieve the user's stored credential for this service, or '' if missing.
+ *  Falls back to the global fallback user's credential if the user has none.
+ */
     protected function getCredential(string $userId): string
     {
-        $key = $this->credentialKey();
-        if ($key === null) {
-            return '';
-        }
-        return (string)($this->credentialsManager->retrieve($userId, $key) ?? '');
+	$key = $this->credentialKey();
+    if ($key === null) {
+        return '';
     }
+
+    // Try the current user's own credential first
+    $credential = (string)($this->credentialsManager->retrieve($userId, $key) ?? '');
+    if ($credential !== '') {
+        return $credential;
+    }
+
+    // Fall back to the global fallback user's credential
+    $fallbackUser = 'geekhat'; // ← change this to your admin username
+    return (string)($this->credentialsManager->retrieve($fallbackUser, $key) ?? '');
+}
 
     /**
      * Perform a GET and return the JSON-decoded body.

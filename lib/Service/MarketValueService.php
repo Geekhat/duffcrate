@@ -132,7 +132,15 @@ class MarketValueService
      */
     private function fetchStats(string $userId, string $releaseId, string $currency): ?array
     {
-        $token = (string) ($this->credentialsManager->retrieve($userId, 'crate/discogs_token') ?? '');
+
+$token = (string) ($this->credentialsManager->retrieve($userId, 'crate/discogs_token') ?? '');
+if ($token === '') {
+    $fallbackUser = 'geekhat';
+    $token = (string) ($this->credentialsManager->retrieve($fallbackUser, 'crate/discogs_token') ?? '');
+}
+
+
+
 
         $headers = [
             'User-Agent' => self::USER_AGENT,
